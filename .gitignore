@@ -1,0 +1,41 @@
+# Ignore all files by default, but scan all directories.
+*
+!*/
+
+# Do not ignore git files in the root of the repo.
+!/.git*
+
+*.uproject
+*.umap
+*.uasset
+
+!/Source/**
+/Config/**
+
+/Content
+/Content/_Assets
+
+!/RawContent/**/*
+
+# Windows
+ehthumbs.db
+Thumbs.db
+
+# Visual Studio
+.vs
+
+Binaries
+DerivedDataCache
+Intermediate
+Saved
+.vscode
+.vs
+*.VC.db
+*.opensdf
+*.opendb
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+
