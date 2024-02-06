@@ -12,7 +12,7 @@
 
 class UWidgetLoginScreen;
 
-DECLARE_DELEGATE_ThreeParams(DelegateSendAccountInfo, FText id, FText pw, bool isLogin);
+DECLARE_DELEGATE_ThreeParams(DelegateSendAccountInfo, const FText id, const FText pw, bool isLogin);
 
 UCLASS()
 class UNTILDAWN_API AHUDLoginMap : public AHUD
@@ -25,15 +25,22 @@ public:
 
 	virtual void BeginPlay() override;
 
+	void SetLoginMessageBox(const bool);
+
+	void SetSignUpMessageBox(const bool);
+
 	DelegateSendAccountInfo DSendAccountInfo;
 
 protected:
 
-	UFUNCTION()
-	void RequestLogin(FText& id, FText& pw);
 
 	UFUNCTION()
-	void RequestSignUp(FText& id, FText& pw);
+	void RequestLogin(const FText& id, const FText& pw);
+
+	UFUNCTION()
+	void RequestSignUp(const FText& id, const FText& pw);
+
+	FString CheckAccountIsValid(const FString& account);
 
 private:
 

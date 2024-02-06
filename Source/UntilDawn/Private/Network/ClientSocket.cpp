@@ -1,26 +1,23 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Network/ClientSocket.h"
-#include <thread>
 #include "UntilDawn/UntilDawn.h"
-
-void Send(SOCKET& sock);
-void Recv(SOCKET& sock);
+#include "Player/Login/PlayerControllerLoginMap.h"
 
 ClientSocket::ClientSocket()
 {
-	Thread = FRunnableThread::Create(this, TEXT("Network Thread"));
+	thread = FRunnableThread::Create(this, TEXT("Network Thread"));
 }
 
 ClientSocket::~ClientSocket()
 {
-	if (Thread)
+	if (thread)
 	{
-		// ½º·¹µå Á¾·á
-		Thread->WaitForCompletion();
-		Thread->Kill();
-		delete Thread;
+		// ìŠ¤ë ˆë“œ ì¢…ë£Œ
+		thread->WaitForCompletion();
+		thread->Kill();
+		delete thread;
 	}
 }
 
@@ -28,7 +25,7 @@ bool ClientSocket::InitSocket()
 {
 	WSADATA wsaData;
 	int result;
-	// WinSock ÃÊ±âÈ­
+	// WinSock ì´ˆê¸°í™”
 	result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (result != 0)
 	{
@@ -36,7 +33,7 @@ bool ClientSocket::InitSocket()
 		return false;
 	}
 
-	// ¼ÒÄÏ »ý¼º
+	// ì†Œì¼“ ìƒì„±
 	clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (clientSocket == INVALID_SOCKET)
 	{
@@ -49,13 +46,13 @@ bool ClientSocket::InitSocket()
 
 void ClientSocket::StartSocket()
 {
-	// Á¢¼ÓÇÏ°íÀÚ ÇÏ´Â ¼­¹ö¿¡ ´ëÇÑ ÁÖ¼Ò ¼¼ÆÃ
+	// ì ‘ì†í•˜ê³ ìž í•˜ëŠ” ì„œë²„ì— ëŒ€í•œ ì£¼ì†Œ ì„¸íŒ…
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(9999);
 	addr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
 
-	// ¼­¹ö¿¡ ¿¬°á ¿äÃ»
+	// ì„œë²„ì— ì—°ê²° ìš”ì²­
 	if (connect(clientSocket, (sockaddr*)&addr, sizeof(addr)) != 0)
 	{
 		ELOG(TEXT("[Error] : Failed to connect to server!"));
@@ -68,10 +65,32 @@ void ClientSocket::StartSocket()
 
 void ClientSocket::StopThread()
 {
-	Thread->WaitForCompletion();
-	Thread->Kill();
-	delete Thread;
-	Thread = nullptr;
+	thread->WaitForCompletion();
+	thread->Kill();
+	delete thread;
+	thread = nullptr;
+}
+
+void ClientSocket::Recv(std::stringstream& recvStream)
+{
+
+}
+
+void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool isLogin)
+{
+	std::stringstream sendStream;
+	if (isLogin) sendStream << static_cast<int>(EPacketType::LOGIN) << "\n";
+	else sendStream << static_cast<int>(EPacketType::SIGNUP) << "\n";
+	std::string tempId(TCHAR_TO_UTF8(*id.ToString()));
+	std::string tempPw(TCHAR_TO_UTF8(*pw.ToString()));
+	sendStream << tempId << "\n";
+	sendStream << tempPw << "\n";
+	Send(sendStream); 
+}
+
+void ClientSocket::Send(std::stringstream& sendStream)
+{
+	send(clientSocket, sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
 bool ClientSocket::Init()
@@ -81,6 +100,39 @@ bool ClientSocket::Init()
 
 uint32 ClientSocket::Run()
 {
+	FPlatformProcess::Sleep(0.05);
+
+	while (ownerController)
+	{
+		std::stringstream recvStream;
+		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
+
+		int packetType;
+		if (recvBytes > 0)
+		{
+			recvStream << recvBuf;
+			recvStream >> packetType;
+
+			switch (static_cast<EPacketType>(packetType))
+			{
+			case EPacketType::SIGNUP:
+			{
+				bool isGranted;
+				recvStream >> isGranted;
+				ownerController->ReceiveSignUpRequestResult(isGranted);
+				break;
+			}
+			case EPacketType::LOGIN:
+			{
+				bool isGranted;
+				recvStream >> isGranted;
+				ownerController->ReceiveLoginRequestResult(isGranted);
+				break;
+			}
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -97,12 +149,4 @@ void ClientSocket::Exit()
 void ClientSocket::Stop()
 {
 
-}
-
-void Send(SOCKET& sock)
-{
-}
-
-void Recv(SOCKET& sock)
-{
 }

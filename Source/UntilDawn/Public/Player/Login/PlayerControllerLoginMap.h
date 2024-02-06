@@ -9,6 +9,10 @@
 /**
  * 
  */
+
+class ClientSocket;
+class AHUDLoginMap;
+
 UCLASS()
 class UNTILDAWN_API APlayerControllerLoginMap : public APlayerController
 {
@@ -19,5 +23,33 @@ public:
 	APlayerControllerLoginMap();
 
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaTime) override;
+
+	void ReceiveSignUpRequestResult(const bool);
+
+	void ReceiveLoginRequestResult(const bool);
+
+protected:
+
+	UFUNCTION()
+	void ReceiveAccountInfo(const FText& id, const FText& pw, const bool isLogin);
+
+	void SetSignUpMessageText();
+
+	void SetLoginMessageText();
 	
+private:
+
+	ClientSocket* clientSocket;
+
+	UPROPERTY()
+	AHUDLoginMap* loginMapHUD;
+
+	bool isConnected;
+
+	bool bSetSignUpMessageText;
+	bool bSetLoginMessageText;
+	bool bFlag;
+
 };

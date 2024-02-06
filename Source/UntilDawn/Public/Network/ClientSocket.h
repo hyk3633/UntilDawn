@@ -5,12 +5,17 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <sstream>
+#include "Enums/PacketType.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
+#include "UntilDawn/UntilDawn.h"
 #include "CoreMinimal.h"
 
 /**
  * 
  */
+
+class APlayerControllerLoginMap;
+
 class UNTILDAWN_API ClientSocket : public FRunnable
 {
 public:
@@ -31,6 +36,12 @@ public:
 		return &instance;
 	}
 
+	void Recv(std::stringstream&);
+
+	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);
+
+	void Send(std::stringstream&);
+
 	// FRunnable 가상 함수
 
 	virtual bool Init() override;
@@ -41,12 +52,18 @@ public:
 
 	virtual void Stop() override;
 
+	FORCEINLINE void SetPlayerController(APlayerControllerLoginMap* controller) { ownerController = controller; }
+
 private:
 
 	SOCKET clientSocket;
 
-	HANDLE SendThread, RecvThread;
+	HANDLE sendThread, recvThread;
 
-	FRunnableThread* Thread;
+	FRunnableThread* thread;
 
+	char recvBuf[PACKET_SIZE];
+
+	UPROPERTY()
+	APlayerControllerLoginMap* ownerController;
 };

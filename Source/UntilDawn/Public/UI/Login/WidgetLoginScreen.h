@@ -11,10 +11,11 @@
  */
 
 class UButton;
+class UTextBlock;
 class UEditableTextBox;
 class UWidgetSwitcher;
 
-DECLARE_DELEGATE_TwoParams(DelegateTextBoxValue, FText id, FText pw);
+DECLARE_DELEGATE_TwoParams(DelegateTextBoxValue, const FText id, const FText pw);
 
 UCLASS()
 class UNTILDAWN_API UWidgetLoginScreen : public UUserWidget
@@ -24,6 +25,10 @@ class UNTILDAWN_API UWidgetLoginScreen : public UUserWidget
 public:
 
 	void Init();
+
+	void SetLoginMessage(const FString&, const bool);
+
+	void SetSignUpMessage(const FString&, const bool);
 
 	DelegateTextBoxValue DLoginTextBox, DSignUpTextBox;
 
@@ -44,40 +49,40 @@ protected:
 private:
 
 	UPROPERTY(meta = (BindWidget))
-	UWidgetSwitcher* MainBox;
+	UWidgetSwitcher* mainBox;
 
 	// 로그인 메뉴
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* LoginMenuButton;
+	UButton* loginMenuButton;
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* LoginButton;
+	UButton* loginButton;
 
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* IdTextBox_Login;
+	UEditableTextBox* idTextBox_Login;
 
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* PwTextBox_Login;
+	UEditableTextBox* pwTextBox_Login;
 
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* MessageTextBox_Login;
+	UTextBlock* textBlock_Login;
 
 	// 회원가입 메뉴
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* SignUpMenuButton;
+	UButton* signUpMenuButton;
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* SignUpButton;
+	UButton* signUpButton;
 
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* IdTextBox_SignUp;
+	UEditableTextBox* idTextBox_SignUp;
 
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* PwTextBox_SignUp;
+	UEditableTextBox* pwTextBox_SignUp;
 
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* MessageTextBox_SignUp;
+	UTextBlock* textBlock_SignUp;
 
 };
