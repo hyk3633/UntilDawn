@@ -30,12 +30,6 @@ public:
 
 	void StopThread();
 
-	static ClientSocket* GetSingleton()
-	{
-		static ClientSocket instance;
-		return &instance;
-	}
-
 	void Recv(std::stringstream&);
 
 	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);

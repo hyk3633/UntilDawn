@@ -5,6 +5,8 @@
 #include "Network/ClientSocket.h"
 #include "UI/Login/HUDLoginMap.h"
 #include "UntilDawn/UntilDawn.h"
+#include "GameInstance/UntilDawnGameInstance.h"
+#include "Kismet/GamePlayStatics.h"
 
 APlayerControllerLoginMap::APlayerControllerLoginMap()
 {
@@ -15,7 +17,7 @@ void APlayerControllerLoginMap::BeginPlay()
 {
 	Super::BeginPlay();
 
-	clientSocket = ClientSocket::GetSingleton();
+	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->SetPlayerController(this);
 	if (clientSocket->InitSocket())
 	{
@@ -53,7 +55,6 @@ void APlayerControllerLoginMap::ReceiveLoginRequestResult(const bool isGranted)
 {
 	bFlag = isGranted;
 	bSetLoginMessageText = true;
-	PLOG(TEXT("recv %d"), isGranted);
 }
 
 void APlayerControllerLoginMap::ReceiveAccountInfo(const FText& id, const FText& pw, const bool isLogin)
@@ -71,5 +72,11 @@ void APlayerControllerLoginMap::SetLoginMessageText()
 {
 	loginMapHUD->SetLoginMessageBox(bFlag);
 	bSetLoginMessageText = false;
+	GetWorldTimerManager().SetTimer(levelTransitionTimer, this, &APlayerControllerLoginMap::StartLevelTransition, 2.f, false);
+}
+
+void APlayerControllerLoginMap::StartLevelTransition()
+{
+	UGameplayStatics::OpenLevel(this, TEXT("MainMap"));
 }
 

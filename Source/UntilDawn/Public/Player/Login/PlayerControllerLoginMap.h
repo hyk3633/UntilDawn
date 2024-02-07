@@ -38,6 +38,8 @@ protected:
 	void SetSignUpMessageText();
 
 	void SetLoginMessageText();
+
+	void StartLevelTransition();
 	
 private:
 
@@ -51,5 +53,7 @@ private:
 	bool bSetSignUpMessageText;
 	bool bSetLoginMessageText;
 	bool bFlag;
+
+	FTimerHandle levelTransitionTimer;
 
 };
