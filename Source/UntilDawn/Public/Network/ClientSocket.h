@@ -8,6 +8,7 @@
 #include "Enums/PacketType.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "UntilDawn/UntilDawn.h"
+#include "Structs/PlayerInfo.h"
 #include "CoreMinimal.h"
 
 /**
@@ -15,6 +16,7 @@
  */
 
 class APlayerControllerLoginMap;
+class AGameModeMainMap;
 
 class UNTILDAWN_API ClientSocket : public FRunnable
 {
@@ -34,6 +36,10 @@ public:
 
 	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);
 
+	void NotifyAccessingGame(const PlayerInfo& info);
+
+	void SynchronizeMyCharacterInfo(const PlayerInfo& info);
+
 	void Send(std::stringstream&);
 
 	// FRunnable 가상 함수
@@ -48,6 +54,8 @@ public:
 
 	FORCEINLINE void SetPlayerController(APlayerControllerLoginMap* controller) { ownerController = controller; }
 
+	FORCEINLINE void SetGameMode(AGameModeMainMap* gameMode) { ownerGameMode = gameMode; }
+
 private:
 
 	SOCKET clientSocket;
@@ -60,4 +68,11 @@ private:
 
 	UPROPERTY()
 	APlayerControllerLoginMap* ownerController;
+
+	PlayerInfoSetEx newPlayerInfoSetEx;
+
+	PlayerInfoSet synchPlayerInfoSet;
+
+	UPROPERTY()
+	AGameModeMainMap* ownerGameMode;
 };

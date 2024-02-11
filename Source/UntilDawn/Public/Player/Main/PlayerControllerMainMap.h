@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Structs/PlayerInfo.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -11,6 +12,7 @@
  */
 
 class ClientSocket;
+class APlayerCharacter;
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
@@ -23,8 +25,22 @@ public:
 
 	virtual void BeginPlay() override;
 
+	virtual void OnPossess(APawn* pawn) override;
+
+protected:
+
+	void UpdatePlayerInfo();
+
+	void SynchronizePlayerInfo();
+
 protected:
 
 	ClientSocket* clientSocket;
 
+	UPROPERTY()
+	APlayerCharacter* myCharacter;
+
+	FTimerHandle SynchronizeTimer;
+
+	PlayerInfo myInfo;
 };

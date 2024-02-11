@@ -3,6 +3,7 @@
 
 #include "Network/ClientSocket.h"
 #include "UntilDawn/UntilDawn.h"
+#include "GameMode/GameModeMainMap.h"
 #include "Player/Login/PlayerControllerLoginMap.h"
 
 ClientSocket::ClientSocket()
@@ -50,7 +51,7 @@ void ClientSocket::StartSocket()
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(9999);
-	addr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
 	// 서버에 연결 요청
 	if (connect(clientSocket, (sockaddr*)&addr, sizeof(addr)) != 0)
@@ -73,7 +74,7 @@ void ClientSocket::StopThread()
 
 void ClientSocket::Recv(std::stringstream& recvStream)
 {
-
+	
 }
 
 void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool isLogin)
@@ -86,6 +87,22 @@ void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool 
 	sendStream << tempId << "\n";
 	sendStream << tempPw << "\n";
 	Send(sendStream); 
+}
+
+void ClientSocket::NotifyAccessingGame(const PlayerInfo& info)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::SPAWNPLAYER) << "\n";
+	sendStream << info << "\n";
+	Send(sendStream);
+}
+
+void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::SYNCH) << "\n";
+	sendStream << info << "\n";
+	Send(sendStream);
 }
 
 void ClientSocket::Send(std::stringstream& sendStream)
@@ -119,14 +136,32 @@ uint32 ClientSocket::Run()
 			{
 				bool isGranted;
 				recvStream >> isGranted;
-				ownerController->ReceiveSignUpRequestResult(isGranted);
+				if(ownerController)
+					ownerController->ReceiveSignUpRequestResult(isGranted);
 				break;
 			}
 			case EPacketType::LOGIN:
 			{
 				bool isGranted;
 				recvStream >> isGranted;
-				ownerController->ReceiveLoginRequestResult(isGranted);
+				int playerNumber;
+				recvStream >> playerNumber;
+				if (ownerController)
+					ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
+				break;
+			}
+			case EPacketType::SPAWNPLAYER:
+			{
+				newPlayerInfoSetEx.InputStreamWithID(recvStream);
+				if (ownerGameMode)
+					ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
+				break;
+			}
+			case EPacketType::SYNCH:
+			{
+				recvStream >> synchPlayerInfoSet;
+				if (ownerGameMode)
+					ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
 				break;
 			}
 			}

@@ -28,7 +28,7 @@ public:
 
 	void ReceiveSignUpRequestResult(const bool);
 
-	void ReceiveLoginRequestResult(const bool);
+	void ReceiveLoginRequestResult(const bool, int);
 
 protected:
 

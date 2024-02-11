@@ -20,5 +20,11 @@ class UNTILDAWN_API UUntilDawnGameInstance : public UGameInstance
 public:
 
 	static ClientSocket* GetSocket();
+
+	FORCEINLINE void SetPlayerNumber(int number) { playerNumber = number; }
+	FORCEINLINE int GetPlayerNumber() const { return playerNumber; }
 	
+private:
+
+	int playerNumber;
 };
