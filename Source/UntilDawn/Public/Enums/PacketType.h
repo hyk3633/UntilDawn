@@ -6,4 +6,6 @@ enum class EPacketType : uint8
 	LOGIN,
 	SPAWNPLAYER,
 	SYNCH,
+	PACKETTYPE_MAX,
+	PLAYERDISCONNECTED
 };

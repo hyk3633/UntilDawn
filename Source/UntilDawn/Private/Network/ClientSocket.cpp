@@ -132,38 +132,47 @@ uint32 ClientSocket::Run()
 
 			switch (static_cast<EPacketType>(packetType))
 			{
-			case EPacketType::SIGNUP:
-			{
-				bool isGranted;
-				recvStream >> isGranted;
-				if(ownerController)
-					ownerController->ReceiveSignUpRequestResult(isGranted);
-				break;
-			}
-			case EPacketType::LOGIN:
-			{
-				bool isGranted;
-				recvStream >> isGranted;
-				int playerNumber;
-				recvStream >> playerNumber;
-				if (ownerController)
-					ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
-				break;
-			}
-			case EPacketType::SPAWNPLAYER:
-			{
-				newPlayerInfoSetEx.InputStreamWithID(recvStream);
-				if (ownerGameMode)
-					ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
-				break;
-			}
-			case EPacketType::SYNCH:
-			{
-				recvStream >> synchPlayerInfoSet;
-				if (ownerGameMode)
-					ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
-				break;
-			}
+				case EPacketType::SIGNUP:
+				{
+					bool isGranted;
+					recvStream >> isGranted;
+					if(ownerController)
+						ownerController->ReceiveSignUpRequestResult(isGranted);
+					break;
+				}
+				case EPacketType::LOGIN:
+				{
+					bool isGranted;
+					recvStream >> isGranted;
+					int playerNumber;
+					recvStream >> playerNumber;
+					if (ownerController)
+						ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
+					break;
+				}
+				case EPacketType::SPAWNPLAYER:
+				{
+					newPlayerInfoSetEx.InputStreamWithID(recvStream);
+					if (ownerGameMode)
+						ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
+					break;
+				}
+				case EPacketType::SYNCH:
+				{
+					recvStream >> synchPlayerInfoSet;
+					if (ownerGameMode)
+						ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
+					break;
+				}
+				case EPacketType::PLAYERDISCONNECTED:
+				{
+					int number = 0;
+					std::string id;
+					recvStream >> number >> id;
+					if (ownerGameMode)
+						ownerGameMode->ReceiveDisconnectedPlayerInfo(number, FString(UTF8_TO_TCHAR(id.c_str())));
+					break;
+				}
 			}
 		}
 	}

@@ -9,12 +9,15 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
 #include "Player/PlayerAnimInst.h"
 #include "UntilDawn/UntilDawn.h"
 
 APlayerCharacter::APlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -23,7 +26,7 @@ APlayerCharacter::APlayerCharacter()
 	bUseControllerRotationRoll = false;
 
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
-	GetMesh()->SetRelativeRotation(FRotator(0, 0, -90));
+	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
@@ -43,6 +46,25 @@ APlayerCharacter::APlayerCharacter()
 	followCamera->SetupAttachment(cameraBoom, USpringArmComponent::SocketName);
 	followCamera->bUsePawnControlRotation = false;
 
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Ariana_A.SK_Ariana_A'"));
+	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
+
+	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+	
+	static ConstructorHelpers::FClassFinder<UPlayerAnimInst> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Player/AnimBP_Player.AnimBP_Player_C'"));
+	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
+
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_Defaults.IMC_Defaults"));
+	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Jump(TEXT("/Game/_Assets/Inputs/Actions/IA_Jump.IA_Jump"));
+	if (obj_Jump.Succeeded()) jumpAction = obj_Jump.Object;
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Move(TEXT("/Game/_Assets/Inputs/Actions/IA_Move.IA_Move"));
+	if (obj_Move.Succeeded()) moveAction = obj_Move.Object;
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Look(TEXT("/Game/_Assets/Inputs/Actions/IA_Look.IA_Look"));
+	if (obj_Look.Succeeded()) lookAction = obj_Look.Object;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -56,7 +78,6 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::PossessedBy(AController* newController)
 {
 	Super::PossessedBy(newController);
-
 	if (APlayerController* PlayerController = Cast<APlayerController>(newController))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))

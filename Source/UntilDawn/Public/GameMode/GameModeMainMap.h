@@ -11,6 +11,8 @@
  * 
  */
 
+class UActorSpawner;
+class UActorPooler;
 class ClientSocket;
 class APlayerCharacter;
 class PlayerInfoSetEx;
@@ -24,7 +26,17 @@ public:
 
 	AGameModeMainMap();
 
+protected:
+
 	virtual void BeginPlay() override;
+
+	void DestroyPlayer();
+
+	void SpawnNewPlayerCharacter();
+
+	void SynchronizeOtherPlayersInfo();
+
+public:
 
 	virtual void Tick(float deltaTime) override;
 
@@ -32,17 +44,21 @@ public:
 
 	void ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet);
 
-protected:
-
-	void SpawnNewPlayerCharacter();
-
-	void SynchronizeOtherPlayersInfo();
+	void ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID);
 
 private:
+
+	UPROPERTY()
+	UActorSpawner* actorSpawner;
+
+	UPROPERTY()
+	UActorPooler* playerCharacterPooler;
+
+	int characterPoolSize = 2;
 	
 	ClientSocket* clientSocket;
 
-	TSubclassOf<APlayerCharacter> defaultPawnClass;
+	TQueue<int> playerToDelete;
 
 	TMap<int, APlayerCharacter*> playerCharacterMap;
 

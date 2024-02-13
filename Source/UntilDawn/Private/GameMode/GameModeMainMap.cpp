@@ -2,6 +2,8 @@
 
 
 #include "GameMode/GameModeMainMap.h"
+#include "GameSystem/ActorSpawner.h"
+#include "GameSystem/ActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
 #include "Network/ClientSocket.h"
@@ -12,8 +14,9 @@ AGameModeMainMap::AGameModeMainMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	static ConstructorHelpers::FClassFinder<APlayerCharacter> PlayerPawnBPClass(TEXT("/Game/_Assets/Blueprints/Player/BP_PlayerCharacter"));
-	defaultPawnClass = PlayerPawnBPClass.Class;
+	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
+
+	playerCharacterPooler = CreateDefaultSubobject<UActorPooler>(TEXT("Player Character Pooler"));
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
@@ -29,20 +32,38 @@ void AGameModeMainMap::BeginPlay()
 	myNumber = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetPlayerNumber();
 
 	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
-	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(defaultPawnClass, FVector(0, 0, 0), FRotator::ZeroRotator);
+	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
 	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	myPlayerController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
+
+	// 플레이어 캐릭터 풀 채우기
+	playerCharacterPooler->SetPoolSize(characterPoolSize);
+	actorSpawner->SpawnActor(APlayerCharacter::StaticClass(), characterPoolSize, playerCharacterPooler->GetActorPool());
 }
 
 void AGameModeMainMap::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
+	if (!playerToDelete.IsEmpty())
+		DestroyPlayer();
 	if (playerInfoSetEx)
 		SpawnNewPlayerCharacter();
 	if (playerInfoSet)
 		SynchronizeOtherPlayersInfo();
+}
+
+void AGameModeMainMap::DestroyPlayer()
+{
+	int number;
+	while (!playerToDelete.IsEmpty())
+	{
+		playerToDelete.Dequeue(number);
+		APlayerCharacter* tempCharacter = playerCharacterMap[number];
+		tempCharacter->Destroy();
+		playerCharacterMap.Remove(number);
+	}
 }
 
 void AGameModeMainMap::ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet)
@@ -55,6 +76,18 @@ void AGameModeMainMap::ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet
 	playerInfoSet = synchPlayerInfoSet;
 }
 
+void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID)
+{
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		APlayerCharacter* tempCharacter = playerCharacterMap[playerNumber];
+		if (IsValid(tempCharacter) && tempCharacter->GetPlayerID().Compare(playerID) == 0)
+		{
+			playerToDelete.Enqueue(playerNumber);
+		}
+	}
+}
+
 void AGameModeMainMap::SpawnNewPlayerCharacter()
 {
 	for (auto& playerInfo : playerInfoSetEx->playerInfoMap)
@@ -64,11 +97,11 @@ void AGameModeMainMap::SpawnNewPlayerCharacter()
 		PlayerInfo& info = playerInfo.second;
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
-				defaultPawnClass,
+				APlayerCharacter::StaticClass(),
 				FVector(info.vectorX, info.vectorY, info.vectorZ),
 				FRotator(info.pitch, info.yaw, info.roll)
 			);
-		newPlayerCharacter->SetPlayerId(FString(UTF8_TO_TCHAR(playerInfoSetEx->playerIDMap[number].c_str())));
+		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx->playerIDMap[number].c_str())));
 		newPlayerCharacter->SpawnDefaultController();
 		playerCharacterMap.Add(number, newPlayerCharacter);
 	}
@@ -84,9 +117,12 @@ void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 		if (playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
-			character->AddMovementInput(FVector(info.velocityX, info.velocityY, info.velocityZ));
-			character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
-			character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
+			if (IsValid(character))
+			{
+				character->AddMovementInput(FVector(info.velocityX, info.velocityY, info.velocityZ));
+				character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
+				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
+			}
 		}
 	}
 }

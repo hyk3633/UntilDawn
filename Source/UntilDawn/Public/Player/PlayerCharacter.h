@@ -38,7 +38,9 @@ public:
 
 	virtual void Tick(float deltaTime) override;
 
-	FORCEINLINE void SetPlayerId(const FString& id) { PlayerId = id; }
+	FORCEINLINE void SetPlayerID(const FString& id) { playerID = id; }
+
+	FORCEINLINE const FString& GetPlayerID() { return playerID; }
 
 private:
 
@@ -48,18 +50,18 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* followCamera;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* defaultMappingContext;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* jumpAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* moveAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* lookAction;
 
-	FString PlayerId;
+	FString playerID;
 
 };
