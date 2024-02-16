@@ -16,8 +16,6 @@ AGameModeMainMap::AGameModeMainMap()
 
 	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
 
-	playerCharacterPooler = CreateDefaultSubobject<UActorPooler>(TEXT("Player Character Pooler"));
-
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
 }
@@ -36,10 +34,6 @@ void AGameModeMainMap::BeginPlay()
 	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	myPlayerController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
-
-	// 플레이어 캐릭터 풀 채우기
-	playerCharacterPooler->SetPoolSize(characterPoolSize);
-	actorSpawner->SpawnActor(APlayerCharacter::StaticClass(), characterPoolSize, playerCharacterPooler->GetActorPool());
 }
 
 void AGameModeMainMap::Tick(float deltaTime)

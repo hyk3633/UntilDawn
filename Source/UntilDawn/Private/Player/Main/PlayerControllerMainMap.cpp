@@ -27,7 +27,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	UpdatePlayerInfo();
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->NotifyAccessingGame(myInfo);
-	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.02f, true);
+	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.016f, true);
 }
 
 void APlayerControllerMainMap::UpdatePlayerInfo()

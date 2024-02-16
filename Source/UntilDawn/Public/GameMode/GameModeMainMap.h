@@ -50,11 +50,6 @@ private:
 
 	UPROPERTY()
 	UActorSpawner* actorSpawner;
-
-	UPROPERTY()
-	UActorPooler* playerCharacterPooler;
-
-	int characterPoolSize = 2;
 	
 	ClientSocket* clientSocket;
 

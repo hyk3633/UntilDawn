@@ -12,6 +12,8 @@
 #include "InputMappingContext.h"
 #include "Player/PlayerAnimInst.h"
 #include "UntilDawn/UntilDawn.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "KismetAnimationLibrary.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -33,7 +35,7 @@ APlayerCharacter::APlayerCharacter()
 
 	GetCharacterMovement()->JumpZVelocity = 700.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
@@ -46,7 +48,7 @@ APlayerCharacter::APlayerCharacter()
 	followCamera->SetupAttachment(cameraBoom, USpringArmComponent::SocketName);
 	followCamera->bUsePawnControlRotation = false;
 
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Ariana_A.SK_Ariana_A'"));
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Phong_Base.SK_Phong_Base'"));
 	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
 
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
@@ -65,13 +67,36 @@ APlayerCharacter::APlayerCharacter()
 	
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Look(TEXT("/Game/_Assets/Inputs/Actions/IA_Look.IA_Look"));
 	if (obj_Look.Succeeded()) lookAction = obj_Look.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Sprint(TEXT("/Game/_Assets/Inputs/Actions/IA_Sprint.IA_Sprint"));
+	if (obj_Sprint.Succeeded()) sprintAction = obj_Sprint.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClick(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClick.IA_LeftClick"));
+	if (obj_LeftClick.Succeeded()) leftClickAction = obj_LeftClick.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClickHold(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClickHold.IA_LeftClickHold"));
+	if (obj_LeftClickHold.Succeeded()) leftClickHoldAction = obj_LeftClickHold.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RightClick(TEXT("/Game/_Assets/Inputs/Actions/IA_RightClick.IA_RightClick"));
+	if (obj_RightClick.Succeeded()) rightClickAction = obj_RightClick.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RKey(TEXT("/Game/_Assets/Inputs/Actions/IA_RKey.IA_RKey"));
+	if (obj_RKey.Succeeded()) rKeyAction = obj_RKey.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RKeyHold(TEXT("/Game/_Assets/Inputs/Actions/IA_RKeyHold.IA_RKeyHold"));
+	if (obj_RKeyHold.Succeeded()) rKeyHoldAction = obj_RKeyHold.Object;
+
+	// 무기 장착 컨트롤 모드
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 }
 
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	UPlayerAnimInst* animInst = Cast<UPlayerAnimInst>(GetMesh()->GetAnimInstance());
+	animInst = Cast<UPlayerAnimInst>(GetMesh()->GetAnimInstance());
 	if (animInst) animInst->SetMyCharacter(this);
 }
 
@@ -96,6 +121,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EnhancedInputComponent->BindAction(moveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		EnhancedInputComponent->BindAction(lookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
+		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Sprint);
+		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::SprintEnd);
+		EnhancedInputComponent->BindAction(leftClickAction, ETriggerEvent::Started, this, &APlayerCharacter::LeftClick);
+		EnhancedInputComponent->BindAction(leftClickHoldAction, ETriggerEvent::Triggered, this, &APlayerCharacter::LeftClickHold);
+		EnhancedInputComponent->BindAction(leftClickAction, ETriggerEvent::Completed, this, &APlayerCharacter::LeftClickEnd);
+		EnhancedInputComponent->BindAction(rightClickAction, ETriggerEvent::Triggered, this, &APlayerCharacter::RightClick);
+		EnhancedInputComponent->BindAction(rightClickAction, ETriggerEvent::Completed, this, &APlayerCharacter::RightClickEnd);
+		EnhancedInputComponent->BindAction(rKeyAction, ETriggerEvent::Completed, this, &APlayerCharacter::RKeyPressed);
+		EnhancedInputComponent->BindAction(rKeyHoldAction, ETriggerEvent::Triggered, this, &APlayerCharacter::RKeyHold);
 	}
 }
 
@@ -124,13 +158,88 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 	if (Controller != nullptr)
 	{
 		AddControllerYawInput(-lookAxisVector.X);
+		if (velocity.Size() == 0)
+		{
+			turnRight = (lookAxisVector.X < -0.3f ? true : false);
+			turnLeft = (lookAxisVector.X > 0.3f ? true : false);
+		}
+		else
+		{
+			turnRight = false;
+			turnLeft = false;
+		}
 		AddControllerPitchInput(lookAxisVector.Y);
 	}
+}
+
+void APlayerCharacter::Sprint(const FInputActionValue& value)
+{
+	if (isAbleShoot) return;
+	GetCharacterMovement()->MaxWalkSpeed = 600;
+}
+
+void APlayerCharacter::SprintEnd(const FInputActionValue& value)
+{
+	GetCharacterMovement()->MaxWalkSpeed = 300;
+}
+
+void APlayerCharacter::LeftClick(const FInputActionValue& value)
+{
+	leftClick = true;
+	animInst->PlayBowDrawMontage();
+}
+
+void APlayerCharacter::LeftClickHold(const FInputActionValue& value)
+{
+	isAbleShoot = true;
+	GetCharacterMovement()->MaxWalkSpeed = 300;
+}
+
+void APlayerCharacter::LeftClickEnd(const FInputActionValue& value)
+{
+	if (isAbleShoot == false) return;
+	isAbleShoot = false;
+	animInst->PlayBowShootMontage();
+	shootPower = 0;
+}
+
+void APlayerCharacter::RightClick(const FInputActionValue& value)
+{
+	rightClick = true;
+}
+
+void APlayerCharacter::RightClickEnd(const FInputActionValue& value)
+{
+	rightClick = false;
+}
+
+void APlayerCharacter::RKeyPressed(const FInputActionValue& value)
+{
+	animInst->PlayWeaponArmMontage(EWeaponType::BOW);
+}
+
+void APlayerCharacter::RKeyHold(const FInputActionValue& value)
+{
+	animInst->PlayWeaponDisarmMontage(EWeaponType::BOW);
 }
 
 void APlayerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
+	speed = GetVelocity().Size2D();
+	velocity = GetVelocity();
+
+	direction = UKismetAnimationLibrary::CalculateDirection(velocity, GetActorForwardVector().Rotation());
+	pitch = GetBaseAimRotation().Pitch;
+	if (pitch >= 180.f) pitch -= 360.f;
+
+	if (isAbleShoot)
+		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
+}
+
+const bool APlayerCharacter::GetIsFalling() const
+{
+	return GetMovementComponent()->IsFalling();
 }
 
