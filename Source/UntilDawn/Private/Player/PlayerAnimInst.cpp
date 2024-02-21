@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Player/PlayerAnimInst.h"
 #include "Player/PlayerCharacter.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -17,9 +16,9 @@ void UPlayerAnimInst::UpdateValue()
 		pitch = myCharacter->GetPitch();
 		turnRight = myCharacter->GetTurnRight();
 		turnLeft = myCharacter->GetTurnLeft();
-		leftClick = myCharacter->GetLeftClick();
 		rightClick = myCharacter->GetRightClick();
 		isAbleShoot = myCharacter->GetIsAbleShoot();
+		currentWeaponType = myCharacter->GetCurrentWeaponType();
 	}
 }
 
@@ -28,12 +27,10 @@ void UPlayerAnimInst::PlayWeaponArmMontage(const EWeaponType type)
 	if (IsAnyMontagePlaying()) return;
 	if (type == EWeaponType::AXE && axeArmDisarmMontage)
 	{
-		currentWeaponType = EWeaponType::AXE;
 		Montage_Play(axeArmDisarmMontage);
 	}
 	else if (type == EWeaponType::BOW && bowArmDisarmMontage)
 	{
-		currentWeaponType = EWeaponType::BOW;
 		Montage_Play(bowArmDisarmMontage);
 	}
 	Montage_JumpToSection(FName("Arm"));
@@ -41,7 +38,7 @@ void UPlayerAnimInst::PlayWeaponArmMontage(const EWeaponType type)
 
 void UPlayerAnimInst::PlayWeaponDisarmMontage(const EWeaponType type)
 {
-	if (IsAnyMontagePlaying() || currentWeaponType != EWeaponType::BOW) return;
+	if (IsAnyMontagePlaying()) return;
 	if (type == EWeaponType::AXE && axeArmDisarmMontage)
 	{
 		Montage_Play(axeArmDisarmMontage);
@@ -50,8 +47,16 @@ void UPlayerAnimInst::PlayWeaponDisarmMontage(const EWeaponType type)
 	{
 		Montage_Play(bowArmDisarmMontage);
 	}
-	currentWeaponType = EWeaponType::DEFAULT;
 	Montage_JumpToSection(FName("Disarm"));
+}
+
+void UPlayerAnimInst::PlayAxeAttackMontage()
+{
+	if (IsAnyMontagePlaying()) return;
+	if (axeAttackMontage)
+	{
+		Montage_Play(axeAttackMontage);
+	}
 }
 
 void UPlayerAnimInst::PlayBowDrawMontage()

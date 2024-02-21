@@ -30,6 +30,8 @@ public:
 
 	void PlayWeaponDisarmMontage(const EWeaponType type);
 
+	void PlayAxeAttackMontage();
+
 	void PlayBowDrawMontage();
 
 	void PlayBowShootMontage();
@@ -61,9 +63,6 @@ private:
 	bool turnLeft;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	bool leftClick;
-
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool rightClick;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -77,6 +76,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* bowDrawMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* axeAttackMontage;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	EWeaponType currentWeaponType = EWeaponType::DEFAULT;

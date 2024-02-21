@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "Structs/PlayerInfo.h"
+#include "Structs/CharacterInfo.h"
+#include "Enums/PlayerInputs.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -27,6 +28,8 @@ public:
 
 	virtual void OnPossess(APawn* pawn) override;
 
+	void SendPlayerInputAction(const EPlayerInputs inputType);
+
 protected:
 
 	void UpdatePlayerInfo();
@@ -42,5 +45,5 @@ protected:
 
 	FTimerHandle SynchronizeTimer;
 
-	PlayerInfo myInfo;
+	CharacterInfo myInfo;
 };

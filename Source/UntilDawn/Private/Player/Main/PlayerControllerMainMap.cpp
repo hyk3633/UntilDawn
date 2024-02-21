@@ -30,6 +30,11 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.016f, true);
 }
 
+void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType)
+{
+	clientSocket->SendPlayerInputAction(static_cast<int>(inputType));
+}
+
 void APlayerControllerMainMap::UpdatePlayerInfo()
 {
 	FVector&& location = std::move(GetPawn()->GetActorLocation());

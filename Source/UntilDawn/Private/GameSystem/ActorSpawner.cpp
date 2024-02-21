@@ -1,13 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "GameSystem/ActorSpawner.h"
+#include "Zombie/ZombieCharacter.h"
 
 UActorSpawner::UActorSpawner()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 
 void UActorSpawner::BeginPlay()
 {
@@ -15,12 +14,12 @@ void UActorSpawner::BeginPlay()
 	
 }
 
-void UActorSpawner::SpawnActor(TSubclassOf<AActor> actorClass, int spawnCount, TArray<AActor*>& actorArray)
+void UActorSpawner::SpawnActor(const int spawnCount, TArray<AZombieCharacter*>& actorArray)
 {
 	for (int i = 0; i < spawnCount; i++)
 	{
-		AActor* actor = GetWorld()->SpawnActor<AActor>(actorClass, FVector(0, 0, -3500), FRotator::ZeroRotator);
+		AZombieCharacter* actor = GetWorld()->SpawnActor<AZombieCharacter>(AZombieCharacter::StaticClass(), FVector(0, 0, -3500), FRotator::ZeroRotator);
+		actor->SpawnDefaultController();
 		actorArray.Add(actor);
 	}
 }
-

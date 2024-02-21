@@ -89,7 +89,7 @@ void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool 
 	Send(sendStream); 
 }
 
-void ClientSocket::NotifyAccessingGame(const PlayerInfo& info)
+void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SPAWNPLAYER) << "\n";
@@ -97,11 +97,19 @@ void ClientSocket::NotifyAccessingGame(const PlayerInfo& info)
 	Send(sendStream);
 }
 
-void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
+void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::SYNCH) << "\n";
+	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";
 	sendStream << info << "\n";
+	Send(sendStream);
+}
+
+void ClientSocket::SendPlayerInputAction(const int inputType)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::PLAYERINPUTACTION) << "\n";
+	sendStream << inputType << "\n";
 	Send(sendStream);
 }
 
@@ -136,8 +144,7 @@ uint32 ClientSocket::Run()
 				{
 					bool isGranted;
 					recvStream >> isGranted;
-					if(ownerController)
-						ownerController->ReceiveSignUpRequestResult(isGranted);
+					ownerController->ReceiveSignUpRequestResult(isGranted);
 					break;
 				}
 				case EPacketType::LOGIN:
@@ -146,22 +153,28 @@ uint32 ClientSocket::Run()
 					recvStream >> isGranted;
 					int playerNumber;
 					recvStream >> playerNumber;
-					if (ownerController)
-						ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
+					ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
 					break;
 				}
 				case EPacketType::SPAWNPLAYER:
 				{
 					newPlayerInfoSetEx.InputStreamWithID(recvStream);
-					if (ownerGameMode)
+					if(ownerGameMode)
 						ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
 					break;
 				}
-				case EPacketType::SYNCH:
+				case EPacketType::SYNCHPLAYER:
 				{
 					recvStream >> synchPlayerInfoSet;
 					if (ownerGameMode)
 						ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
+					break;
+				}
+				case EPacketType::SYNCHZOMBIE:
+				{
+					recvStream >> synchZombieInfoSet;
+					if (ownerGameMode)
+						ownerGameMode->ReceiveZombieInfo(&synchZombieInfoSet);
 					break;
 				}
 				case EPacketType::PLAYERDISCONNECTED:
@@ -171,6 +184,14 @@ uint32 ClientSocket::Run()
 					recvStream >> number >> id;
 					if (ownerGameMode)
 						ownerGameMode->ReceiveDisconnectedPlayerInfo(number, FString(UTF8_TO_TCHAR(id.c_str())));
+					break;
+				}
+				case EPacketType::PLAYERINPUTACTION:
+				{
+					int number = 0, inputType = 0;
+					recvStream >> number >> inputType;
+					if (ownerGameMode)
+						ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
 					break;
 				}
 			}

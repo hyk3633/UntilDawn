@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "Structs/PlayerInfo.h"
+#include "Structs/CharacterInfo.h"
 #include "GameModeMainMap.generated.h"
 
 /**
@@ -12,9 +12,10 @@
  */
 
 class UActorSpawner;
-class UActorPooler;
+class UZombieActorPooler;
 class ClientSocket;
 class APlayerCharacter;
+class AZombieCharacter;
 class PlayerInfoSetEx;
 
 UCLASS()
@@ -30,11 +31,15 @@ protected:
 
 	virtual void BeginPlay() override;
 
+
+
 	void DestroyPlayer();
 
 	void SpawnNewPlayerCharacter();
 
 	void SynchronizeOtherPlayersInfo();
+
+	void SynchronizeZombieInfo();
 
 public:
 
@@ -42,14 +47,21 @@ public:
 
 	void ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet);
 
-	void ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet);
+	void ReceiveOtherPlayersInfo(CharacterInfoSet* synchPlayerInfoSet);
 
 	void ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID);
+
+	void SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType);
+
+	void ReceiveZombieInfo(CharacterInfoSet* synchZombieInfoSet);
 
 private:
 
 	UPROPERTY()
 	UActorSpawner* actorSpawner;
+
+	UPROPERTY()
+	UZombieActorPooler* zombiePooler;
 	
 	ClientSocket* clientSocket;
 
@@ -59,7 +71,11 @@ private:
 
 	PlayerInfoSetEx* playerInfoSetEx;
 
-	PlayerInfoSet* playerInfoSet;
+	CharacterInfoSet* playerInfoSet;
+
+	TMap<int, AZombieCharacter*> zombieCharacterMap;
+
+	CharacterInfoSet* zombieInfoSet;
 
 	int myNumber;
 

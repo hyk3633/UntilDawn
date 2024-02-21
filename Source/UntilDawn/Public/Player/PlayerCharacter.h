@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "Enums/WeaponType.h"
 #include "PlayerCharacter.generated.h"
 
+class APlayerControllerMainMap;
 class UPlayerAnimInst;
 class UInputMappingContext;
 class UInputAction;
@@ -35,23 +37,23 @@ protected:
 
 	void Look(const FInputActionValue& value);
 
-	void Sprint(const FInputActionValue& value);
+	void Sprint();
 
-	void SprintEnd(const FInputActionValue& value);
+	void SprintEnd();
 
-	void LeftClick(const FInputActionValue& value);
+	void LeftClick();
 
-	void LeftClickHold(const FInputActionValue& value);
+	void LeftClickHold();
 
-	void LeftClickEnd(const FInputActionValue& value);
+	void LeftClickEnd();
 
-	void RightClick(const FInputActionValue& value);
+	void RightClick();
 
-	void RightClickEnd(const FInputActionValue& value);
+	void RightClickEnd();
 
-	void RKeyPressed(const FInputActionValue& value);
+	void RKeyPressed();
 
-	void RKeyHold(const FInputActionValue& value);
+	void RKeyHold();
 
 public:	
 
@@ -70,9 +72,11 @@ public:
 
 	FORCEINLINE const bool GetTurnRight() const { return turnRight; }
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
-	FORCEINLINE const bool GetLeftClick() const { return leftClick; }
 	FORCEINLINE const bool GetRightClick() const { return rightClick; }
 	FORCEINLINE const bool GetIsAbleShoot() const { return isAbleShoot; }
+	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return currentWeaponType; }
+
+	void DoPlayerInputAction(const int inputType);
 
 private:
 
@@ -84,6 +88,9 @@ private:
 
 	UPROPERTY()
 	UPlayerAnimInst* animInst;
+
+	UPROPERTY()
+	APlayerControllerMainMap* myController;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* defaultMappingContext;
@@ -121,10 +128,12 @@ private:
 
 	float speed, direction, pitch;
 
-	bool turnRight, turnLeft, leftClick, rightClick;
+	bool turnRight, turnLeft, rightClick;
 
 	bool isAbleShoot;
 
 	float shootPower;
+
+	EWeaponType currentWeaponType = EWeaponType::DEFAULT;
 
 };

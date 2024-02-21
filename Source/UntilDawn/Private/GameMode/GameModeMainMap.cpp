@@ -3,9 +3,10 @@
 
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/ActorSpawner.h"
-#include "GameSystem/ActorPooler.h"
+#include "GameSystem/ZombieActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
+#include "Zombie/ZombieCharacter.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,6 +16,8 @@ AGameModeMainMap::AGameModeMainMap()
 	PrimaryActorTick.bCanEverTick = true;
 
 	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
+
+	zombiePooler = CreateDefaultSubobject<UZombieActorPooler>(TEXT("Zombie Pooler"));
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
@@ -34,6 +37,10 @@ void AGameModeMainMap::BeginPlay()
 	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	myPlayerController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
+
+	// 좀비 캐릭터 스폰 및 풀링
+	zombiePooler->SetPoolSize(3);
+	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
 }
 
 void AGameModeMainMap::Tick(float deltaTime)
@@ -46,6 +53,8 @@ void AGameModeMainMap::Tick(float deltaTime)
 		SpawnNewPlayerCharacter();
 	if (playerInfoSet)
 		SynchronizeOtherPlayersInfo();
+	if (zombieInfoSet)
+		SynchronizeZombieInfo();
 }
 
 void AGameModeMainMap::DestroyPlayer()
@@ -65,9 +74,14 @@ void AGameModeMainMap::ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet)
 	playerInfoSetEx = newPlayerInfoSet;
 }
 
-void AGameModeMainMap::ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet)
+void AGameModeMainMap::ReceiveOtherPlayersInfo(CharacterInfoSet* synchPlayerInfoSet)
 {
 	playerInfoSet = synchPlayerInfoSet;
+}
+
+void AGameModeMainMap::ReceiveZombieInfo(CharacterInfoSet* synchZombieInfoSet)
+{
+	zombieInfoSet = synchZombieInfoSet;
 }
 
 void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID)
@@ -82,13 +96,25 @@ void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber, con
 	}
 }
 
+void AGameModeMainMap::SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType)
+{
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		APlayerCharacter* tempCharacter = playerCharacterMap[playerNumber];
+		if (IsValid(tempCharacter))
+		{
+			tempCharacter->DoPlayerInputAction(inputType);
+		}
+	}
+}
+
 void AGameModeMainMap::SpawnNewPlayerCharacter()
 {
-	for (auto& playerInfo : playerInfoSetEx->playerInfoMap)
+	for (auto& playerInfo : playerInfoSetEx->characterInfoMap)
 	{
 		int number = playerInfo.first;
 		if (number == myNumber) continue;
-		PlayerInfo& info = playerInfo.second;
+		CharacterInfo& info = playerInfo.second;
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
 				APlayerCharacter::StaticClass(),
@@ -104,10 +130,10 @@ void AGameModeMainMap::SpawnNewPlayerCharacter()
 
 void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 {
-	for (auto& playerInfo : playerInfoSet->playerInfoMap)
+	for (auto& playerInfo : playerInfoSet->characterInfoMap)
 	{
 		if (playerInfo.first == myNumber) continue;
-		PlayerInfo& info = playerInfo.second;
+		CharacterInfo& info = playerInfo.second;
 		if (playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
@@ -119,4 +145,29 @@ void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 			}
 		}
 	}
+}
+
+void AGameModeMainMap::SynchronizeZombieInfo()
+{
+	WLOG(TEXT("synch zombie"));
+	for (auto& info : zombieInfoSet->characterInfoMap)
+	{
+		AZombieCharacter* newZombie;
+		if (zombieCharacterMap.Find(info.first) == nullptr)
+		{
+			newZombie = zombiePooler->GetPooledActor();
+			if (newZombie == nullptr)
+			{
+				actorSpawner->SpawnActor(1, zombiePooler->GetActorPool());
+				newZombie = zombiePooler->GetPooledActor();
+			}
+			zombieCharacterMap.Add(info.first, newZombie);
+		}
+		else
+		{
+			newZombie = zombieCharacterMap[info.first];
+		}
+		newZombie->SetActorLocation(FVector(info.second.vectorX, info.second.vectorY, info.second.vectorZ));
+	}
+	zombieInfoSet = nullptr;
 }

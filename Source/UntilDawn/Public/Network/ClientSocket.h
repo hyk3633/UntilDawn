@@ -8,7 +8,7 @@
 #include "Enums/PacketType.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "UntilDawn/UntilDawn.h"
-#include "Structs/PlayerInfo.h"
+#include "Structs/CharacterInfo.h"
 #include "CoreMinimal.h"
 
 /**
@@ -36,9 +36,11 @@ public:
 
 	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);
 
-	void NotifyAccessingGame(const PlayerInfo& info);
+	void NotifyAccessingGame(const CharacterInfo& info);
 
-	void SynchronizeMyCharacterInfo(const PlayerInfo& info);
+	void SynchronizeMyCharacterInfo(const CharacterInfo& info);
+
+	void SendPlayerInputAction(const int inputType);
 
 	void Send(std::stringstream&);
 
@@ -71,7 +73,9 @@ private:
 
 	PlayerInfoSetEx newPlayerInfoSetEx;
 
-	PlayerInfoSet synchPlayerInfoSet;
+	CharacterInfoSet synchPlayerInfoSet;
+
+	CharacterInfoSet synchZombieInfoSet;
 
 	UPROPERTY()
 	AGameModeMainMap* ownerGameMode;

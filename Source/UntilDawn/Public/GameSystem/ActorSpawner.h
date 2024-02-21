@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "ActorSpawner.generated.h"
 
+class AZombieCharacter;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UActorSpawner : public UActorComponent
@@ -22,6 +23,6 @@ protected:
 
 public:	
 		
-	void SpawnActor(TSubclassOf<AActor> actorClass, int spawnCount, TArray<AActor*>& actorArray);
+	void SpawnActor(const int spawnCount, TArray<AZombieCharacter*>& actorArray);
 
 };

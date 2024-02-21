@@ -1,6 +1,8 @@
 
 
 #include "Player/PlayerCharacter.h"
+#include "Player/Main/PlayerControllerMainMap.h"
+#include "Player/PlayerAnimInst.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -10,7 +12,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
-#include "Player/PlayerAnimInst.h"
 #include "UntilDawn/UntilDawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "KismetAnimationLibrary.h"
@@ -85,11 +86,6 @@ APlayerCharacter::APlayerCharacter()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RKeyHold(TEXT("/Game/_Assets/Inputs/Actions/IA_RKeyHold.IA_RKeyHold"));
 	if (obj_RKeyHold.Succeeded()) rKeyHoldAction = obj_RKeyHold.Object;
-
-	// 무기 장착 컨트롤 모드
-	bUseControllerRotationYaw = true;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
-	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -103,9 +99,10 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::PossessedBy(AController* newController)
 {
 	Super::PossessedBy(newController);
-	if (APlayerController* PlayerController = Cast<APlayerController>(newController))
+	myController = Cast<APlayerControllerMainMap>(newController);
+	if (myController)
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(myController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
@@ -158,6 +155,7 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 	if (Controller != nullptr)
 	{
 		AddControllerYawInput(-lookAxisVector.X);
+		AddControllerPitchInput(lookAxisVector.Y);
 		if (velocity.Size() == 0)
 		{
 			turnRight = (lookAxisVector.X < -0.3f ? true : false);
@@ -168,59 +166,106 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 			turnRight = false;
 			turnLeft = false;
 		}
-		AddControllerPitchInput(lookAxisVector.Y);
 	}
 }
 
-void APlayerCharacter::Sprint(const FInputActionValue& value)
+void APlayerCharacter::Sprint()
 {
 	if (isAbleShoot) return;
 	GetCharacterMovement()->MaxWalkSpeed = 600;
+	if(myController)
+		myController->SendPlayerInputAction(EPlayerInputs::Sprint);
 }
 
-void APlayerCharacter::SprintEnd(const FInputActionValue& value)
+void APlayerCharacter::SprintEnd()
 {
 	GetCharacterMovement()->MaxWalkSpeed = 300;
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::SprintEnd);
 }
 
-void APlayerCharacter::LeftClick(const FInputActionValue& value)
+void APlayerCharacter::LeftClick()
 {
-	leftClick = true;
-	animInst->PlayBowDrawMontage();
+	if (currentWeaponType == EWeaponType::AXE)
+	{
+		animInst->PlayAxeAttackMontage();
+	}
+	else if (currentWeaponType == EWeaponType::BOW)
+	{
+		animInst->PlayBowDrawMontage();
+	}
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::LeftClick);
 }
 
-void APlayerCharacter::LeftClickHold(const FInputActionValue& value)
+void APlayerCharacter::LeftClickHold()
 {
-	isAbleShoot = true;
-	GetCharacterMovement()->MaxWalkSpeed = 300;
+	if (currentWeaponType == EWeaponType::BOW)
+	{
+		isAbleShoot = true;
+		GetCharacterMovement()->MaxWalkSpeed = 300;
+	}
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::LeftClickHold);
 }
 
-void APlayerCharacter::LeftClickEnd(const FInputActionValue& value)
+void APlayerCharacter::LeftClickEnd()
 {
-	if (isAbleShoot == false) return;
-	isAbleShoot = false;
-	animInst->PlayBowShootMontage();
-	shootPower = 0;
+	if (currentWeaponType == EWeaponType::BOW)
+	{
+		if (isAbleShoot == false) return;
+		isAbleShoot = false;
+		animInst->PlayBowShootMontage();
+		shootPower = 0;
+	}
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::LeftClickEnd);
 }
 
-void APlayerCharacter::RightClick(const FInputActionValue& value)
+void APlayerCharacter::RightClick()
 {
-	rightClick = true;
+	if (currentWeaponType == EWeaponType::AXE)
+	{
+		rightClick = true;
+	}
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::RightClick);
 }
 
-void APlayerCharacter::RightClickEnd(const FInputActionValue& value)
+void APlayerCharacter::RightClickEnd()
 {
-	rightClick = false;
+	if (currentWeaponType == EWeaponType::AXE)
+	{
+		rightClick = false;
+	}
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::RightClickEnd);
 }
 
-void APlayerCharacter::RKeyPressed(const FInputActionValue& value)
+void APlayerCharacter::RKeyPressed()
 {
-	animInst->PlayWeaponArmMontage(EWeaponType::BOW);
+	if (currentWeaponType != EWeaponType::DEFAULT) return;
+	animInst->PlayWeaponArmMontage(EWeaponType::AXE);
+	currentWeaponType = EWeaponType::AXE;
+
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::RKeyPressed);
 }
 
-void APlayerCharacter::RKeyHold(const FInputActionValue& value)
+void APlayerCharacter::RKeyHold()
 {
-	animInst->PlayWeaponDisarmMontage(EWeaponType::BOW);
+	if (currentWeaponType == EWeaponType::DEFAULT) return;
+	animInst->PlayWeaponDisarmMontage(currentWeaponType);
+	currentWeaponType = EWeaponType::DEFAULT;
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	if (myController)
+		myController->SendPlayerInputAction(EPlayerInputs::RKeyHold);
 }
 
 void APlayerCharacter::Tick(float deltaTime)
@@ -241,5 +286,40 @@ void APlayerCharacter::Tick(float deltaTime)
 const bool APlayerCharacter::GetIsFalling() const
 {
 	return GetMovementComponent()->IsFalling();
+}
+
+void APlayerCharacter::DoPlayerInputAction(const int inputType)
+{
+	if (inputType == 0) return;
+	switch (static_cast<EPlayerInputs>(inputType))
+	{
+	case EPlayerInputs::Sprint:
+		Sprint();
+		break;
+	case EPlayerInputs::SprintEnd:
+		SprintEnd();
+		break;
+	case EPlayerInputs::LeftClick:
+		LeftClick();
+		break;
+	case EPlayerInputs::LeftClickHold:
+		LeftClickHold();
+		break;
+	case EPlayerInputs::LeftClickEnd:
+		LeftClickEnd();
+		break;
+	case EPlayerInputs::RightClick:
+		RightClick();
+		break;
+	case EPlayerInputs::RightClickEnd:
+		RightClickEnd();
+		break;
+	case EPlayerInputs::RKeyPressed:
+		RKeyPressed();
+		break;
+	case EPlayerInputs::RKeyHold:
+		RKeyHold();
+		break;
+	}
 }
 
