@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "Enums/WeaponType.h"
+#include "Structs/CharacterInfo.h"
 #include "PlayerCharacter.generated.h"
 
 class APlayerControllerMainMap;
@@ -15,6 +16,8 @@ class UInputAction;
 class UCameraComponent;
 class USpringArmComponent;
 class UInputComponent;
+class USphereComponent;
+class AZombieCharacter;
 
 UCLASS()
 class UNTILDAWN_API APlayerCharacter : public ACharacter
@@ -55,9 +58,21 @@ protected:
 
 	void RKeyHold();
 
+	UFUNCTION()
+	void OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	bool IsZombieCanSeeMe(AActor* zombie);
+
+	void OverlappingZombieCheck();
+
 public:	
 
 	virtual void Tick(float deltaTime) override;
+
+	void UpdatePlayerInfo();
 
 	FORCEINLINE void SetPlayerID(const FString& id) { playerID = id; }
 
@@ -76,6 +91,8 @@ public:
 	FORCEINLINE const bool GetIsAbleShoot() const { return isAbleShoot; }
 	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return currentWeaponType; }
 
+	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
+
 	void DoPlayerInputAction(const int inputType);
 
 private:
@@ -85,6 +102,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* followCamera;
+
+	UPROPERTY()
+	USphereComponent* playerRange;
 
 	UPROPERTY()
 	UPlayerAnimInst* animInst;
@@ -136,4 +156,15 @@ private:
 
 	EWeaponType currentWeaponType = EWeaponType::DEFAULT;
 
+	TArray<AZombieCharacter*> zombiesWhoSawMe;
+
+	TMap<int, AZombieCharacter*> overlappingZombies;
+
+	TQueue<AZombieCharacter*> removePendingQ;
+
+	PlayerInfo myInfo;
+
+	FCriticalSection criticalSection;
+
+	FTimerHandle overlappingZombieCheckTimer;
 };

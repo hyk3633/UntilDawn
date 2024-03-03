@@ -5,6 +5,7 @@
 #include "Player/PlayerAnimInst.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
@@ -15,6 +16,9 @@
 #include "UntilDawn/UntilDawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "KismetAnimationLibrary.h"
+#include "UntilDawn/UntilDawn.h"
+
+#include "Zombie/ZombieCharacter.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -48,6 +52,13 @@ APlayerCharacter::APlayerCharacter()
 	followCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	followCamera->SetupAttachment(cameraBoom, USpringArmComponent::SocketName);
 	followCamera->bUsePawnControlRotation = false;
+
+	playerRange = CreateDefaultSubobject<USphereComponent>(TEXT("PlayerRange"));
+	playerRange->SetupAttachment(RootComponent);
+	playerRange->SetCollisionObjectType(ECC_PlayerRange);
+	playerRange->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	playerRange->SetSphereRadius(1024);
+	playerRange->bHiddenInGame = false;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Phong_Base.SK_Phong_Base'"));
 	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
@@ -107,6 +118,9 @@ void APlayerCharacter::PossessedBy(AController* newController)
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
 	}
+	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
+	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
+	GetWorldTimerManager().SetTimer(overlappingZombieCheckTimer, this, &APlayerCharacter::OverlappingZombieCheck, 0.5f, true);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
@@ -268,6 +282,71 @@ void APlayerCharacter::RKeyHold()
 		myController->SendPlayerInputAction(EPlayerInputs::RKeyHold);
 }
 
+void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	FScopeLock Lock(&criticalSection);
+	// 좀비 상태가 idle/patrol 일 경우에만 추가
+	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
+	if (IsValid(zombie))
+	{
+		if (IsZombieCanSeeMe(zombie))
+			zombiesWhoSawMe.Add(zombie);
+		else
+			overlappingZombies.Add(zombie->GetNumber(), zombie);
+	}
+}
+
+void APlayerCharacter::OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	FScopeLock Lock(&criticalSection);
+	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
+	if (IsValid(zombie))
+	{
+		if (overlappingZombies.Find(zombie->GetNumber()))
+		{
+			overlappingZombies.Remove(zombie->GetNumber());
+		}
+	}
+}
+
+bool APlayerCharacter::IsZombieCanSeeMe(AActor* zombie)
+{
+	FVector ToTarget = GetActorLocation() - zombie->GetActorLocation();
+	ToTarget.Normalize();
+	const float AngleDegree = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(ToTarget, zombie->GetActorForwardVector())));
+	if (AngleDegree < 60.0) return true;
+	else return false;
+}
+
+void APlayerCharacter::OverlappingZombieCheck()
+{
+	FScopeLock Lock(&criticalSection);
+	if (overlappingZombies.Num())
+	{
+		for (auto& kv : overlappingZombies)
+		{
+			if (IsValid(kv.Value))
+			{
+				if (IsZombieCanSeeMe(kv.Value))
+				{
+					zombiesWhoSawMe.Add(kv.Value);
+					removePendingQ.Enqueue(kv.Value);
+				}
+			}
+			else
+			{
+				removePendingQ.Enqueue(kv.Value);
+			}
+		}
+		while (!removePendingQ.IsEmpty())
+		{
+			AZombieCharacter* zombie;
+			removePendingQ.Dequeue(zombie);
+			overlappingZombies.Remove(zombie->GetNumber());
+		}
+	}
+}
+
 void APlayerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
@@ -281,6 +360,42 @@ void APlayerCharacter::Tick(float deltaTime)
 
 	if (isAbleShoot)
 		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
+}
+
+void APlayerCharacter::UpdatePlayerInfo()
+{
+	FVector&& location = std::move(GetActorLocation());
+	FRotator&& rotation = std::move(GetActorRotation());
+
+	myInfo.characterInfo.vectorX = location.X;
+	myInfo.characterInfo.vectorY = location.Y;
+	myInfo.characterInfo.vectorZ = location.Z;
+	myInfo.characterInfo.velocityX = velocity.X;
+	myInfo.characterInfo.velocityY = velocity.Y;
+	myInfo.characterInfo.velocityZ = velocity.Z;
+	myInfo.characterInfo.pitch = rotation.Pitch;
+	myInfo.characterInfo.yaw = rotation.Yaw;
+	myInfo.characterInfo.roll = rotation.Roll;
+
+	FScopeLock Lock(&criticalSection);
+
+	myInfo.zombiesWhoSawMe.clear();
+	if (!zombiesWhoSawMe.IsEmpty())
+	{
+		for (AZombieCharacter* zombie : zombiesWhoSawMe)
+		{
+			myInfo.zombiesWhoSawMe.push_back(zombie->GetNumber());
+		}
+		if (myInfo.zombiesWhoSawMe.size())
+		{
+			myInfo.isZombiesSawMe = true;
+		}
+		zombiesWhoSawMe.Reset(3);
+	}
+	else
+	{
+		myInfo.isZombiesSawMe = false;
+	}
 }
 
 const bool APlayerCharacter::GetIsFalling() const

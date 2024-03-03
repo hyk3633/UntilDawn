@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Enums/ZombieState.h"
 #include "ZombieCharacter.generated.h"
 
 UCLASS()
@@ -31,8 +32,32 @@ public:
 
 	FORCEINLINE const bool GetIsActive() const { return isActive; }
 
+	FORCEINLINE void SetNumber(const int newNumber) { number = newNumber; }
+
+	FORCEINLINE const int GetNumber() const { return number; }
+
+	FORCEINLINE void SetZombieState(const EZombieState newState) { state = newState; }
+
+	UFUNCTION(BlueprintCallable)
+	EZombieState GetZombieState() const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetSpeed() const;
+
+	FORCEINLINE void SetTargetLocation(FVector loc) { TargetLoc = loc; }
+
+	void Move();
+
 private:
 
 	bool isActive;
+
+	int number;
+
+	EZombieState state;
+
+	FVector TargetLoc;
+
+	bool bMoving;
 
 };

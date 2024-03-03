@@ -5,6 +5,7 @@
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Player/PlayerCharacter.h"
+#include "Zombie/ZombieCharacter.h"
 
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
@@ -24,9 +25,9 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 
 	myCharacter = Cast<APlayerCharacter>(pawn);
 	// 서버에 게임 맵에 접속했음을 알림
-	UpdatePlayerInfo();
+	myCharacter->UpdatePlayerInfo();
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
-	clientSocket->NotifyAccessingGame(myInfo);
+	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo().characterInfo);
 	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.016f, true);
 }
 
@@ -35,25 +36,8 @@ void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputTy
 	clientSocket->SendPlayerInputAction(static_cast<int>(inputType));
 }
 
-void APlayerControllerMainMap::UpdatePlayerInfo()
-{
-	FVector&& location = std::move(GetPawn()->GetActorLocation());
-	FVector&& velocity = std::move(GetPawn()->GetVelocity());
-	FRotator&& rotation = std::move(GetPawn()->GetActorRotation());
-
-	myInfo.vectorX = location.X;
-	myInfo.vectorY = location.Y;
-	myInfo.vectorZ = location.Z;
-	myInfo.velocityX = velocity.X;
-	myInfo.velocityY = velocity.Y;
-	myInfo.velocityZ = velocity.Z;
-	myInfo.pitch = rotation.Pitch;
-	myInfo.yaw = rotation.Yaw;
-	myInfo.roll = rotation.Roll;
-}
-
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
-	UpdatePlayerInfo();
-	clientSocket->SynchronizeMyCharacterInfo(myInfo);
+	myCharacter->UpdatePlayerInfo();
+	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
 }

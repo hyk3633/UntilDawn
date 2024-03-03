@@ -10,6 +10,7 @@
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "Enums/ZombieState.h"
 
 AGameModeMainMap::AGameModeMainMap()
 {
@@ -74,12 +75,12 @@ void AGameModeMainMap::ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet)
 	playerInfoSetEx = newPlayerInfoSet;
 }
 
-void AGameModeMainMap::ReceiveOtherPlayersInfo(CharacterInfoSet* synchPlayerInfoSet)
+void AGameModeMainMap::ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet)
 {
 	playerInfoSet = synchPlayerInfoSet;
 }
 
-void AGameModeMainMap::ReceiveZombieInfo(CharacterInfoSet* synchZombieInfoSet)
+void AGameModeMainMap::ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet)
 {
 	zombieInfoSet = synchZombieInfoSet;
 }
@@ -110,11 +111,11 @@ void AGameModeMainMap::SynchronizeOtherPlayerInputAction(const int playerNumber,
 
 void AGameModeMainMap::SpawnNewPlayerCharacter()
 {
-	for (auto& playerInfo : playerInfoSetEx->characterInfoMap)
+	for (auto& kv : playerInfoSetEx->characterInfoMap)
 	{
-		int number = playerInfo.first;
+		int number = kv.first;
 		if (number == myNumber) continue;
-		CharacterInfo& info = playerInfo.second;
+		CharacterInfo& info = kv.second.characterInfo;
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
 				APlayerCharacter::StaticClass(),
@@ -133,7 +134,7 @@ void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 	for (auto& playerInfo : playerInfoSet->characterInfoMap)
 	{
 		if (playerInfo.first == myNumber) continue;
-		CharacterInfo& info = playerInfo.second;
+		CharacterInfo& info = playerInfo.second.characterInfo;
 		if (playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
@@ -149,9 +150,9 @@ void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 
 void AGameModeMainMap::SynchronizeZombieInfo()
 {
-	WLOG(TEXT("synch zombie"));
-	for (auto& info : zombieInfoSet->characterInfoMap)
+	for (auto& info : zombieInfoSet->zombieInfoMap)
 	{
+		const CharacterInfo& chaInfo = info.second.characterInfo;
 		AZombieCharacter* newZombie;
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
@@ -161,13 +162,23 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 				actorSpawner->SpawnActor(1, zombiePooler->GetActorPool());
 				newZombie = zombiePooler->GetPooledActor();
 			}
+			newZombie->SetNumber(info.first);
+			newZombie->ActivateActor();
 			zombieCharacterMap.Add(info.first, newZombie);
+			newZombie->SetActorLocation(FVector(chaInfo.vectorX, chaInfo.vectorY, chaInfo.vectorZ));
 		}
 		else
 		{
 			newZombie = zombieCharacterMap[info.first];
 		}
-		newZombie->SetActorLocation(FVector(info.second.vectorX, info.second.vectorY, info.second.vectorZ));
+		//const CharacterInfo& chaInfo = info.second.characterInfo;
+		newZombie->AddMovementInput(FVector(chaInfo.velocityX, chaInfo.velocityY, chaInfo.velocityZ));
+		newZombie->SetActorLocation(FVector(chaInfo.vectorX, chaInfo.vectorY, chaInfo.vectorZ));
+		newZombie->SetZombieState(info.second.state);
+		//newZombie->SetTargetLocation(FVector(info.second.x, info.second.y, info.second.z));
+		//newZombie->Move();
+		// velocity
+		// rotation
 	}
 	zombieInfoSet = nullptr;
 }

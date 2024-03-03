@@ -12,3 +12,5 @@
 #define PLOG(format, ...)	UE_LOG(LogTemp, Warning, TEXT("%s %s"), *CALLINFO, *FString::Printf(format, ##__VA_ARGS__))
 
 #define PACKET_SIZE 4096
+
+#define ECC_PlayerRange ECollisionChannel::ECC_GameTraceChannel1

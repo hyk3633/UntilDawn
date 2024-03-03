@@ -97,7 +97,7 @@ void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 	Send(sendStream);
 }
 
-void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info)
+void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";

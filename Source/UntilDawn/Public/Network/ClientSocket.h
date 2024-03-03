@@ -38,7 +38,7 @@ public:
 
 	void NotifyAccessingGame(const CharacterInfo& info);
 
-	void SynchronizeMyCharacterInfo(const CharacterInfo& info);
+	void SynchronizeMyCharacterInfo(const PlayerInfo& info);
 
 	void SendPlayerInputAction(const int inputType);
 
@@ -73,9 +73,9 @@ private:
 
 	PlayerInfoSetEx newPlayerInfoSetEx;
 
-	CharacterInfoSet synchPlayerInfoSet;
+	PlayerInfoSet synchPlayerInfoSet;
 
-	CharacterInfoSet synchZombieInfoSet;
+	ZombieInfoSet synchZombieInfoSet;
 
 	UPROPERTY()
 	AGameModeMainMap* ownerGameMode;

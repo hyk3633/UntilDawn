@@ -32,8 +32,6 @@ public:
 
 protected:
 
-	void UpdatePlayerInfo();
-
 	void SynchronizePlayerInfo();
 
 protected:
@@ -45,5 +43,4 @@ protected:
 
 	FTimerHandle SynchronizeTimer;
 
-	CharacterInfo myInfo;
 };

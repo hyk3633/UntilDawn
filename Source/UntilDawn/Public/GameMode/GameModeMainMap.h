@@ -47,13 +47,13 @@ public:
 
 	void ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet);
 
-	void ReceiveOtherPlayersInfo(CharacterInfoSet* synchPlayerInfoSet);
+	void ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet);
 
 	void ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID);
 
 	void SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType);
 
-	void ReceiveZombieInfo(CharacterInfoSet* synchZombieInfoSet);
+	void ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet);
 
 private:
 
@@ -71,11 +71,11 @@ private:
 
 	PlayerInfoSetEx* playerInfoSetEx;
 
-	CharacterInfoSet* playerInfoSet;
+	PlayerInfoSet* playerInfoSet;
 
 	TMap<int, AZombieCharacter*> zombieCharacterMap;
 
-	CharacterInfoSet* zombieInfoSet;
+	ZombieInfoSet* zombieInfoSet;
 
 	int myNumber;
 

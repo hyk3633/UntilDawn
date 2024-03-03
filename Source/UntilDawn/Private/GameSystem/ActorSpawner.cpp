@@ -19,7 +19,7 @@ void UActorSpawner::SpawnActor(const int spawnCount, TArray<AZombieCharacter*>& 
 	for (int i = 0; i < spawnCount; i++)
 	{
 		AZombieCharacter* actor = GetWorld()->SpawnActor<AZombieCharacter>(AZombieCharacter::StaticClass(), FVector(0, 0, -3500), FRotator::ZeroRotator);
-		actor->SpawnDefaultController();
+		//actor->SpawnDefaultController();
 		actorArray.Add(actor);
 	}
 }
