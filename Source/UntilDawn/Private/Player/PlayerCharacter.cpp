@@ -285,7 +285,7 @@ void APlayerCharacter::RKeyHold()
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	FScopeLock Lock(&criticalSection);
-	// 좀비 상태가 idle/patrol 일 경우에만 추가
+	// 좀비 상태가 idle 일 경우에만 추가
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
 	if (IsValid(zombie))
 	{

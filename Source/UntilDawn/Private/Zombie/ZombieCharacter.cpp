@@ -7,6 +7,7 @@
 #include "UntilDawn/UntilDawn.h"
 #include "AIController.h"
 
+
 AZombieCharacter::AZombieCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -19,12 +20,16 @@ AZombieCharacter::AZombieCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
 
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 	GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
 	GetMesh()->SetVisibility(false);
 
 	GetCharacterMovement()->bRunPhysicsWithNoController = true;
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/Mixamo/zombies/Ch10_nonPBR.Ch10_nonPBR'"));
 	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
@@ -44,6 +49,12 @@ void AZombieCharacter::BeginPlay()
 void AZombieCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	if (state == EZombieState::CHASE)
+	{
+		//SetActorLocation(FMath::VInterpConstantTo(GetActorLocation(), lerpLocation, GetWorld()->GetDeltaSeconds(), speed));
+		//SetActorRotation(FMath::RInterpTo(GetActorRotation(), velocity.Rotation(), GetWorld()->GetDeltaSeconds(), speed));		
+	}
 }
 
 void AZombieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -66,9 +77,38 @@ void AZombieCharacter::DeactivateActor()
 	GetMesh()->SetVisibility(false);
 }
 
+void AZombieCharacter::SetZombieState(const EZombieState newState)
+{
+	state = newState;
+}
+
 EZombieState AZombieCharacter::GetZombieState() const
 {
 	return state;
+}
+
+void AZombieCharacter::SetPath(const vector<Pos>& path)
+{
+	pathToTarget = path;
+	InitializePathStatus();
+	for (Pos& pos : pathToTarget)
+	{
+		DrawDebugPoint(GetWorld(), FVector(pos.x, pos.y, 10.f), 7, FColor::Green, false, 2.f);
+	}
+}
+
+void AZombieCharacter::InitializePathStatus()
+{
+	pathIdx = 0;
+	if (pathToTarget.size() > 1)
+		nextPoint = FVector(pathToTarget[1].x, pathToTarget[1].y, GetActorLocation().Z);
+	else
+		return;
+	nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
+	speed = FVector::Distance(GetActorLocation(), nextPoint) / 1.5f;
+	speed = 100.f;
+	PLOG(TEXT("next point %s, speed : %f"), *nextPoint.ToString(), speed);
+	GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, 0.016f, true);
 }
 
 float AZombieCharacter::GetSpeed() const
@@ -77,13 +117,53 @@ float AZombieCharacter::GetSpeed() const
 	else return 0.f;
 }
 
-void AZombieCharacter::Move()
+void AZombieCharacter::UpdateMovement()
 {
-	if (bMoving == false)
+	const float maxStep = speed * 0.016f;
+	FVector nextLocation;
+	if ((nextPoint - GetActorLocation()).Size() > maxStep)
 	{
-		AZombieAIController* C = Cast<AZombieAIController>(GetController());
-		C->MoveToLocation(TargetLoc);
-		bMoving = true;
+		nextLocation = GetActorLocation() + (nextDirection * speed * 0.016f);
 	}
+	else
+	{
+		nextLocation = nextPoint;
+	}
+	VectorTruncate(nextLocation);
+	SetActorLocation(nextLocation);
+
+	PLOG(TEXT("current location %s"), *GetActorLocation().ToString());
+}
+
+void AZombieCharacter::FollowPath()
+{
+	const float dist = FVector::Distance(nextPoint, GetActorLocation());
+	if (dist <= 50)
+	{
+		if (pathIdx < pathToTarget.size())
+		{
+			nextPoint = FVector(pathToTarget[pathIdx].x, pathToTarget[pathIdx].y, GetActorLocation().Z);
+			nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
+			speed = FVector::Distance(GetActorLocation(), nextPoint) / 1.5f;
+			speed = 100.f;
+			PLOG(TEXT("speed : %f"), speed);
+			pathIdx++;
+		}
+	}
+	UpdateMovement();
+}
+
+void AZombieCharacter::StartMovementUpdate()
+{
+	if (IsValid(targetPlayer))
+	{
+		const float dist = FVector::Distance(GetActorLocation(), targetPlayer->GetActorLocation());
+		if (dist > 100.f && dist <= 1000.f)
+		{
+			FollowPath();			
+			return;
+		}
+	}
+	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
 }
 

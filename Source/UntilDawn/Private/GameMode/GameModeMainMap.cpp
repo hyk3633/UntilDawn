@@ -165,20 +165,21 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 			newZombie->SetNumber(info.first);
 			newZombie->ActivateActor();
 			zombieCharacterMap.Add(info.first, newZombie);
-			newZombie->SetActorLocation(FVector(chaInfo.vectorX, chaInfo.vectorY, chaInfo.vectorZ));
 		}
 		else
 		{
 			newZombie = zombieCharacterMap[info.first];
 		}
-		//const CharacterInfo& chaInfo = info.second.characterInfo;
-		newZombie->AddMovementInput(FVector(chaInfo.velocityX, chaInfo.velocityY, chaInfo.velocityZ));
 		newZombie->SetActorLocation(FVector(chaInfo.vectorX, chaInfo.vectorY, chaInfo.vectorZ));
+		if (info.second.targetNumber >= 0)
+		{
+			newZombie->SetTarget(playerCharacterMap[info.second.targetNumber]);
+		}
+		if (info.second.bSetPath)
+		{
+			newZombie->SetPath(info.second.pathToTarget);
+		}
 		newZombie->SetZombieState(info.second.state);
-		//newZombie->SetTargetLocation(FVector(info.second.x, info.second.y, info.second.z));
-		//newZombie->Move();
-		// velocity
-		// rotation
 	}
 	zombieInfoSet = nullptr;
 }

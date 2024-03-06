@@ -14,3 +14,10 @@
 #define PACKET_SIZE 4096
 
 #define ECC_PlayerRange ECollisionChannel::ECC_GameTraceChannel1
+
+FORCEINLINE void VectorTruncate(FVector& vector)
+{
+	vector.X = trunc(vector.X * 1000) / 1000;
+	vector.Y = trunc(vector.Y * 1000) / 1000;
+	vector.Z = trunc(vector.Z * 1000) / 1000;
+}

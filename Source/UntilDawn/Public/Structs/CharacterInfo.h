@@ -4,6 +4,7 @@
 #include <vector>
 #include "UntilDawn/UntilDawn.h"
 #include "Enums/ZombieState.h"
+#include "Structs/Pos.h"
 
 struct CharacterInfo
 {
@@ -52,13 +53,30 @@ struct ZombieInfo
 {
 	CharacterInfo characterInfo;
 	EZombieState state;
-	float x, y, z;
+	bool bSetPath;
+	std::vector<Pos> pathToTarget;
+	int targetNumber;
+
 	friend std::istream& operator>>(std::istream& stream, ZombieInfo& info)
 	{
 		int stateNumber = 0;
 		stream >> info.characterInfo;
 		stream >> stateNumber;
 		info.state = static_cast<EZombieState>(stateNumber);
+		stream >> info.targetNumber;
+		stream >> info.bSetPath;
+		if (info.bSetPath)
+		{
+			int size = 0;
+			stream >> size;
+			info.pathToTarget.clear();
+			Pos pos;
+			for (int i = 0; i < size; i++)
+			{
+				stream >> pos.x >> pos.y;
+				info.pathToTarget.push_back(pos);
+			}
+		}
 		return stream;
 	}
 
@@ -89,12 +107,6 @@ public:
 		{
 			stream >> characterNumber;
 			stream >> info.zombieInfoMap[characterNumber];
-			bool b;
-			stream >> b;
-			if (b)
-			{
-				stream >> info.zombieInfoMap[characterNumber].x >> info.zombieInfoMap[characterNumber].y >> info.zombieInfoMap[characterNumber].z;
-			}
 		}
 		return stream;
 	}

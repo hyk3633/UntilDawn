@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Enums/ZombieState.h"
+#include <vector>
+#include "Structs/Pos.h"
 #include "ZombieCharacter.generated.h"
+using std::vector;
 
 UCLASS()
 class UNTILDAWN_API AZombieCharacter : public ACharacter
@@ -36,17 +39,27 @@ public:
 
 	FORCEINLINE const int GetNumber() const { return number; }
 
-	FORCEINLINE void SetZombieState(const EZombieState newState) { state = newState; }
+	void SetZombieState(const EZombieState newState);
 
 	UFUNCTION(BlueprintCallable)
 	EZombieState GetZombieState() const;
 
+	FORCEINLINE void SetVelocity(const FVector& vel) { velocity = vel; }
+
+	void SetPath(const vector<Pos>& path);
+
+	void InitializePathStatus();
+
 	UFUNCTION(BlueprintCallable)
 	float GetSpeed() const;
 
-	FORCEINLINE void SetTargetLocation(FVector loc) { TargetLoc = loc; }
+	void UpdateMovement();
 
-	void Move();
+	void FollowPath();
+
+	FORCEINLINE void SetTarget(ACharacter* target) { targetPlayer = target; }
+
+	void StartMovementUpdate();
 
 private:
 
@@ -56,8 +69,20 @@ private:
 
 	EZombieState state;
 
-	FVector TargetLoc;
+	FVector velocity;
 
-	bool bMoving;
+	vector<Pos> pathToTarget;
+
+	float speed;
+
+	float elapsed;
+
+	int pathIdx;
+
+	FVector nextPoint, nextDirection;
+
+	ACharacter* targetPlayer;
+
+	FTimerHandle movementUpdateTimer;
 
 };
