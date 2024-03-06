@@ -6,6 +6,65 @@
 #include "Enums/ZombieState.h"
 #include "Structs/Pos.h"
 
+struct ZombieInfo
+{
+	FVector location;
+	FRotator rotation;
+	EZombieState state;
+	int targetNumber;
+	bool bSetPath;
+	std::vector<Pos> pathToTarget;
+
+	friend std::istream& operator>>(std::istream& stream, ZombieInfo& info)
+	{
+		int stateNumber = 0;
+		stream >> info.location.X >> info.location.Y >> info.location.Z;
+		stream >> info.rotation.Pitch >> info.rotation.Yaw >> info.rotation.Roll;
+		stream >> stateNumber;
+		info.state = static_cast<EZombieState>(stateNumber);
+		stream >> info.targetNumber;
+		stream >> info.bSetPath;
+		if (info.bSetPath)
+		{
+			int size = 0;
+			stream >> size;
+			info.pathToTarget.clear();
+			Pos pos;
+			for (int i = 0; i < size; i++)
+			{
+				stream >> pos.x >> pos.y;
+				info.pathToTarget.push_back(pos);
+			}
+		}
+		return stream;
+	}
+};
+
+class ZombieInfoSet
+{
+public:
+
+	ZombieInfoSet() {};
+	~ZombieInfoSet() {};
+
+	std::unordered_map<int, ZombieInfo> zombieInfoMap;
+
+	friend std::istream& operator>>(std::istream& stream, ZombieInfoSet& info)
+	{
+		int characterCount = 0;
+		int characterNumber = 0;
+		info.zombieInfoMap.clear();
+
+		stream >> characterCount;
+		for (int i = 0; i < characterCount; i++)
+		{
+			stream >> characterNumber;
+			stream >> info.zombieInfoMap[characterNumber];
+		}
+		return stream;
+	}
+};
+
 struct CharacterInfo
 {
 	float vectorX, vectorY, vectorZ;
@@ -44,80 +103,6 @@ struct PlayerInfo
 			stream << info.zombiesWhoSawMe.size() << "\n";
 			for (int n : info.zombiesWhoSawMe)
 				stream << n << "\n";
-		}
-		return stream;
-	}
-};
-
-struct ZombieInfo
-{
-	CharacterInfo characterInfo;
-	EZombieState state;
-	bool bSetPath;
-	std::vector<Pos> pathToTarget;
-	int targetNumber;
-
-	friend std::istream& operator>>(std::istream& stream, ZombieInfo& info)
-	{
-		int stateNumber = 0;
-		stream >> info.characterInfo;
-		stream >> stateNumber;
-		info.state = static_cast<EZombieState>(stateNumber);
-		stream >> info.targetNumber;
-		stream >> info.bSetPath;
-		if (info.bSetPath)
-		{
-			int size = 0;
-			stream >> size;
-			info.pathToTarget.clear();
-			Pos pos;
-			for (int i = 0; i < size; i++)
-			{
-				stream >> pos.x >> pos.y;
-				info.pathToTarget.push_back(pos);
-			}
-		}
-		return stream;
-	}
-
-	friend std::ostream& operator<<(std::ostream& stream, ZombieInfo& info)
-	{
-		stream << info.characterInfo;
-		return stream;
-	}
-};
-
-class ZombieInfoSet
-{
-public:
-
-	ZombieInfoSet() {};
-	~ZombieInfoSet() {};
-
-	std::unordered_map<int, ZombieInfo> zombieInfoMap;
-
-	friend std::istream& operator>>(std::istream& stream, ZombieInfoSet& info)
-	{
-		int characterCount = 0;
-		int characterNumber = 0;
-		info.zombieInfoMap.clear();
-
-		stream >> characterCount;
-		for (int i = 0; i < characterCount; i++)
-		{
-			stream >> characterNumber;
-			stream >> info.zombieInfoMap[characterNumber];
-		}
-		return stream;
-	}
-
-	friend std::ostream& operator<<(std::ostream& stream, ZombieInfoSet& info)
-	{
-		stream << info.zombieInfoMap.size() << "\n";
-		for (auto& p : info.zombieInfoMap)
-		{
-			stream << p.first << "\n";
-			stream << p.second << "\n";
 		}
 		return stream;
 	}

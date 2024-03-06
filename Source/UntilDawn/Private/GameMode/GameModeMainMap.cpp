@@ -152,8 +152,9 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 {
 	for (auto& info : zombieInfoSet->zombieInfoMap)
 	{
-		const CharacterInfo& chaInfo = info.second.characterInfo;
+		const ZombieInfo& zombieInfo = info.second;
 		AZombieCharacter* newZombie;
+
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
 			newZombie = zombiePooler->GetPooledActor();
@@ -163,6 +164,7 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 				newZombie = zombiePooler->GetPooledActor();
 			}
 			newZombie->SetNumber(info.first);
+			newZombie->SetActorRotation(zombieInfo.rotation);
 			newZombie->ActivateActor();
 			zombieCharacterMap.Add(info.first, newZombie);
 		}
@@ -170,15 +172,18 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 		{
 			newZombie = zombieCharacterMap[info.first];
 		}
-		newZombie->SetActorLocation(FVector(chaInfo.vectorX, chaInfo.vectorY, chaInfo.vectorZ));
+
 		if (info.second.targetNumber >= 0)
 		{
 			newZombie->SetTarget(playerCharacterMap[info.second.targetNumber]);
 		}
+
 		if (info.second.bSetPath)
 		{
 			newZombie->SetPath(info.second.pathToTarget);
 		}
+
+		newZombie->SetActorLocation(zombieInfo.location);
 		newZombie->SetZombieState(info.second.state);
 	}
 	zombieInfoSet = nullptr;

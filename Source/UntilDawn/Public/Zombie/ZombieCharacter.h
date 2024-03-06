@@ -39,25 +39,25 @@ public:
 
 	FORCEINLINE const int GetNumber() const { return number; }
 
+	FORCEINLINE void SetTarget(ACharacter* target) { targetPlayer = target; }
+
 	void SetZombieState(const EZombieState newState);
 
 	UFUNCTION(BlueprintCallable)
 	EZombieState GetZombieState() const;
 
-	FORCEINLINE void SetVelocity(const FVector& vel) { velocity = vel; }
+	UFUNCTION(BlueprintCallable)
+	float GetSpeed() const;
 
 	void SetPath(const vector<Pos>& path);
 
-	void InitializePathStatus();
+protected:
 
-	UFUNCTION(BlueprintCallable)
-	float GetSpeed() const;
+	void InitializePathStatus();
 
 	void UpdateMovement();
 
 	void FollowPath();
-
-	FORCEINLINE void SetTarget(ACharacter* target) { targetPlayer = target; }
 
 	void StartMovementUpdate();
 
@@ -67,15 +67,14 @@ private:
 
 	int number;
 
+	UPROPERTY(VisibleAnywhere, Category = "Info")
 	EZombieState state;
-
-	FVector velocity;
 
 	vector<Pos> pathToTarget;
 
-	float speed;
+	float speed = 100.f;
 
-	float elapsed;
+	float interval = 0.016f;
 
 	int pathIdx;
 

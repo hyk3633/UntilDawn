@@ -50,11 +50,6 @@ void AZombieCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (state == EZombieState::CHASE)
-	{
-		//SetActorLocation(FMath::VInterpConstantTo(GetActorLocation(), lerpLocation, GetWorld()->GetDeltaSeconds(), speed));
-		//SetActorRotation(FMath::RInterpTo(GetActorRotation(), velocity.Rotation(), GetWorld()->GetDeltaSeconds(), speed));		
-	}
 }
 
 void AZombieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -87,6 +82,12 @@ EZombieState AZombieCharacter::GetZombieState() const
 	return state;
 }
 
+float AZombieCharacter::GetSpeed() const
+{
+	if (GetVelocity().Size2D()) return 300.f;
+	else return 0.f;
+}
+
 void AZombieCharacter::SetPath(const vector<Pos>& path)
 {
 	pathToTarget = path;
@@ -100,30 +101,18 @@ void AZombieCharacter::SetPath(const vector<Pos>& path)
 void AZombieCharacter::InitializePathStatus()
 {
 	pathIdx = 0;
-	if (pathToTarget.size() > 1)
-		nextPoint = FVector(pathToTarget[1].x, pathToTarget[1].y, GetActorLocation().Z);
-	else
-		return;
+	nextPoint = FVector(pathToTarget[1].x, pathToTarget[1].y, GetActorLocation().Z);
 	nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
-	speed = FVector::Distance(GetActorLocation(), nextPoint) / 1.5f;
-	speed = 100.f;
-	PLOG(TEXT("next point %s, speed : %f"), *nextPoint.ToString(), speed);
-	GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, 0.016f, true);
-}
-
-float AZombieCharacter::GetSpeed() const
-{
-	if (GetVelocity().Size2D()) return 300.f;
-	else return 0.f;
+	GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, interval, true);
 }
 
 void AZombieCharacter::UpdateMovement()
 {
-	const float maxStep = speed * 0.016f;
+	const float maxStep = speed * interval;
 	FVector nextLocation;
 	if ((nextPoint - GetActorLocation()).Size() > maxStep)
 	{
-		nextLocation = GetActorLocation() + (nextDirection * speed * 0.016f);
+		nextLocation = GetActorLocation() + (nextDirection * speed * interval);
 	}
 	else
 	{
@@ -131,8 +120,7 @@ void AZombieCharacter::UpdateMovement()
 	}
 	VectorTruncate(nextLocation);
 	SetActorLocation(nextLocation);
-
-	PLOG(TEXT("current location %s"), *GetActorLocation().ToString());
+	PLOG(TEXT("%s"), *nextLocation.ToString());
 }
 
 void AZombieCharacter::FollowPath()
@@ -144,9 +132,6 @@ void AZombieCharacter::FollowPath()
 		{
 			nextPoint = FVector(pathToTarget[pathIdx].x, pathToTarget[pathIdx].y, GetActorLocation().Z);
 			nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
-			speed = FVector::Distance(GetActorLocation(), nextPoint) / 1.5f;
-			speed = 100.f;
-			PLOG(TEXT("speed : %f"), speed);
 			pathIdx++;
 		}
 	}
@@ -158,7 +143,7 @@ void AZombieCharacter::StartMovementUpdate()
 	if (IsValid(targetPlayer))
 	{
 		const float dist = FVector::Distance(GetActorLocation(), targetPlayer->GetActorLocation());
-		if (dist > 100.f && dist <= 1000.f)
+		if (dist > 100.f && dist <= 1200.f)
 		{
 			FollowPath();			
 			return;
