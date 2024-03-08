@@ -31,7 +31,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-
+	void PlayerSpawnAfterDelay();
 
 	void DestroyPlayer();
 
@@ -78,5 +78,7 @@ private:
 	ZombieInfoSet* zombieInfoSet;
 
 	int myNumber;
+
+	FTimerHandle playerSpawnDelayTimer;
 
 };

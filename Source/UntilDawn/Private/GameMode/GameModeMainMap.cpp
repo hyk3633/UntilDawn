@@ -33,15 +33,20 @@ void AGameModeMainMap::BeginPlay()
 
 	myNumber = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetPlayerNumber();
 
+	GetWorldTimerManager().SetTimer(playerSpawnDelayTimer, this, &AGameModeMainMap::PlayerSpawnAfterDelay, 0.5f);
+
+	// 좀비 캐릭터 스폰 및 풀링
+	zombiePooler->SetPoolSize(3);
+	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
+}
+
+void AGameModeMainMap::PlayerSpawnAfterDelay()
+{
 	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
 	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
 	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	myPlayerController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
-
-	// 좀비 캐릭터 스폰 및 풀링
-	zombiePooler->SetPoolSize(3);
-	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
 }
 
 void AGameModeMainMap::Tick(float deltaTime)
@@ -173,16 +178,12 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 			newZombie = zombieCharacterMap[info.first];
 		}
 
-		if (info.second.targetNumber >= 0)
+		if (info.second.targetNumber >= 0 && playerCharacterMap.Find(info.second.targetNumber))
 		{
 			newZombie->SetTarget(playerCharacterMap[info.second.targetNumber]);
 		}
 
-		if (info.second.bSetPath)
-		{
-			newZombie->SetPath(info.second.pathToTarget);
-		}
-
+		newZombie->SetNextLocation(zombieInfo.nextLocation);
 		newZombie->SetActorLocation(zombieInfo.location);
 		newZombie->SetZombieState(info.second.state);
 	}

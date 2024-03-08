@@ -12,30 +12,17 @@ struct ZombieInfo
 	FRotator rotation;
 	EZombieState state;
 	int targetNumber;
-	bool bSetPath;
-	std::vector<Pos> pathToTarget;
+	FVector nextLocation;
 
 	friend std::istream& operator>>(std::istream& stream, ZombieInfo& info)
 	{
-		int stateNumber = 0;
 		stream >> info.location.X >> info.location.Y >> info.location.Z;
 		stream >> info.rotation.Pitch >> info.rotation.Yaw >> info.rotation.Roll;
+		int stateNumber = 0;
 		stream >> stateNumber;
 		info.state = static_cast<EZombieState>(stateNumber);
 		stream >> info.targetNumber;
-		stream >> info.bSetPath;
-		if (info.bSetPath)
-		{
-			int size = 0;
-			stream >> size;
-			info.pathToTarget.clear();
-			Pos pos;
-			for (int i = 0; i < size; i++)
-			{
-				stream >> pos.x >> pos.y;
-				info.pathToTarget.push_back(pos);
-			}
-		}
+		stream >> info.nextLocation.X >> info.nextLocation.Y >> info.nextLocation.Z;
 		return stream;
 	}
 };

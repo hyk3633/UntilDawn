@@ -49,7 +49,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	float GetSpeed() const;
 
-	void SetPath(const vector<Pos>& path);
+	void SetNextLocation(const FVector& nextLoc);
 
 protected:
 
@@ -70,13 +70,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	EZombieState state;
 
-	vector<Pos> pathToTarget;
-
 	float speed = 100.f;
 
 	float interval = 0.016f;
-
-	int pathIdx;
 
 	FVector nextPoint, nextDirection;
 

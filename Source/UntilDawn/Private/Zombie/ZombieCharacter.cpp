@@ -88,20 +88,22 @@ float AZombieCharacter::GetSpeed() const
 	else return 0.f;
 }
 
-void AZombieCharacter::SetPath(const vector<Pos>& path)
+void AZombieCharacter::SetNextLocation(const FVector& nextLoc)
 {
-	pathToTarget = path;
-	InitializePathStatus();
-	for (Pos& pos : pathToTarget)
+	if (nextLoc.X != nextPoint.X || nextLoc.Y != nextPoint.Y)
 	{
-		DrawDebugPoint(GetWorld(), FVector(pos.x, pos.y, 10.f), 7, FColor::Green, false, 2.f);
+		nextPoint = nextLoc;
+		nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
+		const float dist = FVector::Distance(nextPoint, GetActorLocation());
+		if (GetWorldTimerManager().IsTimerActive(movementUpdateTimer) == false && dist >= 1.f)
+		{
+			InitializePathStatus();
+		}
 	}
 }
 
 void AZombieCharacter::InitializePathStatus()
 {
-	pathIdx = 0;
-	nextPoint = FVector(pathToTarget[1].x, pathToTarget[1].y, GetActorLocation().Z);
 	nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
 	GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, interval, true);
 }
@@ -120,20 +122,14 @@ void AZombieCharacter::UpdateMovement()
 	}
 	VectorTruncate(nextLocation);
 	SetActorLocation(nextLocation);
-	PLOG(TEXT("%s"), *nextLocation.ToString());
 }
 
 void AZombieCharacter::FollowPath()
 {
 	const float dist = FVector::Distance(nextPoint, GetActorLocation());
-	if (dist <= 50)
+	if (dist <= 1)
 	{
-		if (pathIdx < pathToTarget.size())
-		{
-			nextPoint = FVector(pathToTarget[pathIdx].x, pathToTarget[pathIdx].y, GetActorLocation().Z);
-			nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
-			pathIdx++;
-		}
+		GetWorldTimerManager().ClearTimer(movementUpdateTimer);
 	}
 	UpdateMovement();
 }
