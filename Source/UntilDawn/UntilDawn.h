@@ -14,6 +14,7 @@
 #define PACKET_SIZE 4096
 
 #define ECC_PlayerRange ECollisionChannel::ECC_GameTraceChannel1
+#define ECC_ZombieAttack ECollisionChannel::ECC_GameTraceChannel3
 
 FORCEINLINE void VectorTruncate(FVector& vector)
 {

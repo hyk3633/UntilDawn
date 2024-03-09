@@ -3,6 +3,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerAnimInst.h"
+#include "Zombie/ZombieCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
@@ -27,6 +28,7 @@ APlayerCharacter::APlayerCharacter()
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ZombieAttack, ECollisionResponse::ECR_Block);
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -120,6 +122,7 @@ void APlayerCharacter::PossessedBy(AController* newController)
 	}
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
 	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
+	OnTakeAnyDamage.AddDynamic(this, &APlayerCharacter::TakeAnyDamage);
 	GetWorldTimerManager().SetTimer(overlappingZombieCheckTimer, this, &APlayerCharacter::OverlappingZombieCheck, 0.5f, true);
 }
 
@@ -435,6 +438,15 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType)
 	case EPlayerInputs::RKeyHold:
 		RKeyHold();
 		break;
+	}
+}
+
+void APlayerCharacter::TakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+{
+	AZombieCharacter* zombie = Cast<AZombieCharacter>(DamageCauser);
+	if (IsValid(zombie))
+	{
+		PLOG(TEXT("%d zombie %s hits me"), zombie->GetNumber(), *zombie->GetName());
 	}
 }
 

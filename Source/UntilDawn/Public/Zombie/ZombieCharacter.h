@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Enums/ZombieState.h"
-#include <vector>
 #include "Structs/Pos.h"
 #include "ZombieCharacter.generated.h"
-using std::vector;
+
+class UZombieAnimInstance;
 
 UCLASS()
 class UNTILDAWN_API AZombieCharacter : public ACharacter
@@ -61,7 +61,24 @@ protected:
 
 	void StartMovementUpdate();
 
+public:
+
+	void StartAttack();
+
+	void EndAttack();
+
+	FORCEINLINE int GetAttackActivated() const { return isAttackActivated; }
+
+	void ActivateAttackTrace(const int attackAnimationType);
+
+protected:
+
+	void DamageToPlayer(const FHitResult& hit);
+
 private:
+
+	UPROPERTY()
+	UZombieAnimInstance* animInst;
 
 	bool isActive;
 
@@ -76,8 +93,13 @@ private:
 
 	FVector nextPoint, nextDirection;
 
+	UPROPERTY()
 	ACharacter* targetPlayer;
 
 	FTimerHandle movementUpdateTimer;
+
+	bool isAttackActivated;
+
+	int16 damage = 30;
 
 };

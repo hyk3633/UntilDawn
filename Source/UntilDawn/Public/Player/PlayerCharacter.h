@@ -95,6 +95,10 @@ public:
 
 	void DoPlayerInputAction(const int inputType);
 
+	UFUNCTION()
+	void TakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))

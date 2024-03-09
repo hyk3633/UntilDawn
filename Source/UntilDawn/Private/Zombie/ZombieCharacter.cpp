@@ -2,11 +2,13 @@
 
 #include "Zombie/ZombieCharacter.h"
 #include "Zombie/ZombieAIController.h"
+#include "Zombie/ZombieAnimInstance.h"
+#include "Player/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UntilDawn/UntilDawn.h"
-#include "AIController.h"
-
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -36,7 +38,7 @@ AZombieCharacter::AZombieCharacter()
 
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 
-	static ConstructorHelpers::FClassFinder<UAnimInstance> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Zombies/AnimBP_Zombie.AnimBP_Zombie_C'"));
+	static ConstructorHelpers::FClassFinder<UZombieAnimInstance> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Zombies/AnimBP_Zombie.AnimBP_Zombie_C'"));
 	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
 }
 
@@ -44,12 +46,21 @@ void AZombieCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	animInst = Cast<UZombieAnimInstance>(GetMesh()->GetAnimInstance());
+	//if (animInst) animInst->SetMyCharacter(this);
 }
 
 void AZombieCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	if (state == EZombieState::ATTACK)
+	{
+		if (IsValid(targetPlayer))
+		{
+			SetActorRotation(FMath::RInterpTo(GetActorRotation(), (targetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal().Rotation(), DeltaTime, 25.f));
+		}
+	}
 }
 
 void AZombieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -74,6 +85,10 @@ void AZombieCharacter::DeactivateActor()
 
 void AZombieCharacter::SetZombieState(const EZombieState newState)
 {
+	if (state != EZombieState::ATTACK && newState == EZombieState::ATTACK)
+	{
+		animInst->PlayAttackMontage(FMath::RandRange(1, 3));
+	}
 	state = newState;
 }
 
@@ -122,6 +137,7 @@ void AZombieCharacter::UpdateMovement()
 	}
 	VectorTruncate(nextLocation);
 	SetActorLocation(nextLocation);
+	SetActorRotation(FMath::RInterpTo(GetActorRotation(), nextDirection.Rotation(), GetWorld()->GetDeltaSeconds(), 10.f));
 }
 
 void AZombieCharacter::FollowPath()
@@ -146,5 +162,66 @@ void AZombieCharacter::StartMovementUpdate()
 		}
 	}
 	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
+}
+
+void AZombieCharacter::StartAttack()
+{
+	isAttackActivated = true;
+}
+
+void AZombieCharacter::EndAttack()
+{
+	isAttackActivated = false;
+}
+
+void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
+{
+	if (isAttackActivated == false) return;
+
+	FName socketName;
+	if (attackAnimationType == 1)
+	{
+		socketName = FName("RightAttackSocket");
+	}
+	else if (attackAnimationType == 2)
+	{
+		socketName = FName("LeftAttackSocket");
+	}
+	else if (attackAnimationType == 3)
+	{
+		socketName = FName("RightAttackSocket");
+	}
+	const FVector socketLocation = GetMesh()->GetSocketLocation(socketName);
+	FHitResult hit;
+	UKismetSystemLibrary::SphereTraceSingle
+	(
+		this, 
+		socketLocation, 
+		socketLocation, 
+		16, 
+		UEngineTypes::ConvertToTraceType(ECC_ZombieAttack), 
+		false, 
+		TArray<AActor*>(),
+		EDrawDebugTrace::ForDuration,
+		hit,
+		true,
+		FLinearColor::Red,
+		FLinearColor::Green,
+		1.f
+	);
+	if (hit.bBlockingHit)
+	{
+		EndAttack();
+		DamageToPlayer(hit);
+	}
+}
+
+void AZombieCharacter::DamageToPlayer(const FHitResult& hit)
+{
+	APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
+	if (IsValid(player))
+	{
+		UGameplayStatics::ApplyDamage(player, damage, nullptr, this, UDamageType::StaticClass());
+	}
 }
 
