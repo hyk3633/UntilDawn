@@ -93,11 +93,11 @@ public:
 
 	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
 
+	FORCEINLINE void ResetPlayerInfoBitMask() { myInfo.infoBitMask = 0; };
+
 	void DoPlayerInputAction(const int inputType);
 
-	UFUNCTION()
-	void TakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
-
+	void SetAttackResult(const bool result, const int zombieNumber);
 
 private:
 
@@ -167,6 +167,12 @@ private:
 	TQueue<AZombieCharacter*> removePendingQ;
 
 	PlayerInfo myInfo;
+
+	int infoBitMask;
+
+	bool isHitted;
+
+	int zombieNumberAttackedMe;
 
 	FCriticalSection criticalSection;
 

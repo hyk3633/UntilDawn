@@ -9,6 +9,7 @@
 #include "ZombieCharacter.generated.h"
 
 class UZombieAnimInstance;
+class APlayerCharacter;
 
 UCLASS()
 class UNTILDAWN_API AZombieCharacter : public ACharacter
@@ -39,7 +40,7 @@ public:
 
 	FORCEINLINE const int GetNumber() const { return number; }
 
-	FORCEINLINE void SetTarget(ACharacter* target) { targetPlayer = target; }
+	FORCEINLINE void SetTarget(APlayerCharacter* target) { targetPlayer = target; }
 
 	void SetZombieState(const EZombieState newState);
 
@@ -71,9 +72,7 @@ public:
 
 	void ActivateAttackTrace(const int attackAnimationType);
 
-protected:
-
-	void DamageToPlayer(const FHitResult& hit);
+	void SetAttackToPlayerResult(const bool result);
 
 private:
 
@@ -94,7 +93,7 @@ private:
 	FVector nextPoint, nextDirection;
 
 	UPROPERTY()
-	ACharacter* targetPlayer;
+	APlayerCharacter* targetPlayer;
 
 	FTimerHandle movementUpdateTimer;
 

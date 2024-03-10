@@ -211,17 +211,18 @@ void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 	);
 	if (hit.bBlockingHit)
 	{
+		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
+		if(IsValid(player) && player == targetPlayer)
 		EndAttack();
-		DamageToPlayer(hit);
+		SetAttackToPlayerResult(true);
 	}
 }
 
-void AZombieCharacter::DamageToPlayer(const FHitResult& hit)
+void AZombieCharacter::SetAttackToPlayerResult(const bool result)
 {
-	APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
-	if (IsValid(player))
+	if (IsValid(targetPlayer))
 	{
-		UGameplayStatics::ApplyDamage(player, damage, nullptr, this, UDamageType::StaticClass());
+		targetPlayer->SetAttackResult(result, number);
 	}
 }
 

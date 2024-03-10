@@ -40,6 +40,10 @@ void UAnimNotifyState_ZombieAttack::NotifyEnd(USkeletalMeshComponent* MeshComp, 
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(MeshComp->GetOwner());
 	if (IsValid(zombie))
 	{
+		if (zombie->GetAttackActivated())
+		{
+			zombie->SetAttackToPlayerResult(false);
+		}
 		zombie->EndAttack();
 	}
 	elapsedTime = 0.f;

@@ -122,7 +122,6 @@ void APlayerCharacter::PossessedBy(AController* newController)
 	}
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
 	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
-	OnTakeAnyDamage.AddDynamic(this, &APlayerCharacter::TakeAnyDamage);
 	GetWorldTimerManager().SetTimer(overlappingZombieCheckTimer, this, &APlayerCharacter::OverlappingZombieCheck, 0.5f, true);
 }
 
@@ -367,8 +366,8 @@ void APlayerCharacter::Tick(float deltaTime)
 
 void APlayerCharacter::UpdatePlayerInfo()
 {
-	FVector&& location = std::move(GetActorLocation());
-	FRotator&& rotation = std::move(GetActorRotation());
+	FVector location = GetActorLocation();
+	FRotator rotation = GetActorRotation();
 
 	myInfo.characterInfo.vectorX = location.X;
 	myInfo.characterInfo.vectorY = location.Y;
@@ -398,6 +397,14 @@ void APlayerCharacter::UpdatePlayerInfo()
 	else
 	{
 		myInfo.isZombiesSawMe = false;
+	}
+
+	if (infoBitMask & (1 << 2))
+	{
+		myInfo.infoBitMask |= (1 << 2);
+		myInfo.isHitted = isHitted;
+		myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
+		infoBitMask &= ~(1 << 2);
 	}
 }
 
@@ -441,12 +448,10 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType)
 	}
 }
 
-void APlayerCharacter::TakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber)
 {
-	AZombieCharacter* zombie = Cast<AZombieCharacter>(DamageCauser);
-	if (IsValid(zombie))
-	{
-		PLOG(TEXT("%d zombie %s hits me"), zombie->GetNumber(), *zombie->GetName());
-	}
+	infoBitMask |= (1 << 2);
+	isHitted = result;
+	zombieNumberAttackedMe = zombieNumber;
 }
 

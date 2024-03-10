@@ -78,18 +78,29 @@ struct CharacterInfo
 struct PlayerInfo
 {
 	CharacterInfo characterInfo;
+	int infoBitMask;
 	bool isZombiesSawMe;
 	std::vector<int> zombiesWhoSawMe;
+	bool isHitted;
+	int zombieNumberAttackedMe;
 
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
 		stream << info.characterInfo;
+
+		stream << info.infoBitMask << "\n";
+
 		stream << info.isZombiesSawMe << "\n";
 		if (info.isZombiesSawMe)
 		{
 			stream << info.zombiesWhoSawMe.size() << "\n";
 			for (int n : info.zombiesWhoSawMe)
 				stream << n << "\n";
+		}
+		if (info.infoBitMask & (1 << 2))
+		{
+			stream << info.isHitted << "\n";
+			stream << info.zombieNumberAttackedMe << "\n";
 		}
 		return stream;
 	}

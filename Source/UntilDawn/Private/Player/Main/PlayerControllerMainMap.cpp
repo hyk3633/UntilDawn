@@ -40,4 +40,5 @@ void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();
 	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
+	myCharacter->ResetPlayerInfoBitMask();
 }
