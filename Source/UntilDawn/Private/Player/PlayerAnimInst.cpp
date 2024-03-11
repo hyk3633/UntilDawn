@@ -19,6 +19,7 @@ void UPlayerAnimInst::UpdateValue()
 		rightClick = myCharacter->GetRightClick();
 		isAbleShoot = myCharacter->GetIsAbleShoot();
 		currentWeaponType = myCharacter->GetCurrentWeaponType();
+		isWrestling = myCharacter->GetWrestling();
 	}
 }
 

@@ -138,8 +138,20 @@ void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 {
 	for (auto& playerInfo : playerInfoSet->characterInfoMap)
 	{
-		if (playerInfo.first == myNumber) continue;
 		CharacterInfo& info = playerInfo.second.characterInfo;
+		
+		if (playerInfo.first == myNumber)
+		{
+			if (playerInfo.second.recvBitMask & (1 << 3))
+			{
+				if (playerInfo.second.wrestleState == EWrestleState::WRESTLING)
+					playerCharacterMap[myNumber]->SetWrestlingOn();
+				else
+					playerCharacterMap[myNumber]->SetWrestlingOff();
+			}
+			continue;
+		}
+
 		if (playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];

@@ -99,6 +99,9 @@ APlayerCharacter::APlayerCharacter()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RKeyHold(TEXT("/Game/_Assets/Inputs/Actions/IA_RKeyHold.IA_RKeyHold"));
 	if (obj_RKeyHold.Succeeded()) rKeyHoldAction = obj_RKeyHold.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_EKey(TEXT("/Game/_Assets/Inputs/Actions/IA_EKey.IA_EKey"));
+	if (obj_EKey.Succeeded()) eKeyAction = obj_EKey.Object;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -143,6 +146,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 		EnhancedInputComponent->BindAction(rightClickAction, ETriggerEvent::Completed, this, &APlayerCharacter::RightClickEnd);
 		EnhancedInputComponent->BindAction(rKeyAction, ETriggerEvent::Completed, this, &APlayerCharacter::RKeyPressed);
 		EnhancedInputComponent->BindAction(rKeyHoldAction, ETriggerEvent::Triggered, this, &APlayerCharacter::RKeyHold);
+		EnhancedInputComponent->BindAction(eKeyAction, ETriggerEvent::Completed, this, &APlayerCharacter::EKeyPressed);
 	}
 }
 
@@ -282,6 +286,14 @@ void APlayerCharacter::RKeyHold()
 
 	if (myController)
 		myController->SendPlayerInputAction(EPlayerInputs::RKeyHold);
+}
+
+void APlayerCharacter::EKeyPressed()
+{
+	if (bWrestling)
+	{
+
+	}
 }
 
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -453,5 +465,15 @@ void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber
 	infoBitMask |= (1 << 2);
 	isHitted = result;
 	zombieNumberAttackedMe = zombieNumber;
+}
+
+void APlayerCharacter::SetWrestlingOn()
+{
+	bWrestling = true;
+}
+
+void APlayerCharacter::SetWrestlingOff()
+{
+	bWrestling = false;
 }
 

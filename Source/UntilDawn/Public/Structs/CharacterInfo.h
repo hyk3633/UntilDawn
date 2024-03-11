@@ -75,6 +75,13 @@ struct CharacterInfo
 	}
 };
 
+enum class EWrestleState
+{
+	ABLE,
+	WRESTLING,
+	WAITING
+};
+
 struct PlayerInfo
 {
 	CharacterInfo characterInfo;
@@ -83,6 +90,12 @@ struct PlayerInfo
 	std::vector<int> zombiesWhoSawMe;
 	bool isHitted;
 	int zombieNumberAttackedMe;
+
+	bool isWrestling = false;
+
+	int recvBitMask;
+
+	EWrestleState wrestleState = EWrestleState::ABLE;
 
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
@@ -126,6 +139,15 @@ public:
 		{
 			stream >> characterNumber;
 			stream >> info.characterInfoMap[characterNumber].characterInfo;
+			int bitmask;
+			stream >> bitmask;
+			info.characterInfoMap[characterNumber].recvBitMask = bitmask;
+			if (bitmask & (1 << 3))
+			{
+				int wrestleState;
+				stream >> wrestleState;
+				info.characterInfoMap[characterNumber].wrestleState = static_cast<EWrestleState>(wrestleState);
+			}
 		}
 		return stream;
 	}

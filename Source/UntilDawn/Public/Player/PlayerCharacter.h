@@ -58,6 +58,8 @@ protected:
 
 	void RKeyHold();
 
+	void EKeyPressed();
+
 	UFUNCTION()
 	void OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -98,6 +100,10 @@ public:
 	void DoPlayerInputAction(const int inputType);
 
 	void SetAttackResult(const bool result, const int zombieNumber);
+
+	FORCEINLINE void SetWrestlingOn();
+	FORCEINLINE void SetWrestlingOff();
+	FORCEINLINE bool GetWrestling() { return bWrestling; }
 
 private:
 
@@ -146,6 +152,9 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* rKeyHoldAction;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* eKeyAction;
+
 	FString playerID;
 
 	FVector velocity;
@@ -177,4 +186,6 @@ private:
 	FCriticalSection criticalSection;
 
 	FTimerHandle overlappingZombieCheckTimer;
+
+	bool bWrestling;
 };
