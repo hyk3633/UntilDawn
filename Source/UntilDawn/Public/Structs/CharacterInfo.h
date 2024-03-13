@@ -93,6 +93,8 @@ struct PlayerInfo
 
 	bool isWrestling = false;
 
+	bool bSuccessToBlocking = false;
+
 	int recvBitMask;
 
 	EWrestleState wrestleState = EWrestleState::ABLE;
@@ -114,6 +116,10 @@ struct PlayerInfo
 		{
 			stream << info.isHitted << "\n";
 			stream << info.zombieNumberAttackedMe << "\n";
+		}
+		if (info.infoBitMask & (1 << 3))
+		{
+			stream << info.bSuccessToBlocking << "\n";
 		}
 		return stream;
 	}
@@ -147,6 +153,10 @@ public:
 				int wrestleState;
 				stream >> wrestleState;
 				info.characterInfoMap[characterNumber].wrestleState = static_cast<EWrestleState>(wrestleState);
+			}
+			if (bitmask & (1 << 4))
+			{
+				stream >> info.characterInfoMap[characterNumber].bSuccessToBlocking;
 			}
 		}
 		return stream;

@@ -5,6 +5,12 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "UntilDawn/UntilDawn.h"
 
+void UPlayerAnimInst::InitAnimInst(APlayerCharacter* character)
+{
+	myCharacter = character;
+	OnMontageEnded.AddDynamic(this, &UPlayerAnimInst::MontageEnded);
+}
+
 void UPlayerAnimInst::UpdateValue()
 {
 	if (myCharacter)
@@ -25,7 +31,8 @@ void UPlayerAnimInst::UpdateValue()
 
 void UPlayerAnimInst::PlayWeaponArmMontage(const EWeaponType type)
 {
-	if (IsAnyMontagePlaying()) return;
+	if (IsAnyMontagePlaying()) 
+		return;
 	if (type == EWeaponType::AXE && axeArmDisarmMontage)
 	{
 		Montage_Play(axeArmDisarmMontage);
@@ -39,7 +46,8 @@ void UPlayerAnimInst::PlayWeaponArmMontage(const EWeaponType type)
 
 void UPlayerAnimInst::PlayWeaponDisarmMontage(const EWeaponType type)
 {
-	if (IsAnyMontagePlaying()) return;
+	if (IsAnyMontagePlaying()) 
+		return;
 	if (type == EWeaponType::AXE && axeArmDisarmMontage)
 	{
 		Montage_Play(axeArmDisarmMontage);
@@ -53,7 +61,8 @@ void UPlayerAnimInst::PlayWeaponDisarmMontage(const EWeaponType type)
 
 void UPlayerAnimInst::PlayAxeAttackMontage()
 {
-	if (IsAnyMontagePlaying()) return;
+	if (IsAnyMontagePlaying()) 
+		return;
 	if (axeAttackMontage)
 	{
 		Montage_Play(axeAttackMontage);
@@ -62,7 +71,8 @@ void UPlayerAnimInst::PlayAxeAttackMontage()
 
 void UPlayerAnimInst::PlayBowDrawMontage()
 {
-	if (IsAnyMontagePlaying()) return;
+	if (IsAnyMontagePlaying()) 
+		return;
 	if (bowDrawMontage)
 	{
 		Montage_Play(bowDrawMontage);
@@ -71,10 +81,31 @@ void UPlayerAnimInst::PlayBowDrawMontage()
 
 void UPlayerAnimInst::PlayBowShootMontage()
 {
-	if (IsAnyMontagePlaying()) return;
+	if (IsAnyMontagePlaying()) 
+		return;
 	if (bowDrawMontage)
 	{
 		Montage_Play(bowDrawMontage);
 		Montage_JumpToSection(FName("Shoot"));
+	}
+}
+
+void UPlayerAnimInst::PlayWrestlingMontage(const bool isBlocking)
+{
+	if (IsAnyMontagePlaying()) 
+		return;
+	if (wrestlingMontage)
+	{
+		Montage_Play(wrestlingMontage);
+		if(isBlocking)
+			Montage_JumpToSection(FName("Pushing"));
+	}
+}
+
+void UPlayerAnimInst::MontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage == wrestlingMontage)
+	{
+		DMontageEnded.ExecuteIfBound();
 	}
 }

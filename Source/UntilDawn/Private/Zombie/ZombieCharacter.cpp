@@ -45,6 +45,23 @@ AZombieCharacter::AZombieCharacter()
 void AZombieCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(GetRootComponent());
+	if (PrimitiveComponent)
+	{
+		FBodyInstance* BodyInstance = PrimitiveComponent->GetBodyInstance();
+		if (BodyInstance)
+		{
+			BodyInstance->MassScale = 0.0f;
+			BodyInstance->bLockXRotation = true;
+			BodyInstance->bLockYRotation = true;
+			BodyInstance->bLockZRotation = true;
+			BodyInstance->bLockXTranslation = true;
+			BodyInstance->bLockYTranslation = true;
+			BodyInstance->bLockZTranslation = true;
+			BodyInstance->UpdateMassProperties();
+		}
+	}
 	
 	animInst = Cast<UZombieAnimInstance>(GetMesh()->GetAnimInstance());
 	//if (animInst) animInst->SetMyCharacter(this);

@@ -10,6 +10,7 @@
 #include "PlayerCharacter.generated.h"
 
 class APlayerControllerMainMap;
+class AHUDMainMap;
 class UPlayerAnimInst;
 class UInputMappingContext;
 class UInputAction;
@@ -105,6 +106,14 @@ public:
 	FORCEINLINE void SetWrestlingOff();
 	FORCEINLINE bool GetWrestling() { return bWrestling; }
 
+	void PlayPushingZombieMontage(const bool isBlocking);
+
+	UFUNCTION()
+	void FailedToResist();
+
+	UFUNCTION()
+	void WrestlingEnd();
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -121,6 +130,9 @@ private:
 
 	UPROPERTY()
 	APlayerControllerMainMap* myController;
+
+	UPROPERTY()
+	AHUDMainMap* myHUD;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* defaultMappingContext;
@@ -188,4 +200,8 @@ private:
 	FTimerHandle overlappingZombieCheckTimer;
 
 	bool bWrestling;
+
+	bool bSuccessToBlocking;
+
+	bool bWrestlingEnd;
 };

@@ -33,7 +33,6 @@ public:
 
 protected:
 
-
 	UFUNCTION()
 	void RequestLogin(const FText& id, const FText& pw);
 

@@ -11,6 +11,8 @@
  * 
  */
 
+DECLARE_DELEGATE(DelegateMontageEnded);
+
 class APlayerCharacter;
 class UAnimMontage;
 
@@ -21,7 +23,7 @@ class UNTILDAWN_API UPlayerAnimInst : public UAnimInstance
 
 public:
 
-	FORCEINLINE void SetMyCharacter(APlayerCharacter* character) { myCharacter = character; }
+	void InitAnimInst(APlayerCharacter* character);
 
 	UFUNCTION(BlueprintCallable)
 	void UpdateValue();
@@ -35,6 +37,15 @@ public:
 	void PlayBowDrawMontage();
 
 	void PlayBowShootMontage();
+
+	void PlayWrestlingMontage(const bool isBlocking);
+
+	DelegateMontageEnded DMontageEnded;
+
+protected:
+
+	UFUNCTION()
+	void MontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 private:
 
@@ -68,17 +79,20 @@ private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool isAbleShoot;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Montages | Axe", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* axeArmDisarmMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Montages | Bow", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* bowArmDisarmMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Montages | Bow", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* bowDrawMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Montages", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Montages | Axe", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* axeAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Montages | Interact", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* wrestlingMontage;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	EWeaponType currentWeaponType = EWeaponType::DEFAULT;

@@ -6,6 +6,7 @@
 #include "GameSystem/ZombieActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
+#include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
@@ -22,6 +23,7 @@ AGameModeMainMap::AGameModeMainMap()
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
+	HUDClass = AHUDMainMap::StaticClass();
 }
 
 void AGameModeMainMap::BeginPlay()
@@ -145,9 +147,15 @@ void AGameModeMainMap::SynchronizeOtherPlayersInfo()
 			if (playerInfo.second.recvBitMask & (1 << 3))
 			{
 				if (playerInfo.second.wrestleState == EWrestleState::WRESTLING)
+				{
 					playerCharacterMap[myNumber]->SetWrestlingOn();
-				else
-					playerCharacterMap[myNumber]->SetWrestlingOff();
+				}
+			}
+			if (playerInfo.second.recvBitMask & (1 << 4))
+			{
+				APlayerCharacter* character = playerCharacterMap[playerInfo.first];
+				character->PlayPushingZombieMontage(playerInfo.second.bSuccessToBlocking);
+				playerCharacterMap[myNumber]->SetWrestlingOff();
 			}
 			continue;
 		}

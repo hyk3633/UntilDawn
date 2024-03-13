@@ -3,6 +3,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerAnimInst.h"
+#include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -109,7 +110,11 @@ void APlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	animInst = Cast<UPlayerAnimInst>(GetMesh()->GetAnimInstance());
-	if (animInst) animInst->SetMyCharacter(this);
+	if (animInst)
+	{
+		animInst->InitAnimInst(this);
+		animInst->DMontageEnded.BindUFunction(this, FName("WrestlingEnd"));
+	}
 }
 
 void APlayerCharacter::PossessedBy(AController* newController)
@@ -118,6 +123,9 @@ void APlayerCharacter::PossessedBy(AController* newController)
 	myController = Cast<APlayerControllerMainMap>(newController);
 	if (myController)
 	{
+		myHUD = myController->GetHUD<AHUDMainMap>();
+		myHUD->DFailedToResist.BindUFunction(this, FName("FailedToResist"));
+
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(myController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
@@ -191,17 +199,22 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 
 void APlayerCharacter::Sprint()
 {
-	if (isAbleShoot) return;
+	if (isAbleShoot) 
+		return;
 	GetCharacterMovement()->MaxWalkSpeed = 600;
-	if(myController)
+	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::Sprint);
+	}
 }
 
 void APlayerCharacter::SprintEnd()
 {
 	GetCharacterMovement()->MaxWalkSpeed = 300;
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::SprintEnd);
+	}
 }
 
 void APlayerCharacter::LeftClick()
@@ -215,7 +228,9 @@ void APlayerCharacter::LeftClick()
 		animInst->PlayBowDrawMontage();
 	}
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::LeftClick);
+	}
 }
 
 void APlayerCharacter::LeftClickHold()
@@ -226,20 +241,25 @@ void APlayerCharacter::LeftClickHold()
 		GetCharacterMovement()->MaxWalkSpeed = 300;
 	}
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::LeftClickHold);
+	}
 }
 
 void APlayerCharacter::LeftClickEnd()
 {
 	if (currentWeaponType == EWeaponType::BOW)
 	{
-		if (isAbleShoot == false) return;
+		if (isAbleShoot == false) 
+			return;
 		isAbleShoot = false;
 		animInst->PlayBowShootMontage();
 		shootPower = 0;
 	}
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::LeftClickEnd);
+	}
 }
 
 void APlayerCharacter::RightClick()
@@ -249,7 +269,9 @@ void APlayerCharacter::RightClick()
 		rightClick = true;
 	}
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::RightClick);
+	}
 }
 
 void APlayerCharacter::RightClickEnd()
@@ -259,12 +281,15 @@ void APlayerCharacter::RightClickEnd()
 		rightClick = false;
 	}
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::RightClickEnd);
+	}
 }
 
 void APlayerCharacter::RKeyPressed()
 {
-	if (currentWeaponType != EWeaponType::DEFAULT) return;
+	if (currentWeaponType != EWeaponType::DEFAULT) 
+		return;
 	animInst->PlayWeaponArmMontage(EWeaponType::AXE);
 	currentWeaponType = EWeaponType::AXE;
 
@@ -272,12 +297,15 @@ void APlayerCharacter::RKeyPressed()
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::RKeyPressed);
+	}
 }
 
 void APlayerCharacter::RKeyHold()
 {
-	if (currentWeaponType == EWeaponType::DEFAULT) return;
+	if (currentWeaponType == EWeaponType::DEFAULT) 
+		return;
 	animInst->PlayWeaponDisarmMontage(currentWeaponType);
 	currentWeaponType = EWeaponType::DEFAULT;
 
@@ -285,14 +313,20 @@ void APlayerCharacter::RKeyHold()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	if (myController)
+	{
 		myController->SendPlayerInputAction(EPlayerInputs::RKeyHold);
+	}
 }
 
 void APlayerCharacter::EKeyPressed()
 {
-	if (bWrestling)
+	if (bWrestling && myHUD && !bSuccessToBlocking)
 	{
-
+		if (myHUD->IncreasingProgressBar())
+		{
+			infoBitMask |= (1 << 3);
+			bSuccessToBlocking = true;
+		}
 	}
 }
 
@@ -300,13 +334,18 @@ void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* O
 {
 	FScopeLock Lock(&criticalSection);
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
-	if (zombie->GetZombieState() != EZombieState::IDLE) return;
+	if (zombie->GetZombieState() != EZombieState::IDLE) 
+		return;
 	if (IsValid(zombie))
 	{
 		if (IsZombieCanSeeMe(zombie))
+		{
 			zombiesWhoSawMe.Add(zombie);
+		}
 		else
+		{
 			overlappingZombies.Add(zombie->GetNumber(), zombie);
+		}
 	}
 }
 
@@ -328,8 +367,10 @@ bool APlayerCharacter::IsZombieCanSeeMe(AActor* zombie)
 	FVector ToTarget = GetActorLocation() - zombie->GetActorLocation();
 	ToTarget.Normalize();
 	const float AngleDegree = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(ToTarget, zombie->GetActorForwardVector())));
-	if (AngleDegree < 60.0) return true;
-	else return false;
+	if (AngleDegree < 60.0) 
+		return true;
+	else 
+		return false;
 }
 
 void APlayerCharacter::OverlappingZombieCheck()
@@ -370,10 +411,15 @@ void APlayerCharacter::Tick(float deltaTime)
 
 	direction = UKismetAnimationLibrary::CalculateDirection(velocity, GetActorForwardVector().Rotation());
 	pitch = GetBaseAimRotation().Pitch;
-	if (pitch >= 180.f) pitch -= 360.f;
+	if (pitch >= 180.f)
+	{
+		pitch -= 360.f;
+	}
 
 	if (isAbleShoot)
+	{
 		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
+	}
 }
 
 void APlayerCharacter::UpdatePlayerInfo()
@@ -418,6 +464,17 @@ void APlayerCharacter::UpdatePlayerInfo()
 		myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
 		infoBitMask &= ~(1 << 2);
 	}
+	if (infoBitMask & (1 << 3))
+	{
+		myInfo.infoBitMask |= (1 << 3);
+		myInfo.bSuccessToBlocking = bSuccessToBlocking;
+		infoBitMask &= ~(1 << 3);
+	}
+	if (infoBitMask & (1 << 5))
+	{
+		myInfo.infoBitMask |= (1 << 5);
+		infoBitMask &= ~(1 << 5);
+	}
 }
 
 const bool APlayerCharacter::GetIsFalling() const
@@ -427,7 +484,8 @@ const bool APlayerCharacter::GetIsFalling() const
 
 void APlayerCharacter::DoPlayerInputAction(const int inputType)
 {
-	if (inputType == 0) return;
+	if (inputType == 0) 
+		return;
 	switch (static_cast<EPlayerInputs>(inputType))
 	{
 	case EPlayerInputs::Sprint:
@@ -470,10 +528,34 @@ void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber
 void APlayerCharacter::SetWrestlingOn()
 {
 	bWrestling = true;
+	if (myHUD)
+	{
+		myHUD->StartWrestlingProgressBar();
+	}
 }
 
 void APlayerCharacter::SetWrestlingOff()
 {
 	bWrestling = false;
+	if (myHUD)
+	{
+		myHUD->EndWrestlingProgressBar();
+	}
+}
+
+void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
+{
+	animInst->PlayWrestlingMontage(isBlocking);
+}
+
+void APlayerCharacter::FailedToResist()
+{
+	infoBitMask |= (1 << 3);
+	bSuccessToBlocking = false;
+}
+
+void APlayerCharacter::WrestlingEnd()
+{
+	infoBitMask |= (1 << 5);
 }
 
