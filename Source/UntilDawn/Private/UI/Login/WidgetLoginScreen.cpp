@@ -18,15 +18,15 @@ void UWidgetLoginScreen::Init()
 void UWidgetLoginScreen::SetLoginMessage(const FString& message, const bool isGreen)
 {
 	textBlock_Login->SetText(FText::FromString(message));
-	if(isGreen) textBlock_Login->SetColorAndOpacity(FLinearColor::Green);
-	else textBlock_Login->SetColorAndOpacity(FLinearColor::Red);
+	//if(isGreen) textBlock_Login->SetColorAndOpacity(FLinearColor::Green);
+	//else textBlock_Login->SetColorAndOpacity(FLinearColor::Red);
 }
 
 void UWidgetLoginScreen::SetSignUpMessage(const FString& message, const bool isGreen)
 {
 	textBlock_SignUp->SetText(FText::FromString(message));
-	if (isGreen) textBlock_SignUp->SetColorAndOpacity(FLinearColor::Green);
-	else textBlock_SignUp->SetColorAndOpacity(FLinearColor::Red);
+	//if (isGreen) textBlock_SignUp->SetColorAndOpacity(FLinearColor::Green);
+	//else textBlock_SignUp->SetColorAndOpacity(FLinearColor::Red);
 }
 
 void UWidgetLoginScreen::ChangeMenuToLogin()

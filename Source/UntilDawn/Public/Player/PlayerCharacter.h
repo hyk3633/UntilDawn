@@ -71,11 +71,17 @@ protected:
 
 	void OverlappingZombieCheck();
 
+	void MaskToInfoBit(int& infoBit, const PIBTC bitType);
+
+	void RemoveMaskedBit(int& infoBit, const PIBTC bitType);
+
 public:	
 
 	virtual void Tick(float deltaTime) override;
 
 	void UpdatePlayerInfo();
+
+	void SaveInfoToPacket(const int bitType);
 
 	FORCEINLINE void SetPlayerID(const FString& id) { playerID = id; }
 
@@ -96,7 +102,7 @@ public:
 
 	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
 
-	FORCEINLINE void ResetPlayerInfoBitMask() { myInfo.infoBitMask = 0; };
+	FORCEINLINE void ResetPlayerInfoBitMask() { myInfo.sendInfoBitMask = 0; };
 
 	void DoPlayerInputAction(const int inputType);
 
@@ -189,7 +195,7 @@ private:
 
 	PlayerInfo myInfo;
 
-	int infoBitMask;
+	int sendInfoBitMask;
 
 	bool isHitted;
 
@@ -201,7 +207,7 @@ private:
 
 	bool bWrestling;
 
-	bool bSuccessToBlocking;
+	bool isSuccessToBlocking;
 
 	bool bWrestlingEnd;
 };

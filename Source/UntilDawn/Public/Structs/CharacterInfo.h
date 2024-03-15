@@ -82,46 +82,123 @@ enum class EWrestleState
 	WAITING
 };
 
+enum class EPlayerInfoBitTypeClient
+{
+	UncoveredByZombie,
+	ZombieAttackResult,
+	WrestlingResult,
+	WrestlingEnd,
+	MAX
+};
+
+typedef EPlayerInfoBitTypeClient PIBTC;
+
+enum class EPlayerInfoBitTypeServer
+{
+	WrestlingState,
+	PlayGrabReaction,
+	MAX
+};
+
+typedef EPlayerInfoBitTypeServer PIBTS;
+
 struct PlayerInfo
 {
+	// 필수 데이터
 	CharacterInfo characterInfo;
-	int infoBitMask;
-	bool isZombiesSawMe;
+	int sendInfoBitMask;
+
+	// 서버 전송용 데이터
 	std::vector<int> zombiesWhoSawMe;
 	bool isHitted;
 	int zombieNumberAttackedMe;
+	bool isSuccessToBlocking = false;
 
-	bool isWrestling = false;
-
-	bool bSuccessToBlocking = false;
-
-	int recvBitMask;
-
+	// 서버 수신용 데이터
+	int recvInfoBitMask;
 	EWrestleState wrestleState = EWrestleState::ABLE;
+	bool isBlockingAction = false;
 
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
 		stream << info.characterInfo;
-
-		stream << info.infoBitMask << "\n";
-
-		stream << info.isZombiesSawMe << "\n";
-		if (info.isZombiesSawMe)
+		stream << info.sendInfoBitMask << "\n";
+		const int bitMax = static_cast<int>(PIBTC::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
 		{
-			stream << info.zombiesWhoSawMe.size() << "\n";
-			for (int n : info.zombiesWhoSawMe)
-				stream << n << "\n";
-		}
-		if (info.infoBitMask & (1 << 2))
-		{
-			stream << info.isHitted << "\n";
-			stream << info.zombieNumberAttackedMe << "\n";
-		}
-		if (info.infoBitMask & (1 << 3))
-		{
-			stream << info.bSuccessToBlocking << "\n";
+			if (info.sendInfoBitMask & (1 << bit))
+			{
+				SaveInfoToPacket(stream, info, bit);
+			}
 		}
 		return stream;
+	}
+
+	friend void SaveInfoToPacket(std::ostream& stream, const PlayerInfo& info, const int bitType)
+	{
+		PIBTC type = static_cast<PIBTC>(bitType);
+		switch (type)
+		{
+			case PIBTC::UncoveredByZombie:
+			{
+				stream << info.zombiesWhoSawMe.size() << "\n";
+				for (int n : info.zombiesWhoSawMe)
+				{
+					stream << n << "\n";
+				}
+				break;
+			}
+			case PIBTC::ZombieAttackResult:
+			{
+				stream << info.isHitted << "\n";
+				stream << info.zombieNumberAttackedMe << "\n";
+				break;
+			}
+			case PIBTC::WrestlingResult:
+			{
+				stream << info.isSuccessToBlocking << "\n";
+				break;
+			}
+			case PIBTC::WrestlingEnd:
+			{
+				break;
+			}
+		}
+	}
+
+	friend std::istream& operator>>(std::istream& stream, PlayerInfo& info)
+	{
+		stream >> info.characterInfo;
+		stream >> info.recvInfoBitMask;
+		const int bitMax = static_cast<int>(PIBTS::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
+		{
+			if (info.recvInfoBitMask & (1 << bit))
+			{
+				ReceiveInfoToPacket(stream, info, bit);
+			}
+		}
+		return stream;
+	}
+
+	friend void ReceiveInfoToPacket(std::istream& stream, PlayerInfo& info, const int bitType)
+	{
+		PIBTS type = static_cast<PIBTS>(bitType);
+		switch (type)
+		{
+			case PIBTS::WrestlingState:
+			{
+				int wrestleState;
+				stream >> wrestleState;
+				info.wrestleState = static_cast<EWrestleState>(wrestleState);
+				break;
+			}
+			case PIBTS::PlayGrabReaction:
+			{
+				stream >> info.isBlockingAction;
+				break;
+			}
+		}
 	}
 };
 
@@ -144,20 +221,7 @@ public:
 		for (int i = 0; i < characterCount; i++)
 		{
 			stream >> characterNumber;
-			stream >> info.characterInfoMap[characterNumber].characterInfo;
-			int bitmask;
-			stream >> bitmask;
-			info.characterInfoMap[characterNumber].recvBitMask = bitmask;
-			if (bitmask & (1 << 3))
-			{
-				int wrestleState;
-				stream >> wrestleState;
-				info.characterInfoMap[characterNumber].wrestleState = static_cast<EWrestleState>(wrestleState);
-			}
-			if (bitmask & (1 << 4))
-			{
-				stream >> info.characterInfoMap[characterNumber].bSuccessToBlocking;
-			}
+			stream >> info.characterInfoMap[characterNumber];
 		}
 		return stream;
 	}

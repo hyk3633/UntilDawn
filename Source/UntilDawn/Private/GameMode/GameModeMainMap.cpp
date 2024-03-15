@@ -56,13 +56,21 @@ void AGameModeMainMap::Tick(float deltaTime)
 	Super::Tick(deltaTime);
 
 	if (!playerToDelete.IsEmpty())
+	{
 		DestroyPlayer();
+	}
 	if (playerInfoSetEx)
+	{
 		SpawnNewPlayerCharacter();
+	}
 	if (playerInfoSet)
-		SynchronizeOtherPlayersInfo();
+	{
+		SynchronizePlayersInfo();
+	}
 	if (zombieInfoSet)
+	{
 		SynchronizeZombieInfo();
+	}
 }
 
 void AGameModeMainMap::DestroyPlayer()
@@ -136,39 +144,51 @@ void AGameModeMainMap::SpawnNewPlayerCharacter()
 	playerInfoSetEx = nullptr;
 }
 
-void AGameModeMainMap::SynchronizeOtherPlayersInfo()
+void AGameModeMainMap::SynchronizePlayersInfo()
 {
 	for (auto& playerInfo : playerInfoSet->characterInfoMap)
 	{
-		CharacterInfo& info = playerInfo.second.characterInfo;
-		
-		if (playerInfo.first == myNumber)
+		const int bitMax = static_cast<int>(PIBTS::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
 		{
-			if (playerInfo.second.recvBitMask & (1 << 3))
+			if (playerInfo.second.recvInfoBitMask & (1 << bit))
 			{
-				if (playerInfo.second.wrestleState == EWrestleState::WRESTLING)
-				{
-					playerCharacterMap[myNumber]->SetWrestlingOn();
-				}
+				ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
 			}
-			if (playerInfo.second.recvBitMask & (1 << 4))
-			{
-				APlayerCharacter* character = playerCharacterMap[playerInfo.first];
-				character->PlayPushingZombieMontage(playerInfo.second.bSuccessToBlocking);
-				playerCharacterMap[myNumber]->SetWrestlingOff();
-			}
-			continue;
 		}
-
-		if (playerCharacterMap.Find(playerInfo.first))
+		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
+			CharacterInfo& info = playerInfo.second.characterInfo;
 			if (IsValid(character))
 			{
 				character->AddMovementInput(FVector(info.velocityX, info.velocityY, info.velocityZ));
 				character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
 				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
 			}
+		}
+	}
+}
+
+void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType)
+{
+	PIBTS type = static_cast<PIBTS>(bitType);
+	switch (type)
+	{
+		case PIBTS::WrestlingState:
+		{
+			if (info.wrestleState == EWrestleState::WRESTLING)
+			{
+				playerCharacterMap[playerNumber]->SetWrestlingOn();
+			}
+			break;
+		}
+		case PIBTS::PlayGrabReaction:
+		{
+			APlayerCharacter* character = playerCharacterMap[playerNumber];
+			character->PlayPushingZombieMontage(info.isBlockingAction);
+			playerCharacterMap[playerNumber]->SetWrestlingOff();
+			break;
 		}
 	}
 }
@@ -201,6 +221,11 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 		if (info.second.targetNumber >= 0 && playerCharacterMap.Find(info.second.targetNumber))
 		{
 			newZombie->SetTarget(playerCharacterMap[info.second.targetNumber]);
+		}
+
+		if (info.second.state == EZombieState::GRAB)
+		{
+			newZombie->SetActorRotation(zombieInfo.rotation);
 		}
 
 		newZombie->SetNextLocation(zombieInfo.nextLocation);

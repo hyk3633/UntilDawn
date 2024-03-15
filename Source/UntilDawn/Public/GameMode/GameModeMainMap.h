@@ -37,7 +37,9 @@ protected:
 
 	void SpawnNewPlayerCharacter();
 
-	void SynchronizeOtherPlayersInfo();
+	void SynchronizePlayersInfo();
+
+	void ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType);
 
 	void SynchronizeZombieInfo();
 

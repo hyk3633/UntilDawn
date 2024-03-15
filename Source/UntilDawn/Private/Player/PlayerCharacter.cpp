@@ -19,7 +19,6 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "KismetAnimationLibrary.h"
 #include "UntilDawn/UntilDawn.h"
-
 #include "Zombie/ZombieCharacter.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -320,12 +319,12 @@ void APlayerCharacter::RKeyHold()
 
 void APlayerCharacter::EKeyPressed()
 {
-	if (bWrestling && myHUD && !bSuccessToBlocking)
+	if (bWrestling && myHUD && !isSuccessToBlocking)
 	{
 		if (myHUD->IncreasingProgressBar())
 		{
-			infoBitMask |= (1 << 3);
-			bSuccessToBlocking = true;
+			MaskToInfoBit(sendInfoBitMask, PIBTC::WrestlingResult);
+			isSuccessToBlocking = true;
 		}
 	}
 }
@@ -341,6 +340,7 @@ void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* O
 		if (IsZombieCanSeeMe(zombie))
 		{
 			zombiesWhoSawMe.Add(zombie);
+			MaskToInfoBit(sendInfoBitMask, PIBTC::UncoveredByZombie);
 		}
 		else
 		{
@@ -385,6 +385,7 @@ void APlayerCharacter::OverlappingZombieCheck()
 				if (IsZombieCanSeeMe(kv.Value))
 				{
 					zombiesWhoSawMe.Add(kv.Value);
+					MaskToInfoBit(sendInfoBitMask, PIBTC::UncoveredByZombie);
 					removePendingQ.Enqueue(kv.Value);
 				}
 			}
@@ -400,6 +401,16 @@ void APlayerCharacter::OverlappingZombieCheck()
 			overlappingZombies.Remove(zombie->GetNumber());
 		}
 	}
+}
+
+void APlayerCharacter::MaskToInfoBit(int& infoBit, const PIBTC bitType)
+{
+	infoBit |= (1 << static_cast<int>(bitType));
+}
+
+void APlayerCharacter::RemoveMaskedBit(int& infoBit, const PIBTC bitType)
+{
+	infoBit &= ~(1 << static_cast<int>(bitType));
 }
 
 void APlayerCharacter::Tick(float deltaTime)
@@ -439,42 +450,48 @@ void APlayerCharacter::UpdatePlayerInfo()
 
 	FScopeLock Lock(&criticalSection);
 
-	myInfo.zombiesWhoSawMe.clear();
-	if (!zombiesWhoSawMe.IsEmpty())
+	const int bitMax = static_cast<int>(PIBTC::MAX);
+	for (int bit = 0; bit < bitMax; bit++)
 	{
-		for (AZombieCharacter* zombie : zombiesWhoSawMe)
+		if (sendInfoBitMask & (1 << bit))
 		{
-			myInfo.zombiesWhoSawMe.push_back(zombie->GetNumber());
+			SaveInfoToPacket(bit);
 		}
-		if (myInfo.zombiesWhoSawMe.size())
-		{
-			myInfo.isZombiesSawMe = true;
-		}
-		zombiesWhoSawMe.Reset(3);
 	}
-	else
-	{
-		myInfo.isZombiesSawMe = false;
-	}
+}
 
-	if (infoBitMask & (1 << 2))
+void APlayerCharacter::SaveInfoToPacket(const int bitType)
+{
+	PIBTC type = static_cast<PIBTC>(bitType);
+	switch (type)
 	{
-		myInfo.infoBitMask |= (1 << 2);
-		myInfo.isHitted = isHitted;
-		myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
-		infoBitMask &= ~(1 << 2);
+		case PIBTC::UncoveredByZombie:
+		{
+			myInfo.zombiesWhoSawMe.clear();
+			if (!zombiesWhoSawMe.IsEmpty())
+			{
+				for (AZombieCharacter* zombie : zombiesWhoSawMe)
+				{
+					myInfo.zombiesWhoSawMe.push_back(zombie->GetNumber());
+				}
+				zombiesWhoSawMe.Reset(3);
+			}
+		}
+		case PIBTC::ZombieAttackResult:
+		{
+			myInfo.isHitted = isHitted;
+			myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
+		}
+		case PIBTC::WrestlingResult:
+		{
+			myInfo.isSuccessToBlocking = isSuccessToBlocking;
+		}
+		case PIBTC::WrestlingEnd:
+		{
+		}
 	}
-	if (infoBitMask & (1 << 3))
-	{
-		myInfo.infoBitMask |= (1 << 3);
-		myInfo.bSuccessToBlocking = bSuccessToBlocking;
-		infoBitMask &= ~(1 << 3);
-	}
-	if (infoBitMask & (1 << 5))
-	{
-		myInfo.infoBitMask |= (1 << 5);
-		infoBitMask &= ~(1 << 5);
-	}
+	MaskToInfoBit(myInfo.sendInfoBitMask, static_cast<PIBTC>(bitType));
+	RemoveMaskedBit(sendInfoBitMask, static_cast<PIBTC>(bitType));
 }
 
 const bool APlayerCharacter::GetIsFalling() const
@@ -520,7 +537,7 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType)
 
 void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber)
 {
-	infoBitMask |= (1 << 2);
+	MaskToInfoBit(sendInfoBitMask, PIBTC::ZombieAttackResult);
 	isHitted = result;
 	zombieNumberAttackedMe = zombieNumber;
 }
@@ -550,12 +567,12 @@ void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
 
 void APlayerCharacter::FailedToResist()
 {
-	infoBitMask |= (1 << 3);
-	bSuccessToBlocking = false;
+	MaskToInfoBit(sendInfoBitMask, PIBTC::WrestlingResult);
+	isSuccessToBlocking = false;
 }
 
 void APlayerCharacter::WrestlingEnd()
 {
-	infoBitMask |= (1 << 5);
+	MaskToInfoBit(sendInfoBitMask, PIBTC::WrestlingEnd);
 }
 
