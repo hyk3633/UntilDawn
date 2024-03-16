@@ -195,42 +195,72 @@ void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInf
 
 void AGameModeMainMap::SynchronizeZombieInfo()
 {
+	const int bitMax = static_cast<int>(ZIBT::MAX);
 	for (auto& info : zombieInfoSet->zombieInfoMap)
 	{
 		const ZombieInfo& zombieInfo = info.second;
-		AZombieCharacter* newZombie;
+		AZombieCharacter* zombie;
 
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
-			newZombie = zombiePooler->GetPooledActor();
-			if (newZombie == nullptr)
+			zombie = zombiePooler->GetPooledActor();
+			if (zombie == nullptr)
 			{
 				actorSpawner->SpawnActor(1, zombiePooler->GetActorPool());
-				newZombie = zombiePooler->GetPooledActor();
+				zombie = zombiePooler->GetPooledActor();
 			}
-			newZombie->SetNumber(info.first);
-			newZombie->SetActorRotation(zombieInfo.rotation);
-			newZombie->ActivateActor();
-			zombieCharacterMap.Add(info.first, newZombie);
+			zombie->SetNumber(info.first);
+			zombie->ActivateActor();
+			zombieCharacterMap.Add(info.first, zombie);
 		}
 		else
 		{
-			newZombie = zombieCharacterMap[info.first];
+			zombie = zombieCharacterMap[info.first];
 		}
 
-		if (info.second.targetNumber >= 0 && playerCharacterMap.Find(info.second.targetNumber))
+		for (int bit = 0; bit < bitMax; bit++)
 		{
-			newZombie->SetTarget(playerCharacterMap[info.second.targetNumber]);
+			if (info.second.recvInfoBitMask & (1 << bit))
+			{
+				ProcessZombieInfo(zombie, info.second, bit);
+			}
 		}
-
-		if (info.second.state == EZombieState::GRAB)
-		{
-			newZombie->SetActorRotation(zombieInfo.rotation);
-		}
-
-		newZombie->SetNextLocation(zombieInfo.nextLocation);
-		newZombie->SetActorLocation(zombieInfo.location);
-		newZombie->SetZombieState(info.second.state);
 	}
 	zombieInfoSet = nullptr;
+}
+
+void AGameModeMainMap::ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType)
+{
+	ZIBT type = static_cast<ZIBT>(bitType);
+	switch (type)
+	{
+		case ZIBT::Location:
+		{
+			zombie->SetActorLocation(info.location);
+			break;
+		}
+		case ZIBT::Rotation:
+		{
+			zombie->SetActorRotation(info.rotation);
+			break;
+		}
+		case ZIBT::State:
+		{
+			zombie->SetZombieState(info.state);
+			break;
+		}
+		case ZIBT::TargetNumber:
+		{
+			if (info.targetNumber >= 0 && playerCharacterMap.Find(info.targetNumber))
+			{
+				zombie->SetTarget(playerCharacterMap[info.targetNumber]);
+			}
+			break;
+		}
+		case ZIBT::NextLocation:
+		{
+			zombie->SetNextLocation(info.nextLocation);
+			break;
+		}
+	}
 }

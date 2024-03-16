@@ -43,6 +43,8 @@ protected:
 
 	void SynchronizeZombieInfo();
 
+	void ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType);
+
 public:
 
 	virtual void Tick(float deltaTime) override;

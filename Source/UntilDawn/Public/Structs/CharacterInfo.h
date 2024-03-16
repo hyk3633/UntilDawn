@@ -6,8 +6,22 @@
 #include "Enums/ZombieState.h"
 #include "Structs/Pos.h"
 
+enum class EZombieInfoBitType
+{
+	Location,
+	Rotation,
+	State,
+	TargetNumber,
+	NextLocation,
+	MAX
+};
+
+typedef EZombieInfoBitType ZIBT;
+
 struct ZombieInfo
 {
+	int recvInfoBitMask;
+
 	FVector location;
 	FRotator rotation;
 	EZombieState state;
@@ -16,14 +30,52 @@ struct ZombieInfo
 
 	friend std::istream& operator>>(std::istream& stream, ZombieInfo& info)
 	{
-		stream >> info.location.X >> info.location.Y >> info.location.Z;
-		stream >> info.rotation.Pitch >> info.rotation.Yaw >> info.rotation.Roll;
-		int stateNumber = 0;
-		stream >> stateNumber;
-		info.state = static_cast<EZombieState>(stateNumber);
-		stream >> info.targetNumber;
-		stream >> info.nextLocation.X >> info.nextLocation.Y >> info.nextLocation.Z;
+		stream >> info.recvInfoBitMask;
+
+		const int bitMax = static_cast<int>(ZIBT::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
+		{
+			if (info.recvInfoBitMask & (1 << bit))
+			{
+				info.ReceiveInfoToPacket(stream, bit);
+			}
+		}
 		return stream;
+	}
+
+	void ReceiveInfoToPacket(std::istream& stream, const int bitType)
+	{
+		ZIBT type = static_cast<ZIBT>(bitType);
+		switch (type)
+		{
+			case ZIBT::Location:
+			{
+				stream >> location.X >> location.Y >> location.Z;
+				break;
+			}
+			case ZIBT::Rotation:
+			{
+				stream >> rotation.Pitch >> rotation.Yaw >> rotation.Roll;
+				break;
+			}
+			case ZIBT::State:
+			{
+				int stateNumber = 0;
+				stream >> stateNumber;
+				state = static_cast<EZombieState>(stateNumber);
+				break;
+			}
+			case ZIBT::TargetNumber:
+			{
+				stream >> targetNumber;
+				break;
+			}
+			case ZIBT::NextLocation:
+			{
+				stream >> nextLocation.X >> nextLocation.Y >> nextLocation.Z;
+				break;
+			}
+		}
 	}
 };
 
