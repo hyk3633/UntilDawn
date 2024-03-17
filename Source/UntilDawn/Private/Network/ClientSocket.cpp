@@ -86,7 +86,7 @@ void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool 
 	std::string tempPw(TCHAR_TO_UTF8(*pw.ToString()));
 	sendStream << tempId << "\n";
 	sendStream << tempPw << "\n";
-	Send(sendStream); 
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
 void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
@@ -94,7 +94,7 @@ void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SPAWNPLAYER) << "\n";
 	sendStream << info << "\n";
-	Send(sendStream);
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
 void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
@@ -102,7 +102,7 @@ void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";
 	sendStream << info << "\n";
-	Send(sendStream);
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
 void ClientSocket::SendPlayerInputAction(const int inputType)
@@ -110,12 +110,15 @@ void ClientSocket::SendPlayerInputAction(const int inputType)
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::PLAYERINPUTACTION) << "\n";
 	sendStream << inputType << "\n";
-	Send(sendStream);
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::Send(std::stringstream& sendStream)
+void ClientSocket::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 {
-	send(clientSocket, sendStream.str().c_str(), sendStream.str().length(), 0);
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::WRESTLINGRESULT) << "\n";
+	sendStream << isSuccessToBlocking << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
 bool ClientSocket::Init()
@@ -192,6 +195,23 @@ uint32 ClientSocket::Run()
 					recvStream >> number >> inputType;
 					if (ownerGameMode)
 						ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
+					break;
+				}
+				case EPacketType::WRESTLINGRESULT:
+				{
+					bool wrestlingResult;
+					int number;
+					recvStream >> number >> wrestlingResult;
+					if (ownerGameMode)
+						ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
+					break;
+				}
+				case EPacketType::WRESTLINGSTART:
+				{
+					int number;
+					recvStream >> number;
+					if (ownerGameMode)
+						ownerGameMode->ReceiveWrestlingPlayer(number);
 					break;
 				}
 			}

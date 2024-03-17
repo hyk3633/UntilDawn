@@ -43,6 +43,10 @@ protected:
 
 	void SynchronizeZombieInfo();
 
+	void ProcessWrestlingResult();
+
+	void StartPlayerWrestlingAction();
+
 	void ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType);
 
 public:
@@ -56,6 +60,10 @@ public:
 	void ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID);
 
 	void SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType);
+
+	void PlayWrestlingResultAction(const int playerNumber, const bool wrestlingResult);
+
+	void ReceiveWrestlingPlayer(const int playerNumber);
 
 	void ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet);
 
@@ -84,5 +92,9 @@ private:
 	int myNumber;
 
 	FTimerHandle playerSpawnDelayTimer;
+
+	TQueue<std::pair<int, bool>> wrestlingResultQ;
+
+	TQueue<int> wrestlingStartQ;
 
 };

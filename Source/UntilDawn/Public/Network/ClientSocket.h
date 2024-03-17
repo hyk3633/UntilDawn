@@ -42,7 +42,7 @@ public:
 
 	void SendPlayerInputAction(const int inputType);
 
-	void Send(std::stringstream&);
+	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
 	// FRunnable 가상 함수
 

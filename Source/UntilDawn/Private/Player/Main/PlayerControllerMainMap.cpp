@@ -36,6 +36,11 @@ void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputTy
 	clientSocket->SendPlayerInputAction(static_cast<int>(inputType));
 }
 
+void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBlocking)
+{
+	clientSocket->SendPlayerBlockingResult(isSuccessToBlocking);
+}
+
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();

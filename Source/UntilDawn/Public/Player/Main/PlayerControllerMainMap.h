@@ -30,6 +30,8 @@ public:
 
 	void SendPlayerInputAction(const EPlayerInputs inputType);
 
+	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
+
 protected:
 
 	void SynchronizePlayerInfo();

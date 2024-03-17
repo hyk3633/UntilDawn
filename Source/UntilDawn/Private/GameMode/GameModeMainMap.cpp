@@ -71,6 +71,14 @@ void AGameModeMainMap::Tick(float deltaTime)
 	{
 		SynchronizeZombieInfo();
 	}
+	if (!wrestlingResultQ.IsEmpty())
+	{
+		ProcessWrestlingResult();
+	}
+	if (!wrestlingStartQ.IsEmpty())
+	{
+		StartPlayerWrestlingAction();
+	}
 }
 
 void AGameModeMainMap::DestroyPlayer()
@@ -124,6 +132,16 @@ void AGameModeMainMap::SynchronizeOtherPlayerInputAction(const int playerNumber,
 	}
 }
 
+void AGameModeMainMap::PlayWrestlingResultAction(const int playerNumber, const bool wrestlingResult)
+{
+	wrestlingResultQ.Enqueue({ playerNumber, wrestlingResult });
+}
+
+void AGameModeMainMap::ReceiveWrestlingPlayer(const int playerNumber)
+{
+	wrestlingStartQ.Enqueue(playerNumber);
+}
+
 void AGameModeMainMap::SpawnNewPlayerCharacter()
 {
 	for (auto& kv : playerInfoSetEx->characterInfoMap)
@@ -148,14 +166,14 @@ void AGameModeMainMap::SynchronizePlayersInfo()
 {
 	for (auto& playerInfo : playerInfoSet->characterInfoMap)
 	{
-		const int bitMax = static_cast<int>(PIBTS::MAX);
-		for (int bit = 0; bit < bitMax; bit++)
-		{
-			if (playerInfo.second.recvInfoBitMask & (1 << bit))
-			{
-				ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
-			}
-		}
+		//const int bitMax = static_cast<int>(PIBTS::MAX);
+		//for (int bit = 0; bit < bitMax; bit++)
+		//{
+		//	if (playerInfo.second.recvInfoBitMask & (1 << bit))
+		//	{
+		//		ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
+		//	}
+		//}
 		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
@@ -177,17 +195,6 @@ void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInf
 	{
 		case PIBTS::WrestlingState:
 		{
-			if (info.wrestleState == EWrestleState::WRESTLING)
-			{
-				playerCharacterMap[playerNumber]->SetWrestlingOn();
-			}
-			break;
-		}
-		case PIBTS::PlayGrabReaction:
-		{
-			APlayerCharacter* character = playerCharacterMap[playerNumber];
-			character->PlayPushingZombieMontage(info.isBlockingAction);
-			playerCharacterMap[playerNumber]->SetWrestlingOff();
 			break;
 		}
 	}
@@ -227,6 +234,30 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 		}
 	}
 	zombieInfoSet = nullptr;
+}
+
+void AGameModeMainMap::ProcessWrestlingResult()
+{
+	std::pair<int, bool> wrestlingResult;
+	wrestlingResultQ.Dequeue(wrestlingResult);
+
+	if (playerCharacterMap.Find(wrestlingResult.first))
+	{
+		APlayerCharacter* character = playerCharacterMap[wrestlingResult.first];
+		character->PlayPushingZombieMontage(wrestlingResult.second);
+		character->SetWrestlingOff();
+	}
+}
+
+void AGameModeMainMap::StartPlayerWrestlingAction()
+{
+	int wrestlingPlayer;
+	wrestlingStartQ.Dequeue(wrestlingPlayer);
+
+	if (playerCharacterMap.Find(wrestlingPlayer))
+	{
+		playerCharacterMap[wrestlingPlayer]->SetWrestlingOn();
+	}
 }
 
 void AGameModeMainMap::ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType)

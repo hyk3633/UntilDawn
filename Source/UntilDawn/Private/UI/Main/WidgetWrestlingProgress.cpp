@@ -13,7 +13,7 @@ bool UWidgetWrestlingProgress::ReducingProgressBar(float deltaTime)
 bool UWidgetWrestlingProgress::IncreasingProgressBar()
 {
 	PlayAnimation(ButtonAction, 0.f, 1, EUMGSequencePlayMode::Forward, 1.f, true);
-	const float percent = FMath::Min(ResistProgressBar->GetPercent() + (0.05f), 1.f);
+	const float percent = FMath::Min(ResistProgressBar->GetPercent() + (0.075f), 1.f);
 	ResistProgressBar->SetPercent(percent);
 	return percent >= 1.f;
 }

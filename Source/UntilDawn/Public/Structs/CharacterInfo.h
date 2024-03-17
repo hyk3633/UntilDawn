@@ -127,19 +127,10 @@ struct CharacterInfo
 	}
 };
 
-enum class EWrestleState
-{
-	ABLE,
-	WRESTLING,
-	WAITING
-};
-
 enum class EPlayerInfoBitTypeClient
 {
 	UncoveredByZombie,
 	ZombieAttackResult,
-	WrestlingResult,
-	WrestlingEnd,
 	MAX
 };
 
@@ -148,7 +139,6 @@ typedef EPlayerInfoBitTypeClient PIBTC;
 enum class EPlayerInfoBitTypeServer
 {
 	WrestlingState,
-	PlayGrabReaction,
 	MAX
 };
 
@@ -161,15 +151,12 @@ struct PlayerInfo
 	int sendInfoBitMask;
 
 	// 서버 전송용 데이터
-	std::vector<int> zombiesWhoSawMe;
-	bool isHitted;
-	int zombieNumberAttackedMe;
-	bool isSuccessToBlocking = false;
+	std::vector<int> zombiesWhoSawMe;	// 비트마스킹 가능
+	bool isHitted;						// 비트마스킹 가능
+	int zombieNumberAttackedMe;			// 비트마스킹 가능
 
 	// 서버 수신용 데이터
 	int recvInfoBitMask;
-	EWrestleState wrestleState = EWrestleState::ABLE;
-	bool isBlockingAction = false;
 
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
@@ -206,15 +193,6 @@ struct PlayerInfo
 				stream << info.zombieNumberAttackedMe << "\n";
 				break;
 			}
-			case PIBTC::WrestlingResult:
-			{
-				stream << info.isSuccessToBlocking << "\n";
-				break;
-			}
-			case PIBTC::WrestlingEnd:
-			{
-				break;
-			}
 		}
 	}
 
@@ -222,14 +200,14 @@ struct PlayerInfo
 	{
 		stream >> info.characterInfo;
 		stream >> info.recvInfoBitMask;
-		const int bitMax = static_cast<int>(PIBTS::MAX);
-		for (int bit = 0; bit < bitMax; bit++)
-		{
-			if (info.recvInfoBitMask & (1 << bit))
-			{
-				ReceiveInfoToPacket(stream, info, bit);
-			}
-		}
+		//const int bitMax = static_cast<int>(PIBTS::MAX);
+		//for (int bit = 0; bit < bitMax; bit++)
+		//{
+		//	if (info.recvInfoBitMask & (1 << bit))
+		//	{
+		//		ReceiveInfoToPacket(stream, info, bit);
+		//	}
+		//}
 		return stream;
 	}
 
@@ -240,14 +218,6 @@ struct PlayerInfo
 		{
 			case PIBTS::WrestlingState:
 			{
-				int wrestleState;
-				stream >> wrestleState;
-				info.wrestleState = static_cast<EWrestleState>(wrestleState);
-				break;
-			}
-			case PIBTS::PlayGrabReaction:
-			{
-				stream >> info.isBlockingAction;
 				break;
 			}
 		}

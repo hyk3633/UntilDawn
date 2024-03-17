@@ -319,12 +319,13 @@ void APlayerCharacter::RKeyHold()
 
 void APlayerCharacter::EKeyPressed()
 {
-	if (bWrestling && myHUD && !isSuccessToBlocking)
+	if (bWrestling && myHUD)
 	{
 		if (myHUD->IncreasingProgressBar())
 		{
-			MaskToInfoBit(sendInfoBitMask, PIBTC::WrestlingResult);
-			isSuccessToBlocking = true;
+			SetWrestlingOff();
+			myController->SendPlayerBlockingResult(true);
+			PlayPushingZombieMontage(true);
 		}
 	}
 }
@@ -482,13 +483,6 @@ void APlayerCharacter::SaveInfoToPacket(const int bitType)
 			myInfo.isHitted = isHitted;
 			myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
 		}
-		case PIBTC::WrestlingResult:
-		{
-			myInfo.isSuccessToBlocking = isSuccessToBlocking;
-		}
-		case PIBTC::WrestlingEnd:
-		{
-		}
 	}
 	MaskToInfoBit(myInfo.sendInfoBitMask, static_cast<PIBTC>(bitType));
 	RemoveMaskedBit(sendInfoBitMask, static_cast<PIBTC>(bitType));
@@ -544,20 +538,20 @@ void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber
 
 void APlayerCharacter::SetWrestlingOn()
 {
-	bWrestling = true;
-	if (myHUD)
+	if (myHUD && !bWrestling)
 	{
 		myHUD->StartWrestlingProgressBar();
 	}
+	bWrestling = true;
 }
 
 void APlayerCharacter::SetWrestlingOff()
 {
-	bWrestling = false;
 	if (myHUD)
 	{
 		myHUD->EndWrestlingProgressBar();
 	}
+	bWrestling = false;
 }
 
 void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
@@ -567,12 +561,13 @@ void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
 
 void APlayerCharacter::FailedToResist()
 {
-	MaskToInfoBit(sendInfoBitMask, PIBTC::WrestlingResult);
-	isSuccessToBlocking = false;
+	myController->SendPlayerBlockingResult(false);
+	PlayPushingZombieMontage(false);
+	SetWrestlingOff();
 }
 
 void APlayerCharacter::WrestlingEnd()
 {
-	MaskToInfoBit(sendInfoBitMask, PIBTC::WrestlingEnd);
+	
 }
 

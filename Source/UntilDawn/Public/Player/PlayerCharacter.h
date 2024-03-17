@@ -206,8 +206,4 @@ private:
 	FTimerHandle overlappingZombieCheckTimer;
 
 	bool bWrestling;
-
-	bool isSuccessToBlocking;
-
-	bool bWrestlingEnd;
 };
