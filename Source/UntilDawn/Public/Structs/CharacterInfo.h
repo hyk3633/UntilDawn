@@ -129,7 +129,8 @@ struct CharacterInfo
 
 enum class EPlayerInfoBitTypeClient
 {
-	UncoveredByZombie,
+	ZombiesInRange,
+	ZombiesOutRange,
 	ZombieAttackResult,
 	MAX
 };
@@ -151,9 +152,9 @@ struct PlayerInfo
 	int sendInfoBitMask;
 
 	// 서버 전송용 데이터
-	std::vector<int> zombiesWhoSawMe;	// 비트마스킹 가능
-	bool isHitted;						// 비트마스킹 가능
-	int zombieNumberAttackedMe;			// 비트마스킹 가능
+	std::vector<int> zombiesInRange, zombiesOutRange;	
+	bool isHitted;						
+	int zombieNumberAttackedMe;			
 
 	// 서버 수신용 데이터
 	int recvInfoBitMask;
@@ -178,10 +179,19 @@ struct PlayerInfo
 		PIBTC type = static_cast<PIBTC>(bitType);
 		switch (type)
 		{
-			case PIBTC::UncoveredByZombie:
+			case PIBTC::ZombiesInRange:
 			{
-				stream << info.zombiesWhoSawMe.size() << "\n";
-				for (int n : info.zombiesWhoSawMe)
+				stream << info.zombiesInRange.size() << "\n";
+				for (int n : info.zombiesInRange)
+				{
+					stream << n << "\n";
+				}
+				break;
+			}
+			case PIBTC::ZombiesOutRange:
+			{
+				stream << info.zombiesOutRange.size() << "\n";
+				for (int n : info.zombiesOutRange)
 				{
 					stream << n << "\n";
 				}

@@ -132,7 +132,6 @@ void APlayerCharacter::PossessedBy(AController* newController)
 	}
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
 	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
-	GetWorldTimerManager().SetTimer(overlappingZombieCheckTimer, this, &APlayerCharacter::OverlappingZombieCheck, 0.5f, true);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
@@ -140,7 +139,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 	Super::SetupPlayerInputComponent(playerInputComponent);
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(playerInputComponent)) {
-		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
 		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EnhancedInputComponent->BindAction(moveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		EnhancedInputComponent->BindAction(lookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
@@ -157,8 +156,24 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 	}
 }
 
+bool APlayerCharacter::CheckAbleInput()
+{
+	if (bWrestling) return false;
+	else return true;
+}
+
+void APlayerCharacter::Jump()
+{
+	if (CheckAbleInput() == false)
+		return;
+	ACharacter::Jump();
+}
+
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
+	if (CheckAbleInput() == false)
+		return;
+
 	FVector2D movementVector = value.Get<FVector2D>();
 
 	if (Controller != nullptr)
@@ -198,7 +213,7 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 
 void APlayerCharacter::Sprint()
 {
-	if (isAbleShoot) 
+	if (isAbleShoot || CheckAbleInput() == false)
 		return;
 	GetCharacterMovement()->MaxWalkSpeed = 600;
 	if (myController)
@@ -218,6 +233,9 @@ void APlayerCharacter::SprintEnd()
 
 void APlayerCharacter::LeftClick()
 {
+	if (CheckAbleInput() == false)
+		return;
+
 	if (currentWeaponType == EWeaponType::AXE)
 	{
 		animInst->PlayAxeAttackMontage();
@@ -234,6 +252,9 @@ void APlayerCharacter::LeftClick()
 
 void APlayerCharacter::LeftClickHold()
 {
+	if (CheckAbleInput() == false)
+		return;
+
 	if (currentWeaponType == EWeaponType::BOW)
 	{
 		isAbleShoot = true;
@@ -263,6 +284,9 @@ void APlayerCharacter::LeftClickEnd()
 
 void APlayerCharacter::RightClick()
 {
+	if (CheckAbleInput() == false)
+		return;
+
 	if (currentWeaponType == EWeaponType::AXE)
 	{
 		rightClick = true;
@@ -287,7 +311,7 @@ void APlayerCharacter::RightClickEnd()
 
 void APlayerCharacter::RKeyPressed()
 {
-	if (currentWeaponType != EWeaponType::DEFAULT) 
+	if (currentWeaponType != EWeaponType::DEFAULT || CheckAbleInput() == false)
 		return;
 	animInst->PlayWeaponArmMontage(EWeaponType::AXE);
 	currentWeaponType = EWeaponType::AXE;
@@ -303,7 +327,7 @@ void APlayerCharacter::RKeyPressed()
 
 void APlayerCharacter::RKeyHold()
 {
-	if (currentWeaponType == EWeaponType::DEFAULT) 
+	if (currentWeaponType == EWeaponType::DEFAULT || CheckAbleInput() == false)
 		return;
 	animInst->PlayWeaponDisarmMontage(currentWeaponType);
 	currentWeaponType = EWeaponType::DEFAULT;
@@ -338,15 +362,8 @@ void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* O
 		return;
 	if (IsValid(zombie))
 	{
-		if (IsZombieCanSeeMe(zombie))
-		{
-			zombiesWhoSawMe.Add(zombie);
-			MaskToInfoBit(sendInfoBitMask, PIBTC::UncoveredByZombie);
-		}
-		else
-		{
-			overlappingZombies.Add(zombie->GetNumber(), zombie);
-		}
+		zombiesInRange.push_back(zombie->GetNumber());
+		MaskToInfoBit(sendInfoBitMask, PIBTC::ZombiesInRange);
 	}
 }
 
@@ -356,51 +373,8 @@ void APlayerCharacter::OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* Ove
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
 	if (IsValid(zombie))
 	{
-		if (overlappingZombies.Find(zombie->GetNumber()))
-		{
-			overlappingZombies.Remove(zombie->GetNumber());
-		}
-	}
-}
-
-bool APlayerCharacter::IsZombieCanSeeMe(AActor* zombie)
-{
-	FVector ToTarget = GetActorLocation() - zombie->GetActorLocation();
-	ToTarget.Normalize();
-	const float AngleDegree = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(ToTarget, zombie->GetActorForwardVector())));
-	if (AngleDegree < 60.0) 
-		return true;
-	else 
-		return false;
-}
-
-void APlayerCharacter::OverlappingZombieCheck()
-{
-	FScopeLock Lock(&criticalSection);
-	if (overlappingZombies.Num())
-	{
-		for (auto& kv : overlappingZombies)
-		{
-			if (IsValid(kv.Value))
-			{
-				if (IsZombieCanSeeMe(kv.Value))
-				{
-					zombiesWhoSawMe.Add(kv.Value);
-					MaskToInfoBit(sendInfoBitMask, PIBTC::UncoveredByZombie);
-					removePendingQ.Enqueue(kv.Value);
-				}
-			}
-			else
-			{
-				removePendingQ.Enqueue(kv.Value);
-			}
-		}
-		while (!removePendingQ.IsEmpty())
-		{
-			AZombieCharacter* zombie;
-			removePendingQ.Dequeue(zombie);
-			overlappingZombies.Remove(zombie->GetNumber());
-		}
+		zombiesOutRange.push_back(zombie->GetNumber());
+		MaskToInfoBit(sendInfoBitMask, PIBTC::ZombiesOutRange);
 	}
 }
 
@@ -466,17 +440,15 @@ void APlayerCharacter::SaveInfoToPacket(const int bitType)
 	PIBTC type = static_cast<PIBTC>(bitType);
 	switch (type)
 	{
-		case PIBTC::UncoveredByZombie:
+		case PIBTC::ZombiesInRange:
 		{
-			myInfo.zombiesWhoSawMe.clear();
-			if (!zombiesWhoSawMe.IsEmpty())
-			{
-				for (AZombieCharacter* zombie : zombiesWhoSawMe)
-				{
-					myInfo.zombiesWhoSawMe.push_back(zombie->GetNumber());
-				}
-				zombiesWhoSawMe.Reset(3);
-			}
+			myInfo.zombiesInRange = zombiesInRange;
+			zombiesInRange.clear();
+		}
+		case PIBTC::ZombiesOutRange:
+		{
+			myInfo.zombiesOutRange = zombiesOutRange;
+			zombiesOutRange.clear();
 		}
 		case PIBTC::ZombieAttackResult:
 		{

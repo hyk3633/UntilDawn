@@ -273,6 +273,7 @@ void AGameModeMainMap::ProcessZombieInfo(AZombieCharacter* zombie, const ZombieI
 		case ZIBT::Rotation:
 		{
 			zombie->SetActorRotation(info.rotation);
+			PLOG(TEXT("setted %s"), *info.rotation.ToString());
 			break;
 		}
 		case ZIBT::State:

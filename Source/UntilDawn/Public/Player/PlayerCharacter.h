@@ -37,6 +37,10 @@ protected:
 
 	virtual void SetupPlayerInputComponent(UInputComponent* playerInputComponent) override;
 
+	bool CheckAbleInput();
+
+	void Jump();
+
 	void Move(const FInputActionValue& value);
 
 	void Look(const FInputActionValue& value);
@@ -66,10 +70,6 @@ protected:
 
 	UFUNCTION()
 	void OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	bool IsZombieCanSeeMe(AActor* zombie);
-
-	void OverlappingZombieCheck();
 
 	void MaskToInfoBit(int& infoBit, const PIBTC bitType);
 
@@ -187,11 +187,7 @@ private:
 
 	EWeaponType currentWeaponType = EWeaponType::DEFAULT;
 
-	TArray<AZombieCharacter*> zombiesWhoSawMe;
-
-	TMap<int, AZombieCharacter*> overlappingZombies;
-
-	TQueue<AZombieCharacter*> removePendingQ;
+	std::vector<int> zombiesInRange, zombiesOutRange;
 
 	PlayerInfo myInfo;
 
@@ -202,8 +198,6 @@ private:
 	int zombieNumberAttackedMe;
 
 	FCriticalSection criticalSection;
-
-	FTimerHandle overlappingZombieCheckTimer;
 
 	bool bWrestling;
 };
