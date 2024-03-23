@@ -19,6 +19,7 @@ class USpringArmComponent;
 class UInputComponent;
 class USphereComponent;
 class AZombieCharacter;
+class AItemMeleeWeapon;
 
 UCLASS()
 class UNTILDAWN_API APlayerCharacter : public ACharacter
@@ -120,6 +121,18 @@ public:
 	UFUNCTION()
 	void WrestlingEnd();
 
+	void StartAttack();
+
+	void ActivateAttackTrace();
+
+	void EndAttack();
+
+	FORCEINLINE bool GetAttackActivated() const { return isAttackActivated; }
+
+	void ItemTrace();
+
+	void AddItemToInv(const int itemNumber);
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -200,4 +213,17 @@ private:
 	FCriticalSection criticalSection;
 
 	bool bWrestling;
+
+	bool isAttackActivated;
+
+	UPROPERTY()
+	AItemMeleeWeapon* equippedWeapon;
+
+	FHitResult itemHit;
+
+	UPROPERTY()
+	AItemMeleeWeapon* lookingWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = "Info")
+	TArray<int> items;
 };

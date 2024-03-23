@@ -44,6 +44,8 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
+	void SendPickedItemInfo(const int itemNumber);
+
 	// FRunnable 가상 함수
 
 	virtual bool Init() override;
@@ -76,6 +78,8 @@ private:
 	PlayerInfoSet synchPlayerInfoSet;
 
 	ZombieInfoSet synchZombieInfoSet;
+
+	ItemInfoSet synchItemInfoSet;
 
 	UPROPERTY()
 	AGameModeMainMap* ownerGameMode;

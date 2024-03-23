@@ -121,6 +121,14 @@ void ClientSocket::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
+void ClientSocket::SendPickedItemInfo(const int itemNumber)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::SYNCHITEM) << "\n";
+	sendStream << itemNumber << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
 bool ClientSocket::Init()
 {
 	return true;
@@ -183,10 +191,9 @@ uint32 ClientSocket::Run()
 				case EPacketType::PLAYERDISCONNECTED:
 				{
 					int number = 0;
-					std::string id;
-					recvStream >> number >> id;
+					recvStream >> number;
 					if (ownerGameMode)
-						ownerGameMode->ReceiveDisconnectedPlayerInfo(number, FString(UTF8_TO_TCHAR(id.c_str())));
+						ownerGameMode->ReceiveDisconnectedPlayerInfo(number);
 					break;
 				}
 				case EPacketType::PLAYERINPUTACTION:
@@ -212,6 +219,29 @@ uint32 ClientSocket::Run()
 					recvStream >> number;
 					if (ownerGameMode)
 						ownerGameMode->ReceiveWrestlingPlayer(number);
+					break;
+				}
+				case EPacketType::SYNCHITEM:
+				{
+					recvStream >> synchItemInfoSet;
+					if (ownerGameMode)
+						ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
+					break;
+				}
+				case EPacketType::DESTROYITEM:
+				{
+					int itemNumber;
+					recvStream >> itemNumber;
+					if (ownerGameMode)
+						ownerGameMode->DestroyItem(itemNumber);
+					break;
+				}
+				case EPacketType::PICKUPITEM:
+				{
+					int itemNumber;
+					recvStream >> itemNumber;
+					if (ownerGameMode)
+						ownerGameMode->PickUpItem(itemNumber);
 					break;
 				}
 			}

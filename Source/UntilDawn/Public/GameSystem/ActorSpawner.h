@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Interface/PoolableActor.h"
+#include "../Enums/PoolableActorType.h"
 #include "ActorSpawner.generated.h"
 
 class AZombieCharacter;
+class AItemBase;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UActorSpawner : public UActorComponent
@@ -17,12 +20,8 @@ public:
 
 	UActorSpawner();
 
-protected:
-
-	virtual void BeginPlay() override;
-
 public:	
 		
-	void SpawnActor(const int spawnCount, TArray<AZombieCharacter*>& actorArray);
+	void SpawnActor(const int spawnCount, const EPoolableActorType type, TArray<AActor*>& actorArray);
 
 };

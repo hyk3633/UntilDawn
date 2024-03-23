@@ -12,11 +12,13 @@
  */
 
 class UActorSpawner;
-class UZombieActorPooler;
+class UActorPooler;
 class ClientSocket;
 class APlayerCharacter;
 class AZombieCharacter;
 class PlayerInfoSetEx;
+class ItemInfoSet;
+class AItemBase;
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -43,11 +45,17 @@ protected:
 
 	void SynchronizeZombieInfo();
 
+	void SynchronizeItemInfo();
+
 	void ProcessWrestlingResult();
 
 	void StartPlayerWrestlingAction();
 
 	void ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType);
+
+	void DestroyItem();
+
+	void PickUpItem();
 
 public:
 
@@ -57,7 +65,7 @@ public:
 
 	void ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet);
 
-	void ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID);
+	void ReceiveDisconnectedPlayerInfo(const int playerNumber);
 
 	void SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType);
 
@@ -67,13 +75,22 @@ public:
 
 	void ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet);
 
+	void ReceiveItemInfo(ItemInfoSet* synchItemInfoSet);
+
+	void DestroyItem(const int itemNumber);
+
+	void PickUpItem(const int itemNumber);
+
 private:
 
 	UPROPERTY()
 	UActorSpawner* actorSpawner;
 
 	UPROPERTY()
-	UZombieActorPooler* zombiePooler;
+	UActorPooler* zombiePooler;
+
+	UPROPERTY()
+	UActorPooler* itemPooler;
 	
 	ClientSocket* clientSocket;
 
@@ -89,6 +106,10 @@ private:
 
 	ZombieInfoSet* zombieInfoSet;
 
+	TMap<int, AItemBase*> itemMap;
+
+	ItemInfoSet* itemInfoSet;
+
 	int myNumber;
 
 	FTimerHandle playerSpawnDelayTimer;
@@ -96,5 +117,9 @@ private:
 	TQueue<std::pair<int, bool>> wrestlingResultQ;
 
 	TQueue<int> wrestlingStartQ;
+
+	TQueue<int> destroyItemQ;
+
+	TQueue<int> pickUpItemQ;
 
 };

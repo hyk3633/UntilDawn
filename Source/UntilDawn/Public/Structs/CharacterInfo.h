@@ -5,6 +5,7 @@
 #include "UntilDawn/UntilDawn.h"
 #include "Enums/ZombieState.h"
 #include "Structs/Pos.h"
+#include "Structs/ItemInfo.h"
 
 enum class EZombieInfoBitType
 {
@@ -83,8 +84,8 @@ class ZombieInfoSet
 {
 public:
 
-	ZombieInfoSet() {};
-	~ZombieInfoSet() {};
+	ZombieInfoSet() = default;
+	~ZombieInfoSet() = default;
 
 	std::unordered_map<int, ZombieInfo> zombieInfoMap;
 
@@ -113,16 +114,16 @@ struct CharacterInfo
 	friend std::istream& operator>>(std::istream& stream, CharacterInfo& info)
 	{
 		stream >> info.vectorX >> info.vectorY >> info.vectorZ;
-		stream >> info.velocityX >> info.velocityY >> info.velocityZ;
 		stream >> info.pitch >> info.yaw >> info.roll;
+		stream >> info.velocityX >> info.velocityY >> info.velocityZ;
 		return stream;
 	}
 
 	friend std::ostream& operator<<(std::ostream& stream, const CharacterInfo& info)
 	{
 		stream << info.vectorX << "\n" << info.vectorY << "\n" << info.vectorZ << "\n";
-		stream << info.velocityX << "\n" << info.velocityY << "\n" << info.velocityZ << "\n";
 		stream << info.pitch << "\n" << info.yaw << "\n" << info.roll << "\n";
+		stream << info.velocityX << "\n" << info.velocityY << "\n" << info.velocityZ << "\n";
 		return stream;
 	}
 };
@@ -132,6 +133,7 @@ enum class EPlayerInfoBitTypeClient
 	ZombiesInRange,
 	ZombiesOutRange,
 	ZombieAttackResult,
+	PickedItems,
 	MAX
 };
 
@@ -154,7 +156,7 @@ struct PlayerInfo
 	// 서버 전송용 데이터
 	std::vector<int> zombiesInRange, zombiesOutRange;	
 	bool isHitted;						
-	int zombieNumberAttackedMe;			
+	int zombieNumberAttackedMe;		
 
 	// 서버 수신용 데이터
 	int recvInfoBitMask;
@@ -210,14 +212,14 @@ struct PlayerInfo
 	{
 		stream >> info.characterInfo;
 		stream >> info.recvInfoBitMask;
-		//const int bitMax = static_cast<int>(PIBTS::MAX);
-		//for (int bit = 0; bit < bitMax; bit++)
-		//{
-		//	if (info.recvInfoBitMask & (1 << bit))
-		//	{
-		//		ReceiveInfoToPacket(stream, info, bit);
-		//	}
-		//}
+		const int bitMax = static_cast<int>(PIBTS::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
+		{
+			if (info.recvInfoBitMask & (1 << bit))
+			{
+				ReceiveInfoToPacket(stream, info, bit);
+			}
+		}
 		return stream;
 	}
 
@@ -238,8 +240,8 @@ class PlayerInfoSet
 {
 public:
 
-	PlayerInfoSet() {};
-	~PlayerInfoSet() {};
+	PlayerInfoSet() = default;
+	~PlayerInfoSet() = default;
 
 	std::unordered_map<int, PlayerInfo> characterInfoMap;
 
@@ -274,8 +276,8 @@ class PlayerInfoSetEx : public PlayerInfoSet
 {
 public:
 
-	PlayerInfoSetEx() {};
-	~PlayerInfoSetEx() {};
+	PlayerInfoSetEx() = default;
+	~PlayerInfoSetEx() = default;
 
 	std::unordered_map<int, std::string> playerIDMap;
 
@@ -290,11 +292,35 @@ public:
 		stream >> playerCount;
 		for (int i = 0; i < playerCount; i++)
 		{
-			stream >> playerNumber;
 			stream >> playerID;
+			stream >> playerNumber;
 			stream >> playerInfo.characterInfo;
 			playerIDMap[playerNumber] = playerID;
 			characterInfoMap[playerNumber].characterInfo = playerInfo.characterInfo;
 		}
+	}
+};
+
+class ItemInfoSet
+{
+public:
+
+	ItemInfoSet() = default;
+	~ItemInfoSet() = default;
+
+	std::unordered_map<int, FItemInfo> itemInfoMap;
+
+	friend std::istream& operator>>(std::istream& stream, ItemInfoSet& info)
+	{
+		int size = 0, number = 0;
+		stream >> size;
+		FItemInfo itemInfo;
+		while (size--)
+		{
+			stream >> number;
+			stream >> info.itemInfoMap[number];
+		}
+
+		return stream;
 	}
 };

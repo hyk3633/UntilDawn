@@ -6,19 +6,26 @@
 #include "GameFramework/Character.h"
 #include "Enums/ZombieState.h"
 #include "Structs/Pos.h"
+#include "../Interface/PoolableActor.h"
 #include "ZombieCharacter.generated.h"
 
 class UZombieAnimInstance;
 class APlayerCharacter;
 
 UCLASS()
-class UNTILDAWN_API AZombieCharacter : public ACharacter
+class UNTILDAWN_API AZombieCharacter : public ACharacter, public IPoolableActor
 {
 	GENERATED_BODY()
 
 public:
 
 	AZombieCharacter();
+
+	virtual void ActivateActor() override;
+
+	virtual void DeactivateActor() override;
+
+	virtual bool IsActorActivated() override;
 
 protected:
 
@@ -29,12 +36,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	void ActivateActor();
-
-	void DeactivateActor();
-
-	FORCEINLINE const bool GetIsActive() const { return isActive; }
 
 	FORCEINLINE void SetNumber(const int newNumber) { number = newNumber; }
 

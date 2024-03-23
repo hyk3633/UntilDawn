@@ -3,15 +3,18 @@
 
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/ActorSpawner.h"
-#include "GameSystem/ZombieActorPooler.h"
+#include "GameSystem/ActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
 #include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
+#include "Item/ItemBase.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Enums/ZombieState.h"
+#include "Enums/PoolableActorType.h"
+#include "Interface/PoolableActor.h"
 
 AGameModeMainMap::AGameModeMainMap()
 {
@@ -19,7 +22,9 @@ AGameModeMainMap::AGameModeMainMap()
 
 	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
 
-	zombiePooler = CreateDefaultSubobject<UZombieActorPooler>(TEXT("Zombie Pooler"));
+	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
+
+	itemPooler = CreateDefaultSubobject<UActorPooler>(TEXT("Item Pooler"));
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
@@ -39,7 +44,11 @@ void AGameModeMainMap::BeginPlay()
 
 	// 좀비 캐릭터 스폰 및 풀링
 	zombiePooler->SetPoolSize(3);
-	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
+	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), EPoolableActorType::Zombie, zombiePooler->GetActorPool());
+
+	// 아이템 스폰 및 풀링
+	itemPooler->SetPoolSize(10);
+	actorSpawner->SpawnActor(itemPooler->GetPoolSize(), EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
 }
 
 void AGameModeMainMap::PlayerSpawnAfterDelay()
@@ -71,6 +80,10 @@ void AGameModeMainMap::Tick(float deltaTime)
 	{
 		SynchronizeZombieInfo();
 	}
+	if (itemInfoSet)
+	{
+		SynchronizeItemInfo();
+	}
 	if (!wrestlingResultQ.IsEmpty())
 	{
 		ProcessWrestlingResult();
@@ -78,6 +91,14 @@ void AGameModeMainMap::Tick(float deltaTime)
 	if (!wrestlingStartQ.IsEmpty())
 	{
 		StartPlayerWrestlingAction();
+	}
+	if (!destroyItemQ.IsEmpty())
+	{
+		DestroyItem();
+	}
+	if (!pickUpItemQ.IsEmpty())
+	{
+		PickUpItem();
 	}
 }
 
@@ -108,12 +129,33 @@ void AGameModeMainMap::ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet)
 	zombieInfoSet = synchZombieInfoSet;
 }
 
-void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber, const FString playerID)
+void AGameModeMainMap::ReceiveItemInfo(ItemInfoSet* synchItemInfoSet)
+{
+	itemInfoSet = synchItemInfoSet;
+}
+
+void AGameModeMainMap::DestroyItem(const int itemNumber)
+{
+	if (itemMap.Find(itemNumber))
+	{
+		destroyItemQ.Enqueue(itemNumber);
+	}
+}
+
+void AGameModeMainMap::PickUpItem(const int itemNumber)
+{
+	if (itemMap.Find(itemNumber))
+	{
+		pickUpItemQ.Enqueue(itemNumber);
+	}
+}
+
+void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber)
 {
 	if (playerCharacterMap.Find(playerNumber))
 	{
 		APlayerCharacter* tempCharacter = playerCharacterMap[playerNumber];
-		if (IsValid(tempCharacter) && tempCharacter->GetPlayerID().Compare(playerID) == 0)
+		if (IsValid(tempCharacter))
 		{
 			playerToDelete.Enqueue(playerNumber);
 		}
@@ -166,14 +208,14 @@ void AGameModeMainMap::SynchronizePlayersInfo()
 {
 	for (auto& playerInfo : playerInfoSet->characterInfoMap)
 	{
-		//const int bitMax = static_cast<int>(PIBTS::MAX);
-		//for (int bit = 0; bit < bitMax; bit++)
-		//{
-		//	if (playerInfo.second.recvInfoBitMask & (1 << bit))
-		//	{
-		//		ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
-		//	}
-		//}
+		const int bitMax = static_cast<int>(PIBTS::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
+		{
+			if (playerInfo.second.recvInfoBitMask & (1 << bit))
+			{
+				ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
+			}
+		}
 		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
@@ -206,15 +248,15 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 	for (auto& info : zombieInfoSet->zombieInfoMap)
 	{
 		const ZombieInfo& zombieInfo = info.second;
-		AZombieCharacter* zombie;
+		AZombieCharacter* zombie = nullptr;
 
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
-			zombie = zombiePooler->GetPooledActor();
+			zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
 			if (zombie == nullptr)
 			{
-				actorSpawner->SpawnActor(1, zombiePooler->GetActorPool());
-				zombie = zombiePooler->GetPooledActor();
+				actorSpawner->SpawnActor(1, EPoolableActorType::Zombie, zombiePooler->GetActorPool());
+				zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
 			}
 			zombie->SetNumber(info.first);
 			zombie->ActivateActor();
@@ -234,6 +276,34 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 		}
 	}
 	zombieInfoSet = nullptr;
+}
+
+void AGameModeMainMap::SynchronizeItemInfo()
+{
+	for (auto& info : itemInfoSet->itemInfoMap)
+	{
+		const FItemInfo& itemInfo = info.second;
+		AItemBase* item = nullptr;
+		if (itemMap.Find(info.first) == nullptr)
+		{
+			item = Cast<AItemBase>(itemPooler->GetPooledActor());
+			if (item == nullptr)
+			{
+				actorSpawner->SpawnActor(1, EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
+				item = Cast<AItemBase>(itemPooler->GetPooledActor());
+			}
+			item->SetNumber(info.first);
+			item->ActivateActor();
+			itemMap.Add(info.first, item);
+		}
+		else
+		{
+			item = itemMap[info.first];
+		}
+		// 아이템 정보를 받아 스폰
+		item->SetItemInfo(itemInfo);
+	}
+	itemInfoSet = nullptr;
 }
 
 void AGameModeMainMap::ProcessWrestlingResult()
@@ -273,7 +343,6 @@ void AGameModeMainMap::ProcessZombieInfo(AZombieCharacter* zombie, const ZombieI
 		case ZIBT::Rotation:
 		{
 			zombie->SetActorRotation(info.rotation);
-			PLOG(TEXT("setted %s"), *info.rotation.ToString());
 			break;
 		}
 		case ZIBT::State:
@@ -293,6 +362,35 @@ void AGameModeMainMap::ProcessZombieInfo(AZombieCharacter* zombie, const ZombieI
 		{
 			zombie->SetNextLocation(info.nextLocation);
 			break;
+		}
+	}
+}
+
+void AGameModeMainMap::DestroyItem()
+{
+	WLOG(TEXT("DestroyItem"));
+	int number = 0;
+	while (!destroyItemQ.IsEmpty())
+	{
+		destroyItemQ.Dequeue(number);
+		if (itemMap.Find(number))
+		{
+			itemMap[number]->DeactivateActor();
+		}
+	}
+}
+
+void AGameModeMainMap::PickUpItem()
+{
+	WLOG(TEXT("PickUpItem"));
+	int number = 0;
+	while (!pickUpItemQ.IsEmpty())
+	{
+		pickUpItemQ.Dequeue(number);
+		if (itemMap.Find(number))
+		{
+			playerCharacterMap[myNumber]->AddItemToInv(number);
+			itemMap[number]->DeactivateActor();
 		}
 	}
 }

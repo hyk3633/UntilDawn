@@ -100,6 +100,11 @@ void AZombieCharacter::DeactivateActor()
 	GetMesh()->SetVisibility(false);
 }
 
+bool AZombieCharacter::IsActorActivated()
+{
+	return isActive;
+}
+
 void AZombieCharacter::SetZombieState(const EZombieState newState)
 {
 	if (state != EZombieState::ATTACK && newState == EZombieState::ATTACK)

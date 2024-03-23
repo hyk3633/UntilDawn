@@ -41,6 +41,11 @@ void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBl
 	clientSocket->SendPlayerBlockingResult(isSuccessToBlocking);
 }
 
+void APlayerControllerMainMap::SendPickedItemInfo(const int itemNumber)
+{
+	clientSocket->SendPickedItemInfo(itemNumber);
+}
+
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();

@@ -32,6 +32,8 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
+	void SendPickedItemInfo(const int itemNumber);
+
 protected:
 
 	void SynchronizePlayerInfo();

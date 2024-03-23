@@ -17,9 +17,12 @@
 #include "InputMappingContext.h"
 #include "UntilDawn/UntilDawn.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "KismetAnimationLibrary.h"
 #include "UntilDawn/UntilDawn.h"
 #include "Zombie/ZombieCharacter.h"
+#include "Item/Weapon/ItemMeleeWeapon.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -143,8 +146,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EnhancedInputComponent->BindAction(moveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		EnhancedInputComponent->BindAction(lookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Sprint);
-		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::SprintEnd);
+		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Sprint);	// 컨트롤러 수정
+		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::SprintEnd);	// 컨트롤러 수정
+
 		EnhancedInputComponent->BindAction(leftClickAction, ETriggerEvent::Started, this, &APlayerCharacter::LeftClick);
 		EnhancedInputComponent->BindAction(leftClickHoldAction, ETriggerEvent::Triggered, this, &APlayerCharacter::LeftClickHold);
 		EnhancedInputComponent->BindAction(leftClickAction, ETriggerEvent::Completed, this, &APlayerCharacter::LeftClickEnd);
@@ -352,6 +356,14 @@ void APlayerCharacter::EKeyPressed()
 			PlayPushingZombieMontage(true);
 		}
 	}
+	else if (lookingWeapon)
+	{
+		myController->SendPickedItemInfo(lookingWeapon->GetNumber());
+
+		//equippedWeapon = lookingWeapon;
+		//const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
+		//socket->AttachActor(equippedWeapon, GetMesh());
+	}
 }
 
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -406,6 +418,8 @@ void APlayerCharacter::Tick(float deltaTime)
 	{
 		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
 	}
+
+	ItemTrace();
 }
 
 void APlayerCharacter::UpdatePlayerInfo()
@@ -437,6 +451,7 @@ void APlayerCharacter::UpdatePlayerInfo()
 
 void APlayerCharacter::SaveInfoToPacket(const int bitType)
 {
+	FScopeLock Lock(&criticalSection);
 	PIBTC type = static_cast<PIBTC>(bitType);
 	switch (type)
 	{
@@ -444,16 +459,19 @@ void APlayerCharacter::SaveInfoToPacket(const int bitType)
 		{
 			myInfo.zombiesInRange = zombiesInRange;
 			zombiesInRange.clear();
+			break;
 		}
 		case PIBTC::ZombiesOutRange:
 		{
 			myInfo.zombiesOutRange = zombiesOutRange;
 			zombiesOutRange.clear();
+			break;
 		}
 		case PIBTC::ZombieAttackResult:
 		{
 			myInfo.isHitted = isHitted;
 			myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
+			break;
 		}
 	}
 	MaskToInfoBit(myInfo.sendInfoBitMask, static_cast<PIBTC>(bitType));
@@ -541,5 +559,86 @@ void APlayerCharacter::FailedToResist()
 void APlayerCharacter::WrestlingEnd()
 {
 	
+}
+
+void APlayerCharacter::StartAttack()
+{
+	isAttackActivated = true;
+}
+
+void APlayerCharacter::ActivateAttackTrace()
+{
+	if (isAttackActivated == false) 
+		return;
+
+	FHitResult hit;
+	equippedWeapon->ActivateAttackTrace(hit);
+
+	if (hit.bBlockingHit)
+	{
+		WLOG(TEXT("hit"));
+		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
+		if (IsValid(player))
+		{
+			// 서버에 결과 전송
+			WLOG(TEXT("hit player"));
+			EndAttack();
+		}
+		else
+		{
+			AZombieCharacter* zombie = Cast<AZombieCharacter>(hit.GetActor());
+			if (IsValid(zombie))
+			{
+				// 서버에 결과 전송
+				WLOG(TEXT("hit zombie"));
+				EndAttack();
+			}
+		}
+	}
+}
+
+void APlayerCharacter::EndAttack()
+{
+	isAttackActivated = false;
+}
+
+void APlayerCharacter::ItemTrace()
+{
+	if (equippedWeapon)
+		return;
+
+	FVector2D ViewPortSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewPortSize);
+	}
+	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
+	FVector startLoc, dir;
+	UGameplayStatics::DeprojectScreenToWorld(myController, CrosshairLocation, startLoc, dir);
+	GetWorld()->LineTraceSingleByChannel
+	(
+		itemHit,
+		startLoc,
+		startLoc + dir * 5000.f,
+		ECC_ItemTrace
+	);
+	DrawDebugLine(GetWorld(), startLoc, startLoc + dir * 5000.f, FColor::Blue, false, -1.f, 0U, 1.5f);
+	if (itemHit.bBlockingHit)
+	{
+		AItemMeleeWeapon* weapon = Cast<AItemMeleeWeapon>(itemHit.GetActor());
+		if (IsValid(weapon))
+		{
+			lookingWeapon = weapon;
+			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Blue, TEXT("weapon"));
+		}
+		else lookingWeapon = nullptr;
+	}
+	else lookingWeapon = nullptr;
+}
+
+void APlayerCharacter::AddItemToInv(const int itemNumber)
+{
+	items.Add(itemNumber);
+	PLOG(TEXT("add item %d"), itemNumber);
 }
 
