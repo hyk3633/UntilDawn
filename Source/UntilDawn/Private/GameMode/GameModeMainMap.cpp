@@ -47,7 +47,7 @@ void AGameModeMainMap::BeginPlay()
 	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), EPoolableActorType::Zombie, zombiePooler->GetActorPool());
 
 	// 아이템 스폰 및 풀링
-	itemPooler->SetPoolSize(10);
+	itemPooler->SetPoolSize(5);
 	actorSpawner->SpawnActor(itemPooler->GetPoolSize(), EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
 }
 
@@ -197,6 +197,7 @@ void AGameModeMainMap::SpawnNewPlayerCharacter()
 				FVector(info.vectorX, info.vectorY, info.vectorZ),
 				FRotator(info.pitch, info.yaw, info.roll)
 			);
+		newPlayerCharacter->SetPlayerNumber(number);
 		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx->playerIDMap[number].c_str())));
 		newPlayerCharacter->SpawnDefaultController();
 		playerCharacterMap.Add(number, newPlayerCharacter);
@@ -244,7 +245,7 @@ void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInf
 
 void AGameModeMainMap::SynchronizeZombieInfo()
 {
-	const int bitMax = static_cast<int>(ZIBT::MAX);
+	
 	for (auto& info : zombieInfoSet->zombieInfoMap)
 	{
 		const ZombieInfo& zombieInfo = info.second;
@@ -267,13 +268,14 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 			zombie = zombieCharacterMap[info.first];
 		}
 
-		for (int bit = 0; bit < bitMax; bit++)
+		if (info.second.recvInfoBitMask & (1 << static_cast<int>(ZIBT::TargetNumber)))
 		{
-			if (info.second.recvInfoBitMask & (1 << bit))
+			if (info.second.targetNumber >= 0 && playerCharacterMap.Find(info.second.targetNumber))
 			{
-				ProcessZombieInfo(zombie, info.second, bit);
+				zombie->SetTarget(playerCharacterMap[info.second.targetNumber]);
 			}
 		}
+		zombie->SetZombieInfo(info.second);
 	}
 	zombieInfoSet = nullptr;
 }
@@ -293,15 +295,18 @@ void AGameModeMainMap::SynchronizeItemInfo()
 				item = Cast<AItemBase>(itemPooler->GetPooledActor());
 			}
 			item->SetNumber(info.first);
-			item->ActivateActor();
 			itemMap.Add(info.first, item);
 		}
 		else
 		{
 			item = itemMap[info.first];
 		}
-		// 아이템 정보를 받아 스폰
+
 		item->SetItemInfo(itemInfo);
+		if (itemInfo.state != EItemState::Activated)
+		{
+			itemMap.Remove(item->GetNumber());
+		}
 	}
 	itemInfoSet = nullptr;
 }
@@ -330,42 +335,6 @@ void AGameModeMainMap::StartPlayerWrestlingAction()
 	}
 }
 
-void AGameModeMainMap::ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType)
-{
-	ZIBT type = static_cast<ZIBT>(bitType);
-	switch (type)
-	{
-		case ZIBT::Location:
-		{
-			zombie->SetActorLocation(info.location);
-			break;
-		}
-		case ZIBT::Rotation:
-		{
-			zombie->SetActorRotation(info.rotation);
-			break;
-		}
-		case ZIBT::State:
-		{
-			zombie->SetZombieState(info.state);
-			break;
-		}
-		case ZIBT::TargetNumber:
-		{
-			if (info.targetNumber >= 0 && playerCharacterMap.Find(info.targetNumber))
-			{
-				zombie->SetTarget(playerCharacterMap[info.targetNumber]);
-			}
-			break;
-		}
-		case ZIBT::NextLocation:
-		{
-			zombie->SetNextLocation(info.nextLocation);
-			break;
-		}
-	}
-}
-
 void AGameModeMainMap::DestroyItem()
 {
 	WLOG(TEXT("DestroyItem"));
@@ -389,8 +358,8 @@ void AGameModeMainMap::PickUpItem()
 		pickUpItemQ.Dequeue(number);
 		if (itemMap.Find(number))
 		{
-			playerCharacterMap[myNumber]->AddItemToInv(number);
-			itemMap[number]->DeactivateActor();
+			playerCharacterMap[myNumber]->AddItemToInv(itemMap[number]);
+			//itemMap[number]->DeactivateActor();
 		}
 	}
 }

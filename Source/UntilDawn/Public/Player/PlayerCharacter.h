@@ -19,6 +19,7 @@ class USpringArmComponent;
 class UInputComponent;
 class USphereComponent;
 class AZombieCharacter;
+class AItemBase;
 class AItemMeleeWeapon;
 
 UCLASS()
@@ -84,6 +85,9 @@ public:
 
 	void SaveInfoToPacket(const int bitType);
 
+	FORCEINLINE void SetPlayerNumber(const int num) { number = num; }
+	FORCEINLINE int GetPlayerNumber() const { return number; }
+
 	FORCEINLINE void SetPlayerID(const FString& id) { playerID = id; }
 
 	FORCEINLINE const FString& GetPlayerID() { return playerID; }
@@ -131,7 +135,7 @@ public:
 
 	void ItemTrace();
 
-	void AddItemToInv(const int itemNumber);
+	void AddItemToInv(AItemBase* itemNumber);
 
 private:
 
@@ -186,6 +190,8 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* eKeyAction;
 
+	int number;
+
 	FString playerID;
 
 	FVector velocity;
@@ -225,5 +231,5 @@ private:
 	AItemMeleeWeapon* lookingWeapon;
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
-	TArray<int> items;
+	TArray<AItemBase*> items;
 };

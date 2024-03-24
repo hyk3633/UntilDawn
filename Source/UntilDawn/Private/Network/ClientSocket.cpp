@@ -129,6 +129,22 @@ void ClientSocket::SendPickedItemInfo(const int itemNumber)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
+void ClientSocket::SendHitPlayerInfo(const int playerNumber)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::HITPLAYER) << "\n";
+	sendStream << playerNumber << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendHitZombieInfo(const int zombieNumber)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::HITZOMBIE) << "\n";
+	sendStream << zombieNumber << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
 bool ClientSocket::Init()
 {
 	return true;
@@ -240,6 +256,7 @@ uint32 ClientSocket::Run()
 				{
 					int itemNumber;
 					recvStream >> itemNumber;
+					WLOG(TEXT("item"));
 					if (ownerGameMode)
 						ownerGameMode->PickUpItem(itemNumber);
 					break;

@@ -51,7 +51,7 @@ protected:
 
 	void StartPlayerWrestlingAction();
 
-	void ProcessZombieInfo(AZombieCharacter* zombie, const ZombieInfo& info, const int bitType);
+	
 
 	void DestroyItem();
 

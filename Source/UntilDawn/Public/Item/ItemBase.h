@@ -61,4 +61,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	USkeletalMeshComponent* skeletalMesh;
 
+	bool isActive;
+
 };

@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Enums/ZombieState.h"
 #include "Structs/Pos.h"
+#include "Structs/CharacterInfo.h"
 #include "../Interface/PoolableActor.h"
 #include "ZombieCharacter.generated.h"
 
@@ -27,7 +28,11 @@ public:
 
 	virtual bool IsActorActivated() override;
 
+	void SetZombieInfo(const ZombieInfo& info);
+
 protected:
+
+	void ProcessZombieInfo(const ZombieInfo& info, const int bitType);
 
 	virtual void BeginPlay() override;
 

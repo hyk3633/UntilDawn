@@ -46,6 +46,10 @@ public:
 
 	void SendPickedItemInfo(const int itemNumber);
 
+	void SendHitPlayerInfo(const int playerNumber);
+
+	void SendHitZombieInfo(const int zombieNumber);
+
 	// FRunnable 가상 함수
 
 	virtual bool Init() override;

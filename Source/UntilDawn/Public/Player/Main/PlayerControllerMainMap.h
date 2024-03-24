@@ -34,6 +34,10 @@ public:
 
 	void SendPickedItemInfo(const int itemNumber);
 
+	void SendHitPlayerInfo(const int playerNumber);
+
+	void SendHitZombieInfo(const int zombieNumber);
+
 protected:
 
 	void SynchronizePlayerInfo();

@@ -359,10 +359,7 @@ void APlayerCharacter::EKeyPressed()
 	else if (lookingWeapon)
 	{
 		myController->SendPickedItemInfo(lookingWeapon->GetNumber());
-
-		//equippedWeapon = lookingWeapon;
-		//const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
-		//socket->AttachActor(equippedWeapon, GetMesh());
+		lookingWeapon = nullptr;
 	}
 }
 
@@ -576,12 +573,11 @@ void APlayerCharacter::ActivateAttackTrace()
 
 	if (hit.bBlockingHit)
 	{
-		WLOG(TEXT("hit"));
 		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
 		if (IsValid(player))
 		{
 			// 서버에 결과 전송
-			WLOG(TEXT("hit player"));
+			myController->SendHitPlayerInfo(player->GetPlayerNumber());
 			EndAttack();
 		}
 		else
@@ -590,7 +586,7 @@ void APlayerCharacter::ActivateAttackTrace()
 			if (IsValid(zombie))
 			{
 				// 서버에 결과 전송
-				WLOG(TEXT("hit zombie"));
+				myController->SendHitZombieInfo(zombie->GetNumber());
 				EndAttack();
 			}
 		}
@@ -636,9 +632,11 @@ void APlayerCharacter::ItemTrace()
 	else lookingWeapon = nullptr;
 }
 
-void APlayerCharacter::AddItemToInv(const int itemNumber)
+void APlayerCharacter::AddItemToInv(AItemBase* itemNumber)
 {
 	items.Add(itemNumber);
-	PLOG(TEXT("add item %d"), itemNumber);
+	equippedWeapon = Cast<AItemMeleeWeapon>(itemNumber);
+	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
+	socket->AttachActor(itemNumber, GetMesh());
 }
 

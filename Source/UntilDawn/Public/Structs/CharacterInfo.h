@@ -164,13 +164,21 @@ struct PlayerInfo
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
 		stream << info.characterInfo;
-		stream << info.sendInfoBitMask << "\n";
-		const int bitMax = static_cast<int>(PIBTC::MAX);
-		for (int bit = 0; bit < bitMax; bit++)
+		if (info.sendInfoBitMask == 0)
 		{
-			if (info.sendInfoBitMask & (1 << bit))
+			stream << false << "\n";
+		}
+		else
+		{
+			stream << true << "\n";
+			stream << info.sendInfoBitMask << "\n";
+			const int bitMax = static_cast<int>(PIBTC::MAX);
+			for (int bit = 0; bit < bitMax; bit++)
 			{
-				SaveInfoToPacket(stream, info, bit);
+				if (info.sendInfoBitMask & (1 << bit))
+				{
+					SaveInfoToPacket(stream, info, bit);
+				}
 			}
 		}
 		return stream;
@@ -211,13 +219,20 @@ struct PlayerInfo
 	friend std::istream& operator>>(std::istream& stream, PlayerInfo& info)
 	{
 		stream >> info.characterInfo;
-		stream >> info.recvInfoBitMask;
-		const int bitMax = static_cast<int>(PIBTS::MAX);
-		for (int bit = 0; bit < bitMax; bit++)
+
+		bool flag = false;
+		stream >> flag;
+
+		if (flag)
 		{
-			if (info.recvInfoBitMask & (1 << bit))
+			stream >> info.recvInfoBitMask;
+			const int bitMax = static_cast<int>(PIBTS::MAX);
+			for (int bit = 0; bit < bitMax; bit++)
 			{
-				ReceiveInfoToPacket(stream, info, bit);
+				if (info.recvInfoBitMask & (1 << bit))
+				{
+					ReceiveInfoToPacket(stream, info, bit);
+				}
 			}
 		}
 		return stream;
@@ -283,12 +298,13 @@ public:
 
 	void InputStreamWithID(std::istream& stream)
 	{
-		int playerCount = 0;
+		int playerCount = 0, playerNumber = 0;
 		std::string playerID = "";
-		int playerNumber = 0;
 		PlayerInfo playerInfo{};
+
 		playerIDMap.clear();
 		characterInfoMap.clear();
+
 		stream >> playerCount;
 		for (int i = 0; i < playerCount; i++)
 		{
@@ -312,6 +328,7 @@ public:
 
 	friend std::istream& operator>>(std::istream& stream, ItemInfoSet& info)
 	{
+		info.itemInfoMap.clear();
 		int size = 0, number = 0;
 		stream >> size;
 		FItemInfo itemInfo;
@@ -320,7 +337,6 @@ public:
 			stream >> number;
 			stream >> info.itemInfoMap[number];
 		}
-
 		return stream;
 	}
 };

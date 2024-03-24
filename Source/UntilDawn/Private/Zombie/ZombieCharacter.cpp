@@ -42,6 +42,69 @@ AZombieCharacter::AZombieCharacter()
 	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
 }
 
+void AZombieCharacter::ActivateActor()
+{
+	GetCapsuleComponent()->SetCollisionProfileName(FName("ActivatedZombie"));
+	GetMesh()->SetVisibility(true);
+	isActive = true;
+}
+
+void AZombieCharacter::DeactivateActor()
+{
+	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
+	GetMesh()->SetVisibility(false);
+	isActive = false;
+}
+
+bool AZombieCharacter::IsActorActivated()
+{
+	return isActive;
+}
+
+void AZombieCharacter::SetZombieInfo(const ZombieInfo& info)
+{
+	const int bitMax = static_cast<int>(ZIBT::MAX);
+	for (int bit = 0; bit < bitMax; bit++)
+	{
+		if (info.recvInfoBitMask & (1 << bit))
+		{
+			ProcessZombieInfo(info, bit);
+		}
+	}
+}
+
+void AZombieCharacter::ProcessZombieInfo(const ZombieInfo& info, const int bitType)
+{
+	ZIBT type = static_cast<ZIBT>(bitType);
+	switch (type)
+	{
+		case ZIBT::Location:
+		{
+			SetActorLocation(info.location);
+			break;
+		}
+		case ZIBT::Rotation:
+		{
+			SetActorRotation(info.rotation);
+			break;
+		}
+		case ZIBT::State:
+		{
+			SetZombieState(info.state);
+			break;
+		}
+		case ZIBT::TargetNumber:
+		{
+			break;
+		}
+		case ZIBT::NextLocation:
+		{
+			SetNextLocation(info.nextLocation);
+			break;
+		}
+	}
+}
+
 void AZombieCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -84,25 +147,6 @@ void AZombieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-}
-
-void AZombieCharacter::ActivateActor()
-{
-	isActive = true;
-	GetCapsuleComponent()->SetCollisionProfileName(FName("ActivatedZombie"));
-	GetMesh()->SetVisibility(true);
-}
-
-void AZombieCharacter::DeactivateActor()
-{
-	isActive = false;
-	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
-	GetMesh()->SetVisibility(false);
-}
-
-bool AZombieCharacter::IsActorActivated()
-{
-	return isActive;
 }
 
 void AZombieCharacter::SetZombieState(const EZombieState newState)

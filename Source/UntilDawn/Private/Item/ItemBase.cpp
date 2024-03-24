@@ -27,17 +27,19 @@ void AItemBase::ActivateActor()
 {
 	skeletalMesh->SetVisibility(true);
 	skeletalMesh->SetCollisionProfileName(FName("ActivatedItem"));
+	isActive = true;
 }
 
 void AItemBase::DeactivateActor()
 {
 	skeletalMesh->SetVisibility(false);
 	skeletalMesh->SetCollisionProfileName(FName("DeactivatedItem"));
+	isActive = false;
 }
 
 bool AItemBase::IsActorActivated()
 {
-	return false;
+	return isActive;
 }
 
 void AItemBase::BeginPlay()
@@ -54,6 +56,14 @@ void AItemBase::SetNumber(const int num)
 void AItemBase::SetItemInfo(const FItemInfo& info)
 {
 	state = info.state;
+	if (state == EItemState::Activated)
+	{
+		ActivateActor();
+	}
+	else
+	{
+		DeactivateActor();
+	}
 	mainType = info.mainType;
 	itemSubType = info.itemSubType;
 	SetActorLocation(info.location);

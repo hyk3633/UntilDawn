@@ -46,6 +46,16 @@ void APlayerControllerMainMap::SendPickedItemInfo(const int itemNumber)
 	clientSocket->SendPickedItemInfo(itemNumber);
 }
 
+void APlayerControllerMainMap::SendHitPlayerInfo(const int playerNumber)
+{
+	clientSocket->SendHitPlayerInfo(playerNumber);
+}
+
+void APlayerControllerMainMap::SendHitZombieInfo(const int zombieNumber)
+{
+	clientSocket->SendHitZombieInfo(zombieNumber);
+}
+
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();
