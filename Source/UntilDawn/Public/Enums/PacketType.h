@@ -17,4 +17,5 @@ enum class EPacketType : uint8
 	PLAYERDISCONNECTED,
 	DESTROYITEM,
 	PICKUPITEM,
+	ZOMBIEDEAD,
 };

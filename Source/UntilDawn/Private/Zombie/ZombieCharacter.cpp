@@ -52,8 +52,10 @@ void AZombieCharacter::ActivateActor()
 void AZombieCharacter::DeactivateActor()
 {
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
+	GetMesh()->SetSimulatePhysics(false);
 	GetMesh()->SetVisibility(false);
 	isActive = false;
+	SetActorLocation(FVector(0, 0, -3500));
 }
 
 bool AZombieCharacter::IsActorActivated()
@@ -71,6 +73,17 @@ void AZombieCharacter::SetZombieInfo(const ZombieInfo& info)
 			ProcessZombieInfo(info, bit);
 		}
 	}
+}
+
+void AZombieCharacter::ZombieDead()
+{
+	state = EZombieState::IDLE;
+	PLOG(TEXT("state %d"), static_cast<int>(state));
+	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
+	GetWorldTimerManager().SetTimer(deactivateDelayTimer, this, &AZombieCharacter::DeactivateAfterDelay, 5.f);
+	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
 }
 
 void AZombieCharacter::ProcessZombieInfo(const ZombieInfo& info, const int bitType)
@@ -103,6 +116,11 @@ void AZombieCharacter::ProcessZombieInfo(const ZombieInfo& info, const int bitTy
 			break;
 		}
 	}
+}
+
+void AZombieCharacter::DeactivateAfterDelay()
+{
+	DeactivateActor();
 }
 
 void AZombieCharacter::BeginPlay()
@@ -221,7 +239,7 @@ void AZombieCharacter::StartMovementUpdate()
 	if (IsValid(targetPlayer))
 	{
 		const float dist = FVector::Distance(GetActorLocation(), targetPlayer->GetActorLocation());
-		if (dist > 100.f && dist <= 1200.f)
+		if (dist > 70.f && dist <= 1200.f)
 		{
 			FollowPath();			
 			return;

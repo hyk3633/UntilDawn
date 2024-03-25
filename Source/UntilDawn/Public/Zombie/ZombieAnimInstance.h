@@ -25,5 +25,5 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Montage")
 	UAnimMontage* attackMontage;
-	
+
 };

@@ -51,11 +51,11 @@ protected:
 
 	void StartPlayerWrestlingAction();
 
-	
-
 	void DestroyItem();
 
 	void PickUpItem();
+
+	void ProcessZombieDead();
 
 public:
 
@@ -80,6 +80,8 @@ public:
 	void DestroyItem(const int itemNumber);
 
 	void PickUpItem(const int itemNumber);
+
+	void ReceiveDeadZombieNumber(const int zombieNumber);
 
 private:
 
@@ -121,5 +123,7 @@ private:
 	TQueue<int> destroyItemQ;
 
 	TQueue<int> pickUpItemQ;
+
+	TQueue<int> deadZombieQ;
 
 };

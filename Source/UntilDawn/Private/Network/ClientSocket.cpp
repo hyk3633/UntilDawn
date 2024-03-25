@@ -222,8 +222,8 @@ uint32 ClientSocket::Run()
 				}
 				case EPacketType::WRESTLINGRESULT:
 				{
-					bool wrestlingResult;
-					int number;
+					bool wrestlingResult = false;
+					int number = 0;
 					recvStream >> number >> wrestlingResult;
 					if (ownerGameMode)
 						ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
@@ -231,7 +231,7 @@ uint32 ClientSocket::Run()
 				}
 				case EPacketType::WRESTLINGSTART:
 				{
-					int number;
+					int number = 0;
 					recvStream >> number;
 					if (ownerGameMode)
 						ownerGameMode->ReceiveWrestlingPlayer(number);
@@ -246,7 +246,7 @@ uint32 ClientSocket::Run()
 				}
 				case EPacketType::DESTROYITEM:
 				{
-					int itemNumber;
+					int itemNumber = 0;
 					recvStream >> itemNumber;
 					if (ownerGameMode)
 						ownerGameMode->DestroyItem(itemNumber);
@@ -254,11 +254,18 @@ uint32 ClientSocket::Run()
 				}
 				case EPacketType::PICKUPITEM:
 				{
-					int itemNumber;
+					int itemNumber = 0;
 					recvStream >> itemNumber;
-					WLOG(TEXT("item"));
 					if (ownerGameMode)
 						ownerGameMode->PickUpItem(itemNumber);
+					break;
+				}
+				case EPacketType::ZOMBIEDEAD:
+				{
+					int zombieNumber = 0;
+					recvStream >> zombieNumber;
+					if (ownerGameMode)
+						ownerGameMode->ReceiveDeadZombieNumber(zombieNumber);
 					break;
 				}
 			}

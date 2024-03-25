@@ -43,7 +43,7 @@ void AGameModeMainMap::BeginPlay()
 	GetWorldTimerManager().SetTimer(playerSpawnDelayTimer, this, &AGameModeMainMap::PlayerSpawnAfterDelay, 0.5f);
 
 	// 좀비 캐릭터 스폰 및 풀링
-	zombiePooler->SetPoolSize(3);
+	zombiePooler->SetPoolSize(2);
 	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), EPoolableActorType::Zombie, zombiePooler->GetActorPool());
 
 	// 아이템 스폰 및 풀링
@@ -100,6 +100,10 @@ void AGameModeMainMap::Tick(float deltaTime)
 	{
 		PickUpItem();
 	}
+	if (!deadZombieQ.IsEmpty())
+	{
+		ProcessZombieDead();
+	}
 }
 
 void AGameModeMainMap::DestroyPlayer()
@@ -147,6 +151,14 @@ void AGameModeMainMap::PickUpItem(const int itemNumber)
 	if (itemMap.Find(itemNumber))
 	{
 		pickUpItemQ.Enqueue(itemNumber);
+	}
+}
+
+void AGameModeMainMap::ReceiveDeadZombieNumber(const int zombieNumber)
+{
+	if (zombieCharacterMap.Find(zombieNumber))
+	{
+		deadZombieQ.Enqueue(zombieNumber);
 	}
 }
 
@@ -268,6 +280,7 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 			zombie = zombieCharacterMap[info.first];
 		}
 
+		// 콜백 함수로 
 		if (info.second.recvInfoBitMask & (1 << static_cast<int>(ZIBT::TargetNumber)))
 		{
 			if (info.second.targetNumber >= 0 && playerCharacterMap.Find(info.second.targetNumber))
@@ -337,29 +350,32 @@ void AGameModeMainMap::StartPlayerWrestlingAction()
 
 void AGameModeMainMap::DestroyItem()
 {
-	WLOG(TEXT("DestroyItem"));
 	int number = 0;
 	while (!destroyItemQ.IsEmpty())
 	{
 		destroyItemQ.Dequeue(number);
-		if (itemMap.Find(number))
-		{
-			itemMap[number]->DeactivateActor();
-		}
+		itemMap[number]->DeactivateActor();
 	}
 }
 
 void AGameModeMainMap::PickUpItem()
 {
-	WLOG(TEXT("PickUpItem"));
 	int number = 0;
 	while (!pickUpItemQ.IsEmpty())
 	{
 		pickUpItemQ.Dequeue(number);
-		if (itemMap.Find(number))
-		{
-			playerCharacterMap[myNumber]->AddItemToInv(itemMap[number]);
-			//itemMap[number]->DeactivateActor();
-		}
+		playerCharacterMap[myNumber]->AddItemToInv(itemMap[number]);
+		//itemMap[number]->DeactivateActor();
+	}
+}
+
+void AGameModeMainMap::ProcessZombieDead()
+{
+	int number = 0;
+	while (!deadZombieQ.IsEmpty())
+	{
+		deadZombieQ.Dequeue(number);
+		zombieCharacterMap[number]->ZombieDead();
+		zombieCharacterMap.Remove(number);
 	}
 }

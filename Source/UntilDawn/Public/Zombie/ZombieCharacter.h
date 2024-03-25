@@ -30,9 +30,13 @@ public:
 
 	void SetZombieInfo(const ZombieInfo& info);
 
+	void ZombieDead();
+
 protected:
 
 	void ProcessZombieInfo(const ZombieInfo& info, const int bitType);
+
+	void DeactivateAfterDelay();
 
 	virtual void BeginPlay() override;
 
@@ -106,5 +110,7 @@ private:
 	bool isAttackActivated;
 
 	int16 damage = 30;
+
+	FTimerHandle deactivateDelayTimer;
 
 };
