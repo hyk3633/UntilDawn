@@ -56,6 +56,12 @@ public:
 
 	virtual uint32 Run() override;
 
+protected:
+
+	void ProcessPacket(const EPacketType type, std::stringstream& recvStream);
+
+public:
+
 	virtual void Exit() override;
 
 	virtual void Stop() override;

@@ -164,115 +164,138 @@ uint32 ClientSocket::Run()
 		{
 			recvStream << recvBuf;
 			recvStream >> packetType;
-
-			switch (static_cast<EPacketType>(packetType))
-			{
-				case EPacketType::SIGNUP:
-				{
-					bool isGranted;
-					recvStream >> isGranted;
-					ownerController->ReceiveSignUpRequestResult(isGranted);
-					break;
-				}
-				case EPacketType::LOGIN:
-				{
-					bool isGranted;
-					recvStream >> isGranted;
-					int playerNumber;
-					recvStream >> playerNumber;
-					ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
-					break;
-				}
-				case EPacketType::SPAWNPLAYER:
-				{
-					newPlayerInfoSetEx.InputStreamWithID(recvStream);
-					if(ownerGameMode)
-						ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
-					break;
-				}
-				case EPacketType::SYNCHPLAYER:
-				{
-					recvStream >> synchPlayerInfoSet;
-					if (ownerGameMode)
-						ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
-					break;
-				}
-				case EPacketType::SYNCHZOMBIE:
-				{
-					recvStream >> synchZombieInfoSet;
-					if (ownerGameMode)
-						ownerGameMode->ReceiveZombieInfo(&synchZombieInfoSet);
-					break;
-				}
-				case EPacketType::PLAYERDISCONNECTED:
-				{
-					int number = 0;
-					recvStream >> number;
-					if (ownerGameMode)
-						ownerGameMode->ReceiveDisconnectedPlayerInfo(number);
-					break;
-				}
-				case EPacketType::PLAYERINPUTACTION:
-				{
-					int number = 0, inputType = 0;
-					recvStream >> number >> inputType;
-					if (ownerGameMode)
-						ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
-					break;
-				}
-				case EPacketType::WRESTLINGRESULT:
-				{
-					bool wrestlingResult = false;
-					int number = 0;
-					recvStream >> number >> wrestlingResult;
-					if (ownerGameMode)
-						ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
-					break;
-				}
-				case EPacketType::WRESTLINGSTART:
-				{
-					int number = 0;
-					recvStream >> number;
-					if (ownerGameMode)
-						ownerGameMode->ReceiveWrestlingPlayer(number);
-					break;
-				}
-				case EPacketType::SYNCHITEM:
-				{
-					recvStream >> synchItemInfoSet;
-					if (ownerGameMode)
-						ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
-					break;
-				}
-				case EPacketType::DESTROYITEM:
-				{
-					int itemNumber = 0;
-					recvStream >> itemNumber;
-					if (ownerGameMode)
-						ownerGameMode->DestroyItem(itemNumber);
-					break;
-				}
-				case EPacketType::PICKUPITEM:
-				{
-					int itemNumber = 0;
-					recvStream >> itemNumber;
-					if (ownerGameMode)
-						ownerGameMode->PickUpItem(itemNumber);
-					break;
-				}
-				case EPacketType::ZOMBIEDEAD:
-				{
-					int zombieNumber = 0;
-					recvStream >> zombieNumber;
-					if (ownerGameMode)
-						ownerGameMode->ReceiveDeadZombieNumber(zombieNumber);
-					break;
-				}
-			}
+			ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
 		}
 	}
 
 	return 0;
+}
+
+void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recvStream)
+{
+	switch (type)
+	{
+		case EPacketType::SIGNUP:
+		{
+			bool isGranted;
+			recvStream >> isGranted;
+			ownerController->ReceiveSignUpRequestResult(isGranted);
+			break;
+		}
+		case EPacketType::LOGIN:
+		{
+			bool isGranted;
+			recvStream >> isGranted;
+			int playerNumber;
+			recvStream >> playerNumber;
+			ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
+			break;
+		}
+		case EPacketType::SPAWNPLAYER:
+		{
+			newPlayerInfoSetEx.InputStreamWithID(recvStream);
+			if (ownerGameMode)
+				ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
+			break;
+		}
+		case EPacketType::SYNCHPLAYER:
+		{
+			recvStream >> synchPlayerInfoSet;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
+			break;
+		}
+		case EPacketType::PLAYERINPUTACTION:
+		{
+			int number = 0, inputType = 0;
+			recvStream >> number >> inputType;
+			if (ownerGameMode)
+				ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
+			break;
+		}
+		case EPacketType::WRESTLINGRESULT:
+		{
+			bool wrestlingResult = false;
+			int number = 0;
+			recvStream >> number >> wrestlingResult;
+			if (ownerGameMode)
+				ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
+			break;
+		}
+		case EPacketType::WRESTLINGSTART:
+		{
+			int number = 0;
+			recvStream >> number;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveWrestlingPlayer(number);
+			break;
+		}
+		case EPacketType::SYNCHITEM:
+		{
+			recvStream >> synchItemInfoSet;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
+			break;
+		}
+		case EPacketType::INITIALINFO:
+		{
+			while (1)
+			{
+				int type = -1;
+				recvStream >> type;
+				if (type == -1) break;
+				ProcessPacket(static_cast<EPacketType>(type), recvStream);
+			}
+			break;
+		}
+		case EPacketType::SYNCHZOMBIE:
+		{
+			recvStream >> synchZombieInfoSet;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveZombieInfo(&synchZombieInfoSet);
+			break;
+		}
+		case EPacketType::PLAYERDISCONNECTED:
+		{
+			int number = 0;
+			recvStream >> number;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveDisconnectedPlayerInfo(number);
+			break;
+		}
+		case EPacketType::DESTROYITEM:
+		{
+			int itemNumber = 0;
+			recvStream >> itemNumber;
+			if (ownerGameMode)
+				ownerGameMode->DestroyItem(itemNumber);
+			break;
+		}
+		case EPacketType::PICKUPITEM:
+		{
+			int itemNumber = 0;
+			recvStream >> itemNumber;
+			if (ownerGameMode)
+				ownerGameMode->PickUpItem(itemNumber);
+			break;
+		}
+		case EPacketType::ZOMBIEDEAD:
+		{
+			int zombieNumber = 0;
+			recvStream >> zombieNumber;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveDeadZombieNumber(zombieNumber);
+			break;
+		}
+		case EPacketType::PLAYERDEAD:
+		{
+			int playerNumber = 0;
+			recvStream >> playerNumber;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveDeadPlayerNumber(playerNumber);
+			break;
+		}
+	}
 }
 
 void ClientSocket::Exit()

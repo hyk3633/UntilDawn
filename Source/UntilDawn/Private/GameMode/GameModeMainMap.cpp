@@ -104,6 +104,10 @@ void AGameModeMainMap::Tick(float deltaTime)
 	{
 		ProcessZombieDead();
 	}
+	if (!deadPlayerQ.IsEmpty())
+	{
+		ProcessPlayerDead();
+	}
 }
 
 void AGameModeMainMap::DestroyPlayer()
@@ -162,6 +166,14 @@ void AGameModeMainMap::ReceiveDeadZombieNumber(const int zombieNumber)
 	}
 }
 
+void AGameModeMainMap::ReceiveDeadPlayerNumber(const int playerNumber)
+{
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		deadPlayerQ.Enqueue(playerNumber);
+	}
+}
+
 void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber)
 {
 	if (playerCharacterMap.Find(playerNumber))
@@ -211,7 +223,6 @@ void AGameModeMainMap::SpawnNewPlayerCharacter()
 			);
 		newPlayerCharacter->SetPlayerNumber(number);
 		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx->playerIDMap[number].c_str())));
-		newPlayerCharacter->SpawnDefaultController();
 		playerCharacterMap.Add(number, newPlayerCharacter);
 	}
 	playerInfoSetEx = nullptr;
@@ -257,7 +268,6 @@ void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInf
 
 void AGameModeMainMap::SynchronizeZombieInfo()
 {
-	
 	for (auto& info : zombieInfoSet->zombieInfoMap)
 	{
 		const ZombieInfo& zombieInfo = info.second;
@@ -377,5 +387,24 @@ void AGameModeMainMap::ProcessZombieDead()
 		deadZombieQ.Dequeue(number);
 		zombieCharacterMap[number]->ZombieDead();
 		zombieCharacterMap.Remove(number);
+	}
+}
+
+void AGameModeMainMap::ProcessPlayerDead()
+{
+	int number = 0;
+	while (!deadPlayerQ.IsEmpty())
+	{
+		deadPlayerQ.Dequeue(number);
+		if (number == myNumber)
+		{
+			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+			myPlayerController->OutToLobby();
+		}
+		else
+		{
+			playerCharacterMap[number]->PlayerDead();
+			playerCharacterMap.Remove(number);
+		}
 	}
 }

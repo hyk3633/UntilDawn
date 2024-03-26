@@ -31,7 +31,7 @@ APlayerCharacter::APlayerCharacter()
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ZombieAttack, ECollisionResponse::ECR_Block);
+	GetCapsuleComponent()->SetCollisionProfileName(FName("RemotePlayer"));
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -42,7 +42,7 @@ APlayerCharacter::APlayerCharacter()
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
-
+	GetCharacterMovement()->bRunPhysicsWithNoController = true;
 	GetCharacterMovement()->JumpZVelocity = 700.f;
 	GetCharacterMovement()->AirControl = 0.35f;
 	GetCharacterMovement()->MaxWalkSpeed = 300.f;
@@ -133,6 +133,7 @@ void APlayerCharacter::PossessedBy(AController* newController)
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
 	}
+	GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
 	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
 }
@@ -565,7 +566,7 @@ void APlayerCharacter::StartAttack()
 
 void APlayerCharacter::ActivateAttackTrace()
 {
-	if (isAttackActivated == false) 
+	if (isAttackActivated == false || equippedWeapon == nullptr)
 		return;
 
 	FHitResult hit;
@@ -638,5 +639,18 @@ void APlayerCharacter::AddItemToInv(AItemBase* itemNumber)
 	equippedWeapon = Cast<AItemMeleeWeapon>(itemNumber);
 	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
 	socket->AttachActor(itemNumber, GetMesh());
+}
+
+void APlayerCharacter::PlayerDead()
+{
+	GetWorldTimerManager().SetTimer(destroyTimer, this, &APlayerCharacter::DestroyAfterDelay, 5.f);
+	GetCapsuleComponent()->SetCollisionProfileName(FName("DeadPlayer"));
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
+}
+
+void APlayerCharacter::DestroyAfterDelay()
+{
+	Destroy();
 }
 

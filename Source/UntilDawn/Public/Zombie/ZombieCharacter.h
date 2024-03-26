@@ -89,6 +89,7 @@ private:
 	UPROPERTY()
 	UZombieAnimInstance* animInst;
 
+	UPROPERTY(VisibleAnywhere, Category = "Info")
 	bool isActive;
 
 	int number;

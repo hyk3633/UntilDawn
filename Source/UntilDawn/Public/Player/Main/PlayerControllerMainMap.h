@@ -38,9 +38,13 @@ public:
 
 	void SendHitZombieInfo(const int zombieNumber);
 
+	void OutToLobby();
+
 protected:
 
 	void SynchronizePlayerInfo();
+
+	void OutToLobbyAfterDelay();
 
 protected:
 
@@ -50,5 +54,7 @@ protected:
 	APlayerCharacter* myCharacter;
 
 	FTimerHandle SynchronizeTimer;
+
+	FTimerHandle outToLobbyTimer;
 
 };

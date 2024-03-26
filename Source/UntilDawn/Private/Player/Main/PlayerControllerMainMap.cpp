@@ -6,6 +6,7 @@
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Player/PlayerCharacter.h"
 #include "Zombie/ZombieCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
@@ -56,9 +57,20 @@ void APlayerControllerMainMap::SendHitZombieInfo(const int zombieNumber)
 	clientSocket->SendHitZombieInfo(zombieNumber);
 }
 
+void APlayerControllerMainMap::OutToLobby()
+{
+	GetWorldTimerManager().SetTimer(outToLobbyTimer, this, &APlayerControllerMainMap::OutToLobbyAfterDelay, 3.f);
+	myCharacter->PlayerDead();
+}
+
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();
 	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
 	myCharacter->ResetPlayerInfoBitMask();
+}
+
+void APlayerControllerMainMap::OutToLobbyAfterDelay()
+{
+	UGameplayStatics::OpenLevel(this, TEXT("LoginMap"));
 }

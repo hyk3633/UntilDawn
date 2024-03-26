@@ -137,6 +137,10 @@ public:
 
 	void AddItemToInv(AItemBase* itemNumber);
 
+	void PlayerDead();
+
+	void DestroyAfterDelay();
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -232,4 +236,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	TArray<AItemBase*> items;
+
+	FTimerHandle destroyTimer;
 };

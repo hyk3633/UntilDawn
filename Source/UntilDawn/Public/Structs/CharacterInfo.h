@@ -32,7 +32,6 @@ struct ZombieInfo
 	friend std::istream& operator>>(std::istream& stream, ZombieInfo& info)
 	{
 		stream >> info.recvInfoBitMask;
-
 		const int bitMax = static_cast<int>(ZIBT::MAX);
 		for (int bit = 0; bit < bitMax; bit++)
 		{
@@ -91,15 +90,14 @@ public:
 
 	friend std::istream& operator>>(std::istream& stream, ZombieInfoSet& info)
 	{
-		int characterCount = 0;
-		int characterNumber = 0;
+		int size = 0, number = 0;
 		info.zombieInfoMap.clear();
 
-		stream >> characterCount;
-		for (int i = 0; i < characterCount; i++)
+		stream >> size;
+		for (int i = 0; i < size; i++)
 		{
-			stream >> characterNumber;
-			stream >> info.zombieInfoMap[characterNumber];
+			stream >> number;
+			stream >> info.zombieInfoMap[number];
 		}
 		return stream;
 	}
