@@ -59,6 +59,8 @@ protected:
 
 	void ProcessPlayerDead();
 
+	void RespawnPlayer();
+
 public:
 
 	virtual void Tick(float deltaTime) override;
@@ -86,6 +88,8 @@ public:
 	void ReceiveDeadZombieNumber(const int zombieNumber);
 
 	void ReceiveDeadPlayerNumber(const int playerNumber);
+
+	void ReceiveRespawnPlayerNumber(const int playerNumber, CharacterInfo info);
 
 private:
 
@@ -131,5 +135,9 @@ private:
 	TQueue<int> deadZombieQ;
 
 	TQueue<int> deadPlayerQ;
+
+	int respawnNumber;
+
+	CharacterInfo respawnInfo;
 
 };

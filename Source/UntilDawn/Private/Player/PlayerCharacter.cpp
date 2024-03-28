@@ -643,14 +643,45 @@ void APlayerCharacter::AddItemToInv(AItemBase* itemNumber)
 
 void APlayerCharacter::PlayerDead()
 {
-	GetWorldTimerManager().SetTimer(destroyTimer, this, &APlayerCharacter::DestroyAfterDelay, 5.f);
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeadPlayer"));
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
+	InitializePlayerInfo();
 }
 
-void APlayerCharacter::DestroyAfterDelay()
+void APlayerCharacter::InitializePlayerInfo()
 {
-	Destroy();
+	isAbleShoot = false;
+	shootPower = false;
+	currentWeaponType = EWeaponType::DEFAULT;
+	zombiesInRange.clear();
+	zombiesOutRange.clear();
+	sendInfoBitMask = 0;
+	isHitted = false;
+	zombieNumberAttackedMe = -1;
+	bWrestling = false;
+	isAttackActivated = false;
+	equippedWeapon = nullptr;
+	lookingWeapon = nullptr;
+}
+
+void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
+{
+	if (isLocalPlayer)
+	{
+		GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
+	}
+	else
+	{
+		GetCapsuleComponent()->SetCollisionProfileName(FName("RemotePlayer"));
+	}
+	GetCapsuleComponent()->SetRelativeRotation(FRotator(0.f, GetActorRotation().Yaw, 0.f));
+	GetMesh()->SetSimulatePhysics(false);
+	GetMesh()->SetCollisionProfileName(FName("Pawn"));
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetVisibility(true);
+	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
+	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 }
 

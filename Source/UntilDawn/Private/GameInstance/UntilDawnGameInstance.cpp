@@ -6,6 +6,21 @@
 
 ClientSocket* UUntilDawnGameInstance::GetSocket()
 {
-	static ClientSocket instance;
-	return &instance;
+	if (socket == nullptr)
+	{
+		socket = new ClientSocket();
+	}
+	return socket;
+}
+
+void UUntilDawnGameInstance::Shutdown()
+{
+	Super::Shutdown();
+
+	if (socket)
+	{
+		socket->Stop();
+		delete socket;
+		socket = nullptr;
+	}
 }

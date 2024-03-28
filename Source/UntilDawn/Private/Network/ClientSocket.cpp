@@ -15,15 +15,18 @@ ClientSocket::~ClientSocket()
 {
 	if (thread)
 	{
-		// 스레드 종료
 		thread->WaitForCompletion();
 		thread->Kill();
 		delete thread;
+		WLOG(TEXT("[Log] : Kill thread."))
 	}
 }
 
 bool ClientSocket::InitSocket()
 {
+	if (isInitialized)
+		return true;
+
 	WSADATA wsaData;
 	int result;
 	// WinSock 초기화
@@ -42,11 +45,15 @@ bool ClientSocket::InitSocket()
 		WSACleanup();
 		return false;
 	}
+	
 	return true;
 }
 
 void ClientSocket::StartSocket()
 {
+	if (isInitialized)
+		return;
+
 	// 접속하고자 하는 서버에 대한 주소 세팅
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -61,15 +68,9 @@ void ClientSocket::StartSocket()
 	}
 	WLOG(TEXT("[Log] : Successfully connected to the server!"));
 
-	return;
-}
+	isInitialized = true;
 
-void ClientSocket::StopThread()
-{
-	thread->WaitForCompletion();
-	thread->Kill();
-	delete thread;
-	thread = nullptr;
+	return;
 }
 
 void ClientSocket::Recv(std::stringstream& recvStream)
@@ -86,6 +87,7 @@ void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool 
 	std::string tempPw(TCHAR_TO_UTF8(*pw.ToString()));
 	sendStream << tempId << "\n";
 	sendStream << tempPw << "\n";
+
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -145,16 +147,23 @@ void ClientSocket::SendHitZombieInfo(const int zombieNumber)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
+void ClientSocket::SendRespawnRequest()
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::PLAYERRESPAWN) << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
 bool ClientSocket::Init()
 {
+	bRun = true;
 	return true;
 }
 
 uint32 ClientSocket::Run()
 {
 	FPlatformProcess::Sleep(0.05);
-
-	while (ownerController)
+	while (bRun)
 	{
 		std::stringstream recvStream;
 		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
@@ -167,7 +176,6 @@ uint32 ClientSocket::Run()
 			ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
 		}
 	}
-
 	return 0;
 }
 
@@ -179,16 +187,21 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			bool isGranted;
 			recvStream >> isGranted;
-			ownerController->ReceiveSignUpRequestResult(isGranted);
+			if(ownerController)
+				ownerController->ReceiveSignUpRequestResult(isGranted);
 			break;
 		}
 		case EPacketType::LOGIN:
 		{
 			bool isGranted;
 			recvStream >> isGranted;
-			int playerNumber;
-			recvStream >> playerNumber;
-			ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
+			int playerNumber = -1;
+			if (isGranted)
+			{
+				recvStream >> playerNumber;
+			}
+			if (ownerController)
+				ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
 			break;
 		}
 		case EPacketType::SPAWNPLAYER:
@@ -237,14 +250,23 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 				ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
 			break;
 		}
+		case EPacketType::PLAYERRESPAWN:
+		{
+			int number = 0;
+			CharacterInfo respawnInfo;
+			recvStream >> number >> respawnInfo;
+			if (ownerGameMode)
+				ownerGameMode->ReceiveRespawnPlayerNumber(number, respawnInfo);
+			break;
+		}
 		case EPacketType::INITIALINFO:
 		{
 			while (1)
 			{
-				int type = -1;
-				recvStream >> type;
-				if (type == -1) break;
-				ProcessPacket(static_cast<EPacketType>(type), recvStream);
+				int type2 = -1;
+				recvStream >> type2;
+				if (type2 == -1) break;
+				ProcessPacket(static_cast<EPacketType>(type2), recvStream);
 			}
 			break;
 		}
@@ -300,15 +322,18 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 
 void ClientSocket::Exit()
 {
+	WLOG(TEXT("exit?"));
+}
+
+void ClientSocket::Stop()
+{
+	if (!bRun) return;
+	bRun = false;
+	WLOG(TEXT("[Log] : Stop thread."));
 	if (clientSocket)
 	{
 		closesocket(clientSocket);
 		WSACleanup();
 		WLOG(TEXT("[Log] : Closing the connection to the server."));
 	}
-}
-
-void ClientSocket::Stop()
-{
-
 }

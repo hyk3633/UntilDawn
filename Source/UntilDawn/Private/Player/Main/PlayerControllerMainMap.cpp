@@ -57,10 +57,10 @@ void APlayerControllerMainMap::SendHitZombieInfo(const int zombieNumber)
 	clientSocket->SendHitZombieInfo(zombieNumber);
 }
 
-void APlayerControllerMainMap::OutToLobby()
+void APlayerControllerMainMap::PlayerDead()
 {
-	GetWorldTimerManager().SetTimer(outToLobbyTimer, this, &APlayerControllerMainMap::OutToLobbyAfterDelay, 3.f);
 	myCharacter->PlayerDead();
+	GetWorldTimerManager().SetTimer(respawnRequestTimer, this, &APlayerControllerMainMap::respawnRequestAfterDelay, 3.f);
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()
@@ -70,7 +70,7 @@ void APlayerControllerMainMap::SynchronizePlayerInfo()
 	myCharacter->ResetPlayerInfoBitMask();
 }
 
-void APlayerControllerMainMap::OutToLobbyAfterDelay()
+void APlayerControllerMainMap::respawnRequestAfterDelay()
 {
-	UGameplayStatics::OpenLevel(this, TEXT("LoginMap"));
+	clientSocket->SendRespawnRequest();
 }

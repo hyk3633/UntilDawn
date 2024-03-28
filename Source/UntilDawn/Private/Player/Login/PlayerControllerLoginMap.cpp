@@ -40,9 +40,13 @@ void APlayerControllerLoginMap::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (bSetSignUpMessageText)
+	{
 		SetSignUpMessageText();
+	}
 	if (bSetLoginMessageText)
+	{
 		SetLoginMessageText();
+	}
 }
 
 void APlayerControllerLoginMap::ReceiveSignUpRequestResult(const bool isGranted)
@@ -53,14 +57,20 @@ void APlayerControllerLoginMap::ReceiveSignUpRequestResult(const bool isGranted)
 
 void APlayerControllerLoginMap::ReceiveLoginRequestResult(const bool isGranted, int number)
 {
-	bFlag = isGranted;
+	if (isGranted)
+	{
+		bFlag = isGranted;
+		GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerNumber(number);
+	}
 	bSetLoginMessageText = true;
-	GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerNumber(number);
 }
 
 void APlayerControllerLoginMap::ReceiveAccountInfo(const FText& id, const FText& pw, const bool isLogin)
 {
-	if(isConnected) clientSocket->SendAccountInfo(id, pw, isLogin);
+	if (isConnected)
+	{
+		clientSocket->SendAccountInfo(id, pw, isLogin);
+	}
 }
 
 void APlayerControllerLoginMap::SetSignUpMessageText()
@@ -73,8 +83,10 @@ void APlayerControllerLoginMap::SetLoginMessageText()
 {
 	loginMapHUD->SetLoginMessageBox(bFlag);
 	bSetLoginMessageText = false;
-	if(bFlag)
+	if (bFlag)
+	{
 		GetWorldTimerManager().SetTimer(levelTransitionTimer, this, &APlayerControllerLoginMap::StartLevelTransition, 2.f, false);
+	}
 }
 
 void APlayerControllerLoginMap::StartLevelTransition()

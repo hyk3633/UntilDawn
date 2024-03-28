@@ -139,7 +139,9 @@ public:
 
 	void PlayerDead();
 
-	void DestroyAfterDelay();
+	void InitializePlayerInfo();
+
+	void PlayerRespawn(const bool isLocalPlayer);
 
 private:
 
@@ -236,6 +238,4 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	TArray<AItemBase*> items;
-
-	FTimerHandle destroyTimer;
 };

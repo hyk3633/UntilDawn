@@ -30,8 +30,6 @@ public:
 
 	void StartSocket();
 
-	void StopThread();
-
 	void Recv(std::stringstream&);
 
 	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);
@@ -49,6 +47,8 @@ public:
 	void SendHitPlayerInfo(const int playerNumber);
 
 	void SendHitZombieInfo(const int zombieNumber);
+
+	void SendRespawnRequest();
 
 	// FRunnable 가상 함수
 
@@ -72,6 +72,10 @@ public:
 
 private:
 
+	bool isInitialized;
+
+	bool bRun;
+
 	SOCKET clientSocket;
 
 	HANDLE sendThread, recvThread;
@@ -93,4 +97,6 @@ private:
 
 	UPROPERTY()
 	AGameModeMainMap* ownerGameMode;
+
+
 };

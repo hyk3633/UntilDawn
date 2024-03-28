@@ -108,6 +108,10 @@ void AGameModeMainMap::Tick(float deltaTime)
 	{
 		ProcessPlayerDead();
 	}
+	if (respawnNumber != -1)
+	{
+		RespawnPlayer();
+	}
 }
 
 void AGameModeMainMap::DestroyPlayer()
@@ -172,6 +176,12 @@ void AGameModeMainMap::ReceiveDeadPlayerNumber(const int playerNumber)
 	{
 		deadPlayerQ.Enqueue(playerNumber);
 	}
+}
+
+void AGameModeMainMap::ReceiveRespawnPlayerNumber(const int playerNumber, CharacterInfo info)
+{
+	respawnNumber = playerNumber;
+	respawnInfo = info;
 }
 
 void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber)
@@ -252,6 +262,7 @@ void AGameModeMainMap::SynchronizePlayersInfo()
 			}
 		}
 	}
+	playerInfoSet = nullptr;
 }
 
 void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType)
@@ -399,12 +410,26 @@ void AGameModeMainMap::ProcessPlayerDead()
 		if (number == myNumber)
 		{
 			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-			myPlayerController->OutToLobby();
+			myPlayerController->PlayerDead();
 		}
 		else
 		{
-			playerCharacterMap[number]->PlayerDead();
-			playerCharacterMap.Remove(number);
+			if (playerCharacterMap.Find(number))
+			{
+				playerCharacterMap[number]->PlayerDead();
+			}
 		}
 	}
+}
+
+void AGameModeMainMap::RespawnPlayer()
+{
+	if (playerCharacterMap.Find(respawnNumber))
+	{
+		WLOG(TEXT("dead"));
+		playerCharacterMap[respawnNumber]->SetActorLocation(FVector(respawnInfo.vectorX, respawnInfo.vectorY, respawnInfo.vectorZ));
+		playerCharacterMap[respawnNumber]->SetActorRotation(FRotator(respawnInfo.pitch, respawnInfo.yaw, respawnInfo.roll));
+		playerCharacterMap[respawnNumber]->PlayerRespawn(respawnNumber == myNumber);
+	}
+	respawnNumber = -1;
 }

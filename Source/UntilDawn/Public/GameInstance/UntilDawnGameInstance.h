@@ -19,12 +19,20 @@ class UNTILDAWN_API UUntilDawnGameInstance : public UGameInstance
 
 public:
 
-	static ClientSocket* GetSocket();
+	ClientSocket* GetSocket();
+
+	void EndConnection();
 
 	FORCEINLINE void SetPlayerNumber(int number) { playerNumber = number; }
 	FORCEINLINE int GetPlayerNumber() const { return playerNumber; }
+
+protected:
+
+	virtual void Shutdown() override;
 	
 private:
+
+	ClientSocket* socket;
 
 	int playerNumber;
 };

@@ -4,6 +4,7 @@
 #include "GameMode/GameModeLoginMap.h"
 #include "Player/Login/PlayerControllerLoginMap.h"
 #include "UI/Login/HUDLoginMap.h"
+#include "../UntilDawn.h"
 
 AGameModeLoginMap::AGameModeLoginMap()
 {
@@ -16,4 +17,11 @@ void AGameModeLoginMap::BeginPlay()
 {
 	Super::BeginPlay();
 
+}
+
+void AGameModeLoginMap::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	
 }

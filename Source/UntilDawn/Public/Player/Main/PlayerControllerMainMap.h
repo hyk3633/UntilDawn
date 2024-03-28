@@ -38,13 +38,13 @@ public:
 
 	void SendHitZombieInfo(const int zombieNumber);
 
-	void OutToLobby();
+	void PlayerDead();
 
 protected:
 
 	void SynchronizePlayerInfo();
 
-	void OutToLobbyAfterDelay();
+	void respawnRequestAfterDelay();
 
 protected:
 
@@ -55,6 +55,6 @@ protected:
 
 	FTimerHandle SynchronizeTimer;
 
-	FTimerHandle outToLobbyTimer;
+	FTimerHandle respawnRequestTimer;
 
 };
