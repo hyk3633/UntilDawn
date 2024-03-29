@@ -22,3 +22,6 @@ enum class EPacketType : uint8
 	ZOMBIEDEAD,
 	PLAYERDEAD,
 };
+
+// 로그인 맵에서 받는 패킷 타입 최대 값 + 1
+#define LOGINMAP_MAX static_cast<int>(EPacketType::LOGIN) + 1

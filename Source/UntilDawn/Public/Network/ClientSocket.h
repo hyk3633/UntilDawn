@@ -66,9 +66,9 @@ public:
 
 	virtual void Stop() override;
 
-	FORCEINLINE void SetPlayerController(APlayerControllerLoginMap* controller) { ownerController = controller; }
+	void SetPlayerController(APlayerControllerLoginMap* controller);
 
-	FORCEINLINE void SetGameMode(AGameModeMainMap* gameMode) { ownerGameMode = gameMode; }
+	void SetGameMode(AGameModeMainMap* gameMode);
 
 private:
 
@@ -84,8 +84,7 @@ private:
 
 	char recvBuf[PACKET_SIZE];
 
-	UPROPERTY()
-	APlayerControllerLoginMap* ownerController;
+	TWeakObjectPtr<APlayerControllerLoginMap> ownerController;
 
 	PlayerInfoSetEx newPlayerInfoSetEx;
 
@@ -95,8 +94,7 @@ private:
 
 	ItemInfoSet synchItemInfoSet;
 
-	UPROPERTY()
-	AGameModeMainMap* ownerGameMode;
+	TWeakObjectPtr<AGameModeMainMap> ownerGameMode;
 
 
 };

@@ -172,8 +172,19 @@ uint32 ClientSocket::Run()
 		if (recvBytes > 0)
 		{
 			recvStream << recvBuf;
-			recvStream >> packetType;
-			ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
+			if (ownerController.Get())
+			{
+				ownerController->ReceivePacket(recvStream);
+			}
+			else if (ownerGameMode.Get())
+			{
+				recvStream >> packetType;
+				ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
+			}
+		}
+		else
+		{
+			break;
 		}
 	}
 	return 0;
@@ -183,38 +194,17 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 {
 	switch (type)
 	{
-		case EPacketType::SIGNUP:
-		{
-			bool isGranted;
-			recvStream >> isGranted;
-			if(ownerController)
-				ownerController->ReceiveSignUpRequestResult(isGranted);
-			break;
-		}
-		case EPacketType::LOGIN:
-		{
-			bool isGranted;
-			recvStream >> isGranted;
-			int playerNumber = -1;
-			if (isGranted)
-			{
-				recvStream >> playerNumber;
-			}
-			if (ownerController)
-				ownerController->ReceiveLoginRequestResult(isGranted, playerNumber);
-			break;
-		}
 		case EPacketType::SPAWNPLAYER:
 		{
 			newPlayerInfoSetEx.InputStreamWithID(recvStream);
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
 			break;
 		}
 		case EPacketType::SYNCHPLAYER:
 		{
 			recvStream >> synchPlayerInfoSet;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
 			break;
 		}
@@ -222,7 +212,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int number = 0, inputType = 0;
 			recvStream >> number >> inputType;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
 			break;
 		}
@@ -231,7 +221,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 			bool wrestlingResult = false;
 			int number = 0;
 			recvStream >> number >> wrestlingResult;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
 			break;
 		}
@@ -239,14 +229,14 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int number = 0;
 			recvStream >> number;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveWrestlingPlayer(number);
 			break;
 		}
 		case EPacketType::SYNCHITEM:
 		{
 			recvStream >> synchItemInfoSet;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
 			break;
 		}
@@ -255,7 +245,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 			int number = 0;
 			CharacterInfo respawnInfo;
 			recvStream >> number >> respawnInfo;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveRespawnPlayerNumber(number, respawnInfo);
 			break;
 		}
@@ -273,7 +263,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		case EPacketType::SYNCHZOMBIE:
 		{
 			recvStream >> synchZombieInfoSet;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveZombieInfo(&synchZombieInfoSet);
 			break;
 		}
@@ -281,7 +271,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int number = 0;
 			recvStream >> number;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveDisconnectedPlayerInfo(number);
 			break;
 		}
@@ -289,7 +279,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int itemNumber = 0;
 			recvStream >> itemNumber;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->DestroyItem(itemNumber);
 			break;
 		}
@@ -297,7 +287,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int itemNumber = 0;
 			recvStream >> itemNumber;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->PickUpItem(itemNumber);
 			break;
 		}
@@ -305,7 +295,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int zombieNumber = 0;
 			recvStream >> zombieNumber;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveDeadZombieNumber(zombieNumber);
 			break;
 		}
@@ -313,7 +303,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		{
 			int playerNumber = 0;
 			recvStream >> playerNumber;
-			if (ownerGameMode)
+			if (ownerGameMode.Get())
 				ownerGameMode->ReceiveDeadPlayerNumber(playerNumber);
 			break;
 		}
@@ -322,18 +312,28 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 
 void ClientSocket::Exit()
 {
-	WLOG(TEXT("exit?"));
+	WLOG(TEXT("[Log] : Thread exit."));
 }
 
 void ClientSocket::Stop()
 {
 	if (!bRun) return;
 	bRun = false;
-	WLOG(TEXT("[Log] : Stop thread."));
+	WLOG(TEXT("[Log] : Thread stopped."));
 	if (clientSocket)
 	{
 		closesocket(clientSocket);
 		WSACleanup();
-		WLOG(TEXT("[Log] : Closing the connection to the server."));
+		WLOG(TEXT("[Log] : Closed the connection to server."));
 	}
+}
+
+void ClientSocket::SetPlayerController(APlayerControllerLoginMap* controller)
+{
+	ownerController = controller;
+}
+
+void ClientSocket::SetGameMode(AGameModeMainMap* gameMode)
+{
+	ownerGameMode = gameMode; 
 }

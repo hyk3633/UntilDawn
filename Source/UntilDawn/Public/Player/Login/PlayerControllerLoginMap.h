@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include <sstream>
+#include <queue>
+#include <vector>
 #include "PlayerControllerLoginMap.generated.h"
-
 /**
  * 
  */
@@ -26,18 +28,18 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	void ReceiveSignUpRequestResult(const bool);
-
-	void ReceiveLoginRequestResult(const bool, int);
+	void ReceivePacket(std::stringstream& recvStream);
 
 protected:
+
+	void ProcessPacket();
 
 	UFUNCTION()
 	void ReceiveAccountInfo(const FText& id, const FText& pw, const bool isLogin);
 
-	void SetSignUpMessageText();
+	void SetSignUpMessageText(std::stringstream& recvStream);
 
-	void SetLoginMessageText();
+	void SetLoginMessageTextAndLoginToMap(std::stringstream& recvStream);
 
 	void StartLevelTransition();
 	
@@ -48,12 +50,14 @@ private:
 	UPROPERTY()
 	AHUDLoginMap* loginMapHUD;
 
+	FCriticalSection criticalSection;
+
 	bool isConnected;
 
-	bool bSetSignUpMessageText;
-	bool bSetLoginMessageText;
-	bool bFlag;
-
 	FTimerHandle levelTransitionTimer;
+
+	std::queue<std::stringstream> messageQ;
+
+	std::vector<void (APlayerControllerLoginMap::*)(std::stringstream&)> packetCallbacks;
 
 };

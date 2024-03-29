@@ -33,36 +33,51 @@ void APlayerControllerLoginMap::BeginPlay()
 
 	FInputModeUIOnly uiInputMode;
 	SetInputMode(uiInputMode);
+
+	packetCallbacks = std::vector<void (APlayerControllerLoginMap::*)(std::stringstream&)>(LOGINMAP_MAX);
+	packetCallbacks[static_cast<int>(EPacketType::SIGNUP)]	= &APlayerControllerLoginMap::SetSignUpMessageText;
+	packetCallbacks[static_cast<int>(EPacketType::LOGIN)]	= &APlayerControllerLoginMap::SetLoginMessageTextAndLoginToMap;
 }
 
 void APlayerControllerLoginMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bSetSignUpMessageText)
+	if (!messageQ.empty())
 	{
-		SetSignUpMessageText();
-	}
-	if (bSetLoginMessageText)
-	{
-		SetLoginMessageText();
+		ProcessPacket();
 	}
 }
 
-void APlayerControllerLoginMap::ReceiveSignUpRequestResult(const bool isGranted)
+void APlayerControllerLoginMap::ReceivePacket(std::stringstream& recvStream)
 {
-	bFlag = isGranted;
-	bSetSignUpMessageText = true;
+	FScopeLock Lock(&criticalSection);
+	messageQ.push(std::move(recvStream));
 }
 
-void APlayerControllerLoginMap::ReceiveLoginRequestResult(const bool isGranted, int number)
+void APlayerControllerLoginMap::ProcessPacket()
 {
-	if (isGranted)
+	FScopeLock Lock(&criticalSection);
+	std::stringstream recvStream = std::move(messageQ.front());
+	messageQ.pop();
+
+	int packetType = -1;
+	recvStream >> packetType;
+	if (packetType >= 0 && packetType < LOGINMAP_MAX)
 	{
-		bFlag = isGranted;
-		GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerNumber(number);
+		if (packetCallbacks[packetType] == nullptr)
+		{
+			ELOG(TEXT("Callback is nullptr!"));
+		}
+		else
+		{
+			(this->*packetCallbacks[packetType])(recvStream);
+		}
 	}
-	bSetLoginMessageText = true;
+	else
+	{
+		ELOG(TEXT("Invalid packet number!"));
+	}
 }
 
 void APlayerControllerLoginMap::ReceiveAccountInfo(const FText& id, const FText& pw, const bool isLogin)
@@ -73,18 +88,24 @@ void APlayerControllerLoginMap::ReceiveAccountInfo(const FText& id, const FText&
 	}
 }
 
-void APlayerControllerLoginMap::SetSignUpMessageText()
+void APlayerControllerLoginMap::SetSignUpMessageText(std::stringstream& recvStream)
 {
-	loginMapHUD->SetSignUpMessageBox(bFlag);
-	bSetSignUpMessageText = false;
+	bool isGranted;
+	recvStream >> isGranted;
+	loginMapHUD->SetSignUpMessageBox(isGranted);
 }
 
-void APlayerControllerLoginMap::SetLoginMessageText()
+void APlayerControllerLoginMap::SetLoginMessageTextAndLoginToMap(std::stringstream& recvStream)
 {
-	loginMapHUD->SetLoginMessageBox(bFlag);
-	bSetLoginMessageText = false;
-	if (bFlag)
+	bool isGranted;
+	recvStream >> isGranted;
+	loginMapHUD->SetLoginMessageBox(isGranted);
+	if (isGranted)
 	{
+		int playerNumber = -1;
+		recvStream >> playerNumber;
+		check(playerNumber >= 0);
+		GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerNumber(playerNumber);
 		GetWorldTimerManager().SetTimer(levelTransitionTimer, this, &APlayerControllerLoginMap::StartLevelTransition, 2.f, false);
 	}
 }
