@@ -168,7 +168,6 @@ uint32 ClientSocket::Run()
 		std::stringstream recvStream;
 		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
 
-		int packetType;
 		if (recvBytes > 0)
 		{
 			recvStream << recvBuf;
@@ -178,8 +177,7 @@ uint32 ClientSocket::Run()
 			}
 			else if (ownerGameMode.Get())
 			{
-				recvStream >> packetType;
-				ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
+				ownerGameMode->ReceivePacket(recvStream);
 			}
 		}
 		else
@@ -194,20 +192,20 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 {
 	switch (type)
 	{
-		case EPacketType::SPAWNPLAYER:
-		{
-			newPlayerInfoSetEx.InputStreamWithID(recvStream);
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
-			break;
-		}
-		case EPacketType::SYNCHPLAYER:
-		{
-			recvStream >> synchPlayerInfoSet;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
-			break;
-		}
+		//case EPacketType::SPAWNPLAYER:
+		//{
+		//	newPlayerInfoSetEx.InputStreamWithID(recvStream);
+		//	if (ownerGameMode.Get())
+		//		ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
+		//	break; 
+		//}
+		//case EPacketType::SYNCHPLAYER:
+		//{
+		//	recvStream >> synchPlayerInfoSet;
+		//	if (ownerGameMode.Get())
+		//		ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
+		//	break;
+		//}
 		case EPacketType::PLAYERINPUTACTION:
 		{
 			int number = 0, inputType = 0;
@@ -233,13 +231,13 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 				ownerGameMode->ReceiveWrestlingPlayer(number);
 			break;
 		}
-		case EPacketType::SYNCHITEM:
-		{
-			recvStream >> synchItemInfoSet;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
-			break;
-		}
+		//case EPacketType::SYNCHITEM:
+		//{
+		//	recvStream >> synchItemInfoSet;
+		//	if (ownerGameMode.Get())
+		//		ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
+		//	break;
+		//}
 		case EPacketType::PLAYERRESPAWN:
 		{
 			int number = 0;
@@ -249,17 +247,17 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 				ownerGameMode->ReceiveRespawnPlayerNumber(number, respawnInfo);
 			break;
 		}
-		case EPacketType::INITIALINFO:
-		{
-			while (1)
-			{
-				int type2 = -1;
-				recvStream >> type2;
-				if (type2 == -1) break;
-				ProcessPacket(static_cast<EPacketType>(type2), recvStream);
-			}
-			break;
-		}
+		//case EPacketType::INITIALINFO:
+		//{
+		//	while (1)
+		//	{
+		//		int type2 = -1;
+		//		recvStream >> type2;
+		//		if (type2 == -1) break;
+		//		ProcessPacket(static_cast<EPacketType>(type2), recvStream);
+		//	}
+		//	break;
+		//}
 		case EPacketType::SYNCHZOMBIE:
 		{
 			recvStream >> synchZombieInfoSet;

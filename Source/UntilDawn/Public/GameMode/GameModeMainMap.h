@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
+#include <vector>
+#include <sstream>
+#include <queue>
 #include "GameModeMainMap.generated.h"
 
 /**
@@ -32,6 +35,24 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+
+public:
+
+	void ReceivePacket(std::stringstream& recvStream);
+
+protected:
+
+	void ProcessPacket();
+
+	void SpawnNewPlayerCharacter(std::stringstream& recvStream);
+
+	void SynchronizePlayers(std::stringstream& recvStream);
+
+	void SynchronizeItems(std::stringstream& recvStream);
+
+	void InitializeWorld(std::stringstream& recvStream);
+
+	// ---------------------
 
 	void PlayerSpawnAfterDelay();
 
@@ -139,5 +160,11 @@ private:
 	int respawnNumber;
 
 	CharacterInfo respawnInfo;
+
+	FCriticalSection criticalSection;
+
+	std::queue<std::stringstream> messageQ;
+
+	std::vector<void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
 
 };
