@@ -158,6 +158,7 @@ struct PlayerInfo
 
 	// 서버 수신용 데이터
 	int recvInfoBitMask;
+	bool flag;
 
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
@@ -217,12 +218,11 @@ struct PlayerInfo
 	friend std::istream& operator>>(std::istream& stream, PlayerInfo& info)
 	{
 		stream >> info.characterInfo;
+		stream >> info.flag;
 
-		bool flag = false;
-		stream >> flag;
-
-		if (flag)
+		if (info.flag)
 		{
+			info.recvInfoBitMask = 0;
 			stream >> info.recvInfoBitMask;
 			const int bitMax = static_cast<int>(PIBTS::MAX);
 			for (int bit = 0; bit < bitMax; bit++)

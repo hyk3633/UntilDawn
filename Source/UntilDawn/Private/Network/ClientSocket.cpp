@@ -9,6 +9,7 @@
 ClientSocket::ClientSocket()
 {
 	thread = FRunnableThread::Create(this, TEXT("Network Thread"));
+	thread2 = FRunnableThread::Create(this, TEXT("Network Thread"));
 }
 
 ClientSocket::~ClientSocket()
@@ -163,27 +164,47 @@ bool ClientSocket::Init()
 uint32 ClientSocket::Run()
 {
 	FPlatformProcess::Sleep(0.05);
+
 	while (bRun)
 	{
 		std::stringstream recvStream;
-		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
 
-		if (recvBytes > 0)
+		FScopeLock Lock(&criticalSection);
+		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
+		Lock.Unlock();
+		if (ownerGameMode.Get())
 		{
-			recvStream << recvBuf;
-			if (ownerController.Get())
+			//int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
+			//PLOG(TEXT("revc %d"), recvBytes);
+			if (recvBytes != SOCKET_ERROR)
 			{
-				ownerController->ReceivePacket(recvStream);
-			}
-			else if (ownerGameMode.Get())
-			{
-				ownerGameMode->ReceivePacket(recvStream);
+				//ownerGameMode->ReceivePacket(recvStream);
+
+				//messageQ.push(std::move(recvStream.str()));
+				mVec.clear();
+				mVec.reserve(recvBytes);
+				mVec = std::vector<char>(recvBuf, recvBuf + recvBytes);
+				messageQ.push(std::move(mVec));
+				//for (int i = 0; i < recvBytes; ++i)
+				//	messageQ.push(RecvBuff[i]);
 			}
 		}
 		else
 		{
-			break;
-		}
+			//int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
+			if (recvBytes > 0)
+			{
+				recvStream << recvBuf;
+				if (ownerController.Get())
+				{
+					ownerController->ReceivePacket(recvStream);
+				}
+			}
+			else
+			{
+				break;
+			}
+		}	
 	}
 	return 0;
 }
@@ -334,4 +355,16 @@ void ClientSocket::SetPlayerController(APlayerControllerLoginMap* controller)
 void ClientSocket::SetGameMode(AGameModeMainMap* gameMode)
 {
 	ownerGameMode = gameMode; 
+}
+
+bool ClientSocket::IsMessageQueueEmpty()
+{
+	return messageQ.empty();
+}
+
+void ClientSocket::GetDataInMessageQueue(std::stringstream& recvStream)
+{
+	//std::string temp;
+	//messageQ.try_pop(temp);
+	//recvStream << std::move(temp);
 }
