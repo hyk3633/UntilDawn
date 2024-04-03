@@ -5,7 +5,6 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <sstream>
-#include <concurrent_queue.h>
 #include "Enums/PacketType.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "UntilDawn/UntilDawn.h"
@@ -71,10 +70,6 @@ public:
 
 	void SetGameMode(AGameModeMainMap* gameMode);
 
-	bool IsMessageQueueEmpty();
-
-	void GetDataInMessageQueue(std::stringstream& recvStream);
-
 private:
 
 	bool isInitialized;
@@ -86,7 +81,6 @@ private:
 	HANDLE sendThread, recvThread;
 
 	FRunnableThread* thread;
-	FRunnableThread* thread2;
 
 	char recvBuf[PACKET_SIZE];
 
@@ -102,8 +96,5 @@ private:
 
 	TWeakObjectPtr<AGameModeMainMap> ownerGameMode;
 
-	FCriticalSection criticalSection;
-public:
-	Concurrency::concurrent_queue<std::vector<char>> messageQ;
-	std::vector<char> mVec;
+
 };

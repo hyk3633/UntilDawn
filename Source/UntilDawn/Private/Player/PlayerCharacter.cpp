@@ -402,9 +402,9 @@ void APlayerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
+	speed = GetVelocity().Size2D();
 	velocity = GetVelocity();
-	speed = velocity.Size2D() > 0.f ? GetCharacterMovement()->MaxWalkSpeed : 0.f;
-	
+
 	direction = UKismetAnimationLibrary::CalculateDirection(velocity, GetActorForwardVector().Rotation());
 	pitch = GetBaseAimRotation().Pitch;
 	if (pitch >= 180.f)
