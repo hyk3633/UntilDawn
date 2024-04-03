@@ -14,6 +14,8 @@
  * 
  */
 
+#define INT_SIZE 4
+
 class UActorSpawner;
 class UActorPooler;
 class ClientSocket;
@@ -22,6 +24,31 @@ class AZombieCharacter;
 class PlayerInfoSetEx;
 class ItemInfoSet;
 class AItemBase;
+
+struct Vector3D
+{
+	float X, Y, Z;
+};
+
+struct Rotator
+{
+	float p, y, r;
+};
+
+struct CInfo
+{
+	int number = 0;
+	Vector3D loc;
+	Rotator rot;
+	Vector3D vel;
+};
+
+struct Infos
+{
+	int count = 0;
+	int type = 0;
+	std::vector<CInfo> vec;
+};
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -43,10 +70,12 @@ public:
 protected:
 
 	void ProcessPacket();
+	
+	bool ProcessPacket2(char* recvStream);
 
-	void SpawnNewPlayerCharacter(std::stringstream& recvStream);
+	void SpawnNewPlayerCharacter(char* recvStream);
 
-	void SynchronizePlayers(std::stringstream& recvStream);
+	void SynchronizePlayers(char * recvStream);
 
 	void SynchronizeItems(std::stringstream& recvStream);
 
@@ -124,6 +153,7 @@ private:
 	UActorPooler* itemPooler;
 	
 	ClientSocket* clientSocket;
+	//TWeakPtr<ClientSocket> clientSocket;
 
 	TQueue<int> playerToDelete;
 
@@ -165,6 +195,13 @@ private:
 
 	std::queue<std::stringstream> messageQ;
 
-	std::vector<void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
+	//std::vector<void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
+	
+	std::vector<void (AGameModeMainMap::*)(char *)> packetCallbacks;
 
+	char data[PACKET_SIZE] = { 0 };
+	int remainData = 0;
+	int size = 0;
+	int dataHead = 0;
+	std::vector<char> mVec;
 };
