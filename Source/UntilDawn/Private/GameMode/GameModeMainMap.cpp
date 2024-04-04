@@ -35,16 +35,6 @@ void AGameModeMainMap::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//packetCallbacks = std::vector<void (AGameModeMainMap::*)(std::stringstream&)>(PACKETTYPE_MAX);
-	//packetCallbacks[static_cast<int>(EPacketType::SPAWNPLAYER)] = &AGameModeMainMap::SpawnNewPlayerCharacter;
-	//packetCallbacks[static_cast<int>(EPacketType::SYNCHPLAYER)] = &AGameModeMainMap::SynchronizePlayers;
-	//packetCallbacks[static_cast<int>(EPacketType::SYNCHITEM)]	= &AGameModeMainMap::SynchronizeItems;
-	//packetCallbacks[static_cast<int>(EPacketType::INITIALINFO)]	= &AGameModeMainMap::InitializeWorld;
-
-	packetCallbacks = std::vector<void (AGameModeMainMap::*)(char*)>(PACKETTYPE_MAX);
-	packetCallbacks[static_cast<int>(EPacketType::SPAWNPLAYER)] = &AGameModeMainMap::SpawnNewPlayerCharacter;
-	packetCallbacks[static_cast<int>(EPacketType::SYNCHPLAYER)] = &AGameModeMainMap::SynchronizePlayers;
-
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->SetGameMode(this);
 
@@ -61,320 +51,6 @@ void AGameModeMainMap::BeginPlay()
 	actorSpawner->SpawnActor(itemPooler->GetPoolSize(), EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
 }
 
-void AGameModeMainMap::ReceivePacket(std::stringstream& recvStream)
-{
-	//FScopeLock Lock(&criticalSection);
-	messageQ.push(std::move(recvStream));
-}
-
-void AGameModeMainMap::ProcessPacket()
-{
-	/*if (clientSocket->IsMessageQueueEmpty())
-		return;
-	//FScopeLock Lock(&criticalSection);
-	std::stringstream recvStream;
-	clientSocket->GetDataInMessageQueue(recvStream);
-	//WLOG(TEXT("en"));
-	//PLOG(TEXT("%s"), UTF8_TO_TCHAR(recvStream.str().c_str()));
-	//Lock.Unlock();
-
-	int packetType = -1;
-	recvStream >> packetType;
-	if (packetType >= 0 && packetType < PACKETTYPE_MAX)
-	{
-		if (packetCallbacks[packetType] == nullptr)
-		{
-			ELOG(TEXT("Callback is nullptr!"));
-			PLOG(TEXT("cb %d"), packetType);
-			PLOG(TEXT("%s"), UTF8_TO_TCHAR(recvStream.str().c_str()));
-		}
-		else
-		{
-			(this->*packetCallbacks[packetType])(recvStream);
-		}
-	}
-	else
-	{
-		ELOG(TEXT("Invalid packet number!"));
-	}*/
-
-	/*int bufferSize = clientSocket->messageQ.unsafe_size();
-
-	while (remainData < bufferSize)
-	{
-		while (remainData < PACKET_SIZE && remainData < bufferSize)
-		{
-			clientSocket->messageQ.try_pop(data[remainData++]);
-		}
-
-		while (remainData > 0 && data[0] <= remainData)
-		{
-			if (ProcessPacket2(data) == false)
-				return;
-			remainData -= data[0];
-			bufferSize -= data[0];
-			memcpy(data, data + data[0], PACKET_SIZE - data[0]);
-		}
-	}*/
-
-	int bufferSize = clientSocket->messageQ.unsafe_size();
-	if (bufferSize)
-	{
-		mVec.clear();
-		clientSocket->messageQ.try_pop(mVec);
-
-		int head = 0;
-		size = 0;
-		memcpy((void*)&size, &mVec[0], sizeof(size));
-		//PLOG(TEXT("size %d"), size);
-		head += sizeof(size);
-
-		ProcessPacket2(mVec.data()+ head);
-
-		//int type = 0;
-		//memcpy((void*)&type, &mVec[0]+head, sizeof(type));
-		//head += sizeof(type);
-		//PLOG(TEXT("type is %d"), type);
-
-		//if (type == 2)
-		//	GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Blue, FString::Printf(TEXT("%d"), type));
-
-		//while (remainData < PACKET_SIZE && remainData < bufferSize)
-		//{
-		//	clientSocket->messageQ.try_pop(data[remainData++]);
-		//}
-		//
-		//if (remainData >= INT_SIZE)
-		//{
-		//	size = 0;
-		//	memcpy((void*)&size, data, sizeof(size));
-		//	dataHead += INT_SIZE;
-		//	remainData -= size;
-		//}
-		//
-		//if (remainData >= size)
-		//{
-		//	PLOG(TEXT("size %d"), size);
-		//	//ProcessPacket2(data + dataHead);
-		//	ZeroMemory(&data, remainData + size);
-		//	remainData = 0;
-		//}
-	}
-
-	//if (bufferSize)
-	//{
-	//	int size = 0, head = 0, type = 0, idx = 0;
-	//	while (idx < sizeof(size))
-	//	{
-	//		clientSocket->messageQ.try_pop(data[idx++]);
-	//	}
-	//	memcpy((void*)&size, data, sizeof(size));
-	//	head += sizeof(size);
-	//
-	//	idx = 0;
-	//	while (idx < sizeof(size))
-	//	{
-	//		clientSocket->messageQ.try_pop(data[head + idx++]);
-	//	}
-	//	
-	//	if (ProcessPacket2(data + head))
-	//	{
-	//		ZeroMemory(&data, PACKET_SIZE);
-	//	}
-	//}
-}
-
-bool AGameModeMainMap::ProcessPacket2(char* p)
-{
-	int type = 0, head = 0;
-	memcpy((void*)&type, p, sizeof(type));
-	head += sizeof(type);
-	PLOG(TEXT("type is %d"), type);
-	if (type >= 0 && type < PACKETTYPE_MAX)
-	{
-		if (packetCallbacks[type] == nullptr)
-		{
-			ELOG(TEXT("Callback is nullptr!"));
-			PLOG(TEXT("cb %d"), type);
-			//PLOG(TEXT("%s"), UTF8_TO_TCHAR(recvStream.str().c_str()));
-		}
-		else
-		{
-			(this->*packetCallbacks[type])(p + head);
-			PLOG(TEXT("true type %d"), type);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-void AGameModeMainMap::SpawnNewPlayerCharacter(char * p)
-{
-	//PlayerInfoSetEx playerInfoSetEx2;
-	//playerInfoSetEx2.InputStreamWithID(recvStream);
-	//
-	//for (auto& kv : playerInfoSetEx2.characterInfoMap)
-	//{
-	//	int number = kv.first;
-	//	if (number == myNumber) continue;
-	//	CharacterInfo& info = kv.second.characterInfo;
-	//	APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
-	//		(
-	//			APlayerCharacter::StaticClass(),
-	//			FVector(info.vectorX, info.vectorY, info.vectorZ),
-	//			FRotator(info.pitch, info.yaw, info.roll)
-	//		);
-	//	newPlayerCharacter->SetPlayerNumber(number);
-	//	newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx2.playerIDMap[number].c_str())));
-	//	playerCharacterMap.Add(number, newPlayerCharacter);
-	//}
-
-	/*
-	Infos 사이즈 타입 카운트
-	for 카운트
-		CInfo
-	*/
-	//std::memcpy( outData, mBuffer + mHead, inByteCount );
-
-	int head = 0;
-	Infos infos;
-	std::memcpy((void*)&infos.count, p + head, sizeof(infos.count));
-	head += sizeof(infos.count);
-	infos.vec = std::vector<CInfo>(infos.count);
-	for (int i = 0; i < infos.count; i++)
-	{
-		std::memcpy((void*)&infos.vec[i], p + head, sizeof(infos.vec[i]));
-		head += sizeof(infos.vec[i]);
-	}
-	
-	for (auto& info : infos.vec)
-	{
-		int number = info.number;
-		if (number == myNumber) continue;
-		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
-			(
-				APlayerCharacter::StaticClass(),
-				FVector(info.loc.X, info.loc.Y, info.loc.Z),
-				FRotator(info.rot.p, info.rot.y, info.rot.r)
-			);
-		newPlayerCharacter->SetPlayerNumber(number);
-		playerCharacterMap.Add(number, newPlayerCharacter);
-	}
-}
-
-void AGameModeMainMap::SynchronizePlayers(char* p)
-{
-	//PlayerInfoSet playerInfoSet2;
-	//recvStream >> playerInfoSet2;
-	//
-	//for (auto& playerInfo : playerInfoSet2.characterInfoMap)
-	//{
-	//	if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
-	//	{
-	//		APlayerCharacter* character = playerCharacterMap[playerInfo.first];
-	//		CharacterInfo& info = playerInfo.second.characterInfo;
-	//		if (IsValid(character))
-	//		{
-	//			character->AddMovementInput(FVector(info.velocityX, info.velocityY, info.velocityZ));
-	//			character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
-	//			character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
-	//		}
-	//	}
-	//	if (playerInfo.second.flag)
-	//	{
-	//		const int bitMax = static_cast<int>(PIBTS::MAX);
-	//		for (int bit = 0; bit < bitMax; bit++)
-	//		{
-	//			if (playerInfo.second.recvInfoBitMask & (1 << bit))
-	//			{
-	//				ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
-	//			}
-	//		}
-	//	}
-	//}
-
-	int head = 0;
-	Infos infos;
-	std::memcpy((void*)&infos.count, p + head, sizeof(infos.count));
-	head += sizeof(infos.count);
-	infos.vec = std::vector<CInfo>(infos.count);
-	for (int i = 0; i < infos.count; i++)
-	{
-		std::memcpy((void*)&infos.vec[i], p + head, sizeof(infos.vec[i]));
-		head += sizeof(infos.vec[i]);
-	}
-	
-	for (auto& info : infos.vec)
-	{
-		if (info.number != myNumber && playerCharacterMap.Find(info.number))
-		{
-			APlayerCharacter* character = playerCharacterMap[info.number];
-			if (IsValid(character))
-			{
-				character->AddMovementInput(FVector(info.vel.X, info.vel.Y, info.vel.Z));
-				character->SetActorRotation(FRotator(info.rot.p, info.rot.y, info.rot.r));
-				character->SetActorLocation(FVector(info.loc.X, info.loc.Y, info.loc.Z));
-			}
-		}
-	}
-}
-
-void AGameModeMainMap::SynchronizeItems(std::stringstream& recvStream)
-{
-	ItemInfoSet itemInfoSet2;
-	recvStream >> itemInfoSet2;
-
-	for (auto& info : itemInfoSet2.itemInfoMap)
-	{
-		const FItemInfo& itemInfo = info.second;
-		AItemBase* item = nullptr;
-		if (itemMap.Find(info.first) == nullptr)
-		{
-			item = Cast<AItemBase>(itemPooler->GetPooledActor());
-			if (item == nullptr)
-			{
-				actorSpawner->SpawnActor(1, EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
-				item = Cast<AItemBase>(itemPooler->GetPooledActor());
-			}
-			item->SetNumber(info.first);
-			itemMap.Add(info.first, item);
-		}
-		else
-		{
-			item = itemMap[info.first];
-		}
-
-		item->SetItemInfo(itemInfo);
-		if (itemInfo.state != EItemState::Activated)
-		{
-			itemMap.Remove(item->GetNumber());
-		}
-	}
-}
-
-void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
-{
-	//while (1)
-	//{
-	//	int packetType = -1;
-	//	recvStream >> packetType;
-	//	if (packetType >= 0 && packetType < PACKETTYPE_MAX)
-	//	{
-	//		if (packetCallbacks[packetType] == nullptr)
-	//		{
-	//			ELOG(TEXT("Callback is nullptr!"));
-	//			PLOG(TEXT("cb %d"), packetType);
-	//		}
-	//		else
-	//		{
-	//			(this->*packetCallbacks[packetType])(recvStream);
-	//		}
-	//	}
-	//	else break;
-	//}
-}
-
 void AGameModeMainMap::PlayerSpawnAfterDelay()
 {
 	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
@@ -388,64 +64,54 @@ void AGameModeMainMap::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
-	//if (!messageQ.empty())
-	//{
-	//	ProcessPacket();
-	//}
-
-	if (clientSocket)
+	if (!playerToDelete.IsEmpty())
 	{
-		ProcessPacket();
+		DestroyPlayer();
 	}
-
-	//if (!playerToDelete.IsEmpty())
-	//{
-	//	DestroyPlayer();
-	//}
-	//if (playerInfoSetEx)
-	//{
-	//	SpawnNewPlayerCharacter();
-	//}
-	//if (playerInfoSet)
-	//{
-	//	SynchronizePlayersInfo();
-	//}
-	//if (zombieInfoSet)
-	//{
-	//	SynchronizeZombieInfo();
-	//}
-	//if (itemInfoSet)
-	//{
-	//	SynchronizeItemInfo();
-	//}
-	//if (!wrestlingResultQ.IsEmpty())
-	//{
-	//	ProcessWrestlingResult();
-	//}
-	//if (!wrestlingStartQ.IsEmpty())
-	//{
-	//	StartPlayerWrestlingAction();
-	//}
-	//if (!destroyItemQ.IsEmpty())
-	//{
-	//	DestroyItem();
-	//}
-	//if (!pickUpItemQ.IsEmpty())
-	//{
-	//	PickUpItem();
-	//}
-	//if (!deadZombieQ.IsEmpty())
-	//{
-	//	ProcessZombieDead();
-	//}
-	//if (!deadPlayerQ.IsEmpty())
-	//{
-	//	ProcessPlayerDead();
-	//}
-	//if (respawnNumber != -1)
-	//{
-	//	RespawnPlayer();
-	//}
+	if (playerInfoSetEx)
+	{
+		SpawnNewPlayerCharacter();
+	}
+	if (playerInfoSet)
+	{
+		SynchronizePlayersInfo();
+	}
+	if (zombieInfoSet)
+	{
+		SynchronizeZombieInfo();
+	}
+	if (itemInfoSet)
+	{
+		SynchronizeItemInfo();
+	}
+	if (!wrestlingResultQ.IsEmpty())
+	{
+		ProcessWrestlingResult();
+	}
+	if (!wrestlingStartQ.IsEmpty())
+	{
+		StartPlayerWrestlingAction();
+	}
+	if (!destroyItemQ.IsEmpty())
+	{
+		DestroyItem();
+	}
+	if (!pickUpItemQ.IsEmpty())
+	{
+		PickUpItem();
+	}
+	if (!deadZombieQ.IsEmpty())
+	{
+		ProcessZombieDead();
+	}
+	if (!deadPlayerQ.IsEmpty())
+	{
+		ProcessPlayerDead();
+	}
+	if (respawnNumber != -1)
+	{
+		RespawnPlayer();
+	}
 }
 
 void AGameModeMainMap::DestroyPlayer()
