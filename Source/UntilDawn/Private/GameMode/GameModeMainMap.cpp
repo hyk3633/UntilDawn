@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "GameMode/GameModeMainMap.h"
@@ -35,6 +35,12 @@ void AGameModeMainMap::BeginPlay()
 {
 	Super::BeginPlay();
 
+	packetCallbacks = std::vector<void (AGameModeMainMap::*)(std::stringstream&)>(PACKETTYPE_MAX);
+	packetCallbacks[static_cast<int>(EPacketType::SPAWNPLAYER)] = &AGameModeMainMap::SpawnNewPlayerCharacter;
+	packetCallbacks[static_cast<int>(EPacketType::SYNCHPLAYER)] = &AGameModeMainMap::SynchronizePlayers;
+	packetCallbacks[static_cast<int>(EPacketType::SYNCHITEM)] = &AGameModeMainMap::SynchronizeItems;
+	packetCallbacks[static_cast<int>(EPacketType::INITIALINFO)] = &AGameModeMainMap::InitializeWorld;
+
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->SetGameMode(this);
 
@@ -42,18 +48,163 @@ void AGameModeMainMap::BeginPlay()
 
 	GetWorldTimerManager().SetTimer(playerSpawnDelayTimer, this, &AGameModeMainMap::PlayerSpawnAfterDelay, 0.5f);
 
-	// Á»ºñ Ä³¸¯ÅÍ ½ºÆù ¹× Ç®¸µ
+	// ï¿½ï¿½ï¿½ï¿½ Ä³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ç®ï¿½ï¿½
 	zombiePooler->SetPoolSize(2);
 	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), EPoolableActorType::Zombie, zombiePooler->GetActorPool());
 
-	// ¾ÆÀÌÅÛ ½ºÆù ¹× Ç®¸µ
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ç®ï¿½ï¿½
 	itemPooler->SetPoolSize(5);
 	actorSpawner->SpawnActor(itemPooler->GetPoolSize(), EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
 }
 
+void AGameModeMainMap::ReceivePacket(std::stringstream& recvStream)
+{
+	//FScopeLock Lock(&criticalSection);
+	messageQ.push(std::move(recvStream));
+}
+
+void AGameModeMainMap::ProcessPacket()
+{
+	//FScopeLock Lock(&criticalSection);
+	std::stringstream recvStream = std::move(messageQ.front());
+	messageQ.pop();
+	//Lock.Unlock();
+
+	int packetType = -1;
+	recvStream >> packetType;
+	if (packetType >= 0 && packetType < PACKETTYPE_MAX)
+	{
+		if (packetCallbacks[packetType] == nullptr)
+		{
+			ELOG(TEXT("Callback is nullptr!"));
+			PLOG(TEXT("cb %d"), packetType);
+		}
+		else
+		{
+			(this->*packetCallbacks[packetType])(recvStream);
+		}
+	}
+	else
+	{
+		ELOG(TEXT("Invalid packet number!"));
+	}
+}
+
+void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
+{
+	PlayerInfoSetEx playerInfoSetEx2;
+	playerInfoSetEx2.InputStreamWithID(recvStream);
+
+	for (auto& kv : playerInfoSetEx2.characterInfoMap)
+	{
+		int number = kv.first;
+		if (number == myNumber) continue;
+		CharacterInfo& info = kv.second.characterInfo;
+		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
+			(
+				APlayerCharacter::StaticClass(),
+				FVector(info.vectorX, info.vectorY, info.vectorZ),
+				FRotator(info.pitch, info.yaw, info.roll)
+			);
+		newPlayerCharacter->SetPlayerNumber(number);
+		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx2.playerIDMap[number].c_str())));
+		playerCharacterMap.Add(number, newPlayerCharacter);
+	}
+}
+
+void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
+{
+	PlayerInfoSet playerInfoSet2;
+	recvStream >> playerInfoSet2;
+
+	double end = GetWorld()->GetTimeSeconds();
+	//PLOG(TEXT("elapsed %f"), end - start); // ì—¬ê¸°ë¡œ 2ë¡œ ë‚˜ëˆˆê²Œ ë ˆì´í„´ì‹œ
+
+	for (auto& playerInfo : playerInfoSet2.characterInfoMap)
+	{
+		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
+		{
+			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
+			CharacterInfo& info = playerInfo.second.characterInfo;
+			if (IsValid(character))
+			{
+				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
+				const FVector lastLocation = FVector(info.vectorX, info.vectorY, info.vectorZ);
+				const FVector lastVelocity = FVector(info.velocityX, info.velocityY, info.velocityZ);
+				character->DeadReckoningMovement(lastLocation, lastVelocity, (end - info.ratencyStart) / 2.f);
+				//character->AddMovementInput(FVector(info.velocityX, info.velocityY, info.velocityZ));
+				//character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
+			}
+		}
+		const int bitMax = static_cast<int>(PIBTS::MAX);
+		for (int bit = 0; bit < bitMax; bit++)
+		{
+			if (playerInfo.second.recvInfoBitMask & (1 << bit))
+			{
+				ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
+			}
+		}
+	}
+}
+
+void AGameModeMainMap::SynchronizeItems(std::stringstream& recvStream)
+{
+	ItemInfoSet itemInfoSet2;
+	recvStream >> itemInfoSet2;
+
+	for (auto& info : itemInfoSet2.itemInfoMap)
+	{
+		const FItemInfo& itemInfo = info.second;
+		AItemBase* item = nullptr;
+		if (itemMap.Find(info.first) == nullptr)
+		{
+			item = Cast<AItemBase>(itemPooler->GetPooledActor());
+			if (item == nullptr)
+			{
+				actorSpawner->SpawnActor(1, EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
+				item = Cast<AItemBase>(itemPooler->GetPooledActor());
+			}
+			item->SetNumber(info.first);
+			itemMap.Add(info.first, item);
+		}
+		else
+		{
+			item = itemMap[info.first];
+		}
+
+		item->SetItemInfo(itemInfo);
+		if (itemInfo.state != EItemState::Activated)
+		{
+			itemMap.Remove(item->GetNumber());
+		}
+	}
+}
+
+void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
+{
+	while (1)
+	{
+		int packetType = -1;
+		recvStream >> packetType;
+		if (packetType >= 0 && packetType < PACKETTYPE_MAX)
+		{
+			if (packetCallbacks[packetType] == nullptr)
+			{
+				ELOG(TEXT("Callback is nullptr!"));
+				PLOG(TEXT("cb %d"), packetType);
+			}
+			else
+			{
+				(this->*packetCallbacks[packetType])(recvStream);
+			}
+		}
+		else break;
+	}
+}
+
 void AGameModeMainMap::PlayerSpawnAfterDelay()
 {
-	// ³» Å¬¶óÀÌ¾ðÆ® Ä³¸¯ÅÍ ½ºÆù ¹× ÄÁÆ®·Ñ·¯ ÇÒ´ç
+	// ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½Ì¾ï¿½Æ® Ä³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Æ®ï¿½Ñ·ï¿½ ï¿½Ò´ï¿½
 	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
 	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	myPlayerController->Possess(myPlayerCharacter);
@@ -63,6 +214,11 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 void AGameModeMainMap::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
+
+	if (!messageQ.empty())
+	{
+		ProcessPacket();
+	}
 
 	if (!playerToDelete.IsEmpty())
 	{
@@ -270,10 +426,10 @@ void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInf
 	PIBTS type = static_cast<PIBTS>(bitType);
 	switch (type)
 	{
-		case PIBTS::WrestlingState:
-		{
-			break;
-		}
+	case PIBTS::WrestlingState:
+	{
+		break;
+	}
 	}
 }
 
@@ -301,7 +457,7 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 			zombie = zombieCharacterMap[info.first];
 		}
 
-		// ÄÝ¹é ÇÔ¼ö·Î 
+		// ï¿½Ý¹ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ 
 		if (info.second.recvInfoBitMask & (1 << static_cast<int>(ZIBT::TargetNumber)))
 		{
 			if (info.second.targetNumber >= 0 && playerCharacterMap.Find(info.second.targetNumber))

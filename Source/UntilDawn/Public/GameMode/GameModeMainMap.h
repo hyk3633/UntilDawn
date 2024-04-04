@@ -5,13 +5,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
+#include <vector>
+#include <sstream>
+#include <queue>
 #include "GameModeMainMap.generated.h"
 
 /**
- * 
+ *
  */
-
-#define INT_SIZE 4
 
 class UActorSpawner;
 class UActorPooler;
@@ -21,31 +22,6 @@ class AZombieCharacter;
 class PlayerInfoSetEx;
 class ItemInfoSet;
 class AItemBase;
-
-struct Vector3D
-{
-	float X, Y, Z;
-};
-
-struct Rotator
-{
-	float p, y, r;
-};
-
-struct CInfo
-{
-	int number = 0;
-	Vector3D loc;
-	Rotator rot;
-	Vector3D vel;
-};
-
-struct Infos
-{
-	int count = 0;
-	int type = 0;
-	std::vector<CInfo> vec;
-};
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -59,6 +35,24 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+
+public:
+
+	void ReceivePacket(std::stringstream& recvStream);
+
+protected:
+
+	void ProcessPacket();
+
+	void SpawnNewPlayerCharacter(std::stringstream& recvStream);
+
+	void SynchronizePlayers(std::stringstream& recvStream);
+
+	void SynchronizeItems(std::stringstream& recvStream);
+
+	void InitializeWorld(std::stringstream& recvStream);
+
+	// ---------------------
 
 	void PlayerSpawnAfterDelay();
 
@@ -128,9 +122,8 @@ private:
 
 	UPROPERTY()
 	UActorPooler* itemPooler;
-	
+
 	ClientSocket* clientSocket;
-	//TWeakPtr<ClientSocket> clientSocket;
 
 	TQueue<int> playerToDelete;
 
@@ -167,5 +160,11 @@ private:
 	int respawnNumber;
 
 	CharacterInfo respawnInfo;
+
+	FCriticalSection criticalSection;
+
+	std::queue<std::stringstream> messageQ;
+
+	std::vector<void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
 
 };

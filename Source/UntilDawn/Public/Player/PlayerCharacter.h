@@ -143,6 +143,8 @@ public:
 
 	void PlayerRespawn(const bool isLocalPlayer);
 
+	void DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency);
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -238,4 +240,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	TArray<AItemBase*> items;
+
+	FVector nextLocation;
+
+	bool bset;
 };

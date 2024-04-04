@@ -104,6 +104,10 @@ void APlayerControllerLoginMap::SetLoginMessageTextAndLoginToMap(std::stringstre
 	{
 		int playerNumber = -1;
 		recvStream >> playerNumber;
+		double start = 0;
+		recvStream >> start;
+		double end = FPlatformTime::Seconds();
+		PLOG(TEXT("elapsed login %f"), end - start);
 		check(playerNumber >= 0);
 		GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerNumber(playerNumber);
 		GetWorldTimerManager().SetTimer(levelTransitionTimer, this, &APlayerControllerLoginMap::StartLevelTransition, 2.f, false);

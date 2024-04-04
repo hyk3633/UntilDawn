@@ -9,7 +9,6 @@
 ClientSocket::ClientSocket()
 {
 	thread = FRunnableThread::Create(this, TEXT("Network Thread"));
-	thread2 = FRunnableThread::Create(this, TEXT("Network Thread"));
 }
 
 ClientSocket::~ClientSocket()
@@ -46,7 +45,7 @@ bool ClientSocket::InitSocket()
 		WSACleanup();
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -76,7 +75,7 @@ void ClientSocket::StartSocket()
 
 void ClientSocket::Recv(std::stringstream& recvStream)
 {
-	
+
 }
 
 void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool isLogin)
@@ -88,7 +87,6 @@ void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool 
 	std::string tempPw(TCHAR_TO_UTF8(*pw.ToString()));
 	sendStream << tempId << "\n";
 	sendStream << tempPw << "\n";
-
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -100,11 +98,14 @@ void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
+void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info, double start)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";
 	sendStream << info << "\n";
+	
+	sendStream << start << "\n";
+
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -164,24 +165,14 @@ bool ClientSocket::Init()
 uint32 ClientSocket::Run()
 {
 	FPlatformProcess::Sleep(0.05);
-
 	while (bRun)
 	{
 		std::stringstream recvStream;
-
-		FScopeLock Lock(&criticalSection);
 		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
-		Lock.Unlock();
-		if (ownerGameMode.Get())
-		{
-			//int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
-			//PLOG(TEXT("revc %d"), recvBytes);
-			if (recvBytes != SOCKET_ERROR)
-			{
-				//ownerGameMode->ReceivePacket(recvStream);
+		recvStream << recvBuf;
+		messageQ.Enqueue(std::move(recvStream));
 
-		int packetType;
-		if (recvBytes > 0)
+		if (recvBytes <= 0) break;
 		{
 			recvStream << recvBuf;
 			if (ownerController.Get())
@@ -190,8 +181,7 @@ uint32 ClientSocket::Run()
 			}
 			else if (ownerGameMode.Get())
 			{
-				recvStream >> packetType;
-				ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
+				ownerGameMode->ReceivePacket(recvStream);
 			}
 		}
 		else
@@ -206,119 +196,119 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 {
 	switch (type)
 	{
-		case EPacketType::SPAWNPLAYER:
-		{
-			newPlayerInfoSetEx.InputStreamWithID(recvStream);
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
-			break;
-		}
-		case EPacketType::SYNCHPLAYER:
-		{
-			recvStream >> synchPlayerInfoSet;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
-			break;
-		}
-		case EPacketType::PLAYERINPUTACTION:
-		{
-			int number = 0, inputType = 0;
-			recvStream >> number >> inputType;
-			if (ownerGameMode.Get())
-				ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
-			break;
-		}
-		case EPacketType::WRESTLINGRESULT:
-		{
-			bool wrestlingResult = false;
-			int number = 0;
-			recvStream >> number >> wrestlingResult;
-			if (ownerGameMode.Get())
-				ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
-			break;
-		}
-		case EPacketType::WRESTLINGSTART:
-		{
-			int number = 0;
-			recvStream >> number;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveWrestlingPlayer(number);
-			break;
-		}
-		case EPacketType::SYNCHITEM:
-		{
-			recvStream >> synchItemInfoSet;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
-			break;
-		}
-		case EPacketType::PLAYERRESPAWN:
-		{
-			int number = 0;
-			CharacterInfo respawnInfo;
-			recvStream >> number >> respawnInfo;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveRespawnPlayerNumber(number, respawnInfo);
-			break;
-		}
-		case EPacketType::INITIALINFO:
-		{
-			while (1)
-			{
-				int type2 = -1;
-				recvStream >> type2;
-				if (type2 == -1) break;
-				ProcessPacket(static_cast<EPacketType>(type2), recvStream);
-			}
-			break;
-		}
-		case EPacketType::SYNCHZOMBIE:
-		{
-			recvStream >> synchZombieInfoSet;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveZombieInfo(&synchZombieInfoSet);
-			break;
-		}
-		case EPacketType::PLAYERDISCONNECTED:
-		{
-			int number = 0;
-			recvStream >> number;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveDisconnectedPlayerInfo(number);
-			break;
-		}
-		case EPacketType::DESTROYITEM:
-		{
-			int itemNumber = 0;
-			recvStream >> itemNumber;
-			if (ownerGameMode.Get())
-				ownerGameMode->DestroyItem(itemNumber);
-			break;
-		}
-		case EPacketType::PICKUPITEM:
-		{
-			int itemNumber = 0;
-			recvStream >> itemNumber;
-			if (ownerGameMode.Get())
-				ownerGameMode->PickUpItem(itemNumber);
-			break;
-		}
-		case EPacketType::ZOMBIEDEAD:
-		{
-			int zombieNumber = 0;
-			recvStream >> zombieNumber;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveDeadZombieNumber(zombieNumber);
-			break;
-		}
-		case EPacketType::PLAYERDEAD:
-		{
-			int playerNumber = 0;
-			recvStream >> playerNumber;
-			if (ownerGameMode.Get())
-				ownerGameMode->ReceiveDeadPlayerNumber(playerNumber);
-			break;
-		}
+		//case EPacketType::SPAWNPLAYER:
+		//{
+		//	newPlayerInfoSetEx.InputStreamWithID(recvStream);
+		//	if (ownerGameMode.Get())
+		//		ownerGameMode->ReceiveNewPlayerInfo(&newPlayerInfoSetEx);
+		//	break; 
+		//}
+		//case EPacketType::SYNCHPLAYER:
+		//{
+		//	recvStream >> synchPlayerInfoSet;
+		//	if (ownerGameMode.Get())
+		//		ownerGameMode->ReceiveOtherPlayersInfo(&synchPlayerInfoSet);
+		//	break;
+		//}
+	case EPacketType::PLAYERINPUTACTION:
+	{
+		int number = 0, inputType = 0;
+		recvStream >> number >> inputType;
+		if (ownerGameMode.Get())
+			ownerGameMode->SynchronizeOtherPlayerInputAction(number, inputType);
+		break;
+	}
+	case EPacketType::WRESTLINGRESULT:
+	{
+		bool wrestlingResult = false;
+		int number = 0;
+		recvStream >> number >> wrestlingResult;
+		if (ownerGameMode.Get())
+			ownerGameMode->PlayWrestlingResultAction(number, wrestlingResult);
+		break;
+	}
+	case EPacketType::WRESTLINGSTART:
+	{
+		int number = 0;
+		recvStream >> number;
+		if (ownerGameMode.Get())
+			ownerGameMode->ReceiveWrestlingPlayer(number);
+		break;
+	}
+	//case EPacketType::SYNCHITEM:
+	//{
+	//	recvStream >> synchItemInfoSet;
+	//	if (ownerGameMode.Get())
+	//		ownerGameMode->ReceiveItemInfo(&synchItemInfoSet);
+	//	break;
+	//}
+	case EPacketType::PLAYERRESPAWN:
+	{
+		int number = 0;
+		CharacterInfo respawnInfo;
+		recvStream >> number >> respawnInfo;
+		if (ownerGameMode.Get())
+			ownerGameMode->ReceiveRespawnPlayerNumber(number, respawnInfo);
+		break;
+	}
+	//case EPacketType::INITIALINFO:
+	//{
+	//	while (1)
+	//	{
+	//		int type2 = -1;
+	//		recvStream >> type2;
+	//		if (type2 == -1) break;
+	//		ProcessPacket(static_cast<EPacketType>(type2), recvStream);
+	//	}
+	//	break;
+	//}
+	case EPacketType::SYNCHZOMBIE:
+	{
+		recvStream >> synchZombieInfoSet;
+		if (ownerGameMode.Get())
+			ownerGameMode->ReceiveZombieInfo(&synchZombieInfoSet);
+		break;
+	}
+	case EPacketType::PLAYERDISCONNECTED:
+	{
+		int number = 0;
+		recvStream >> number;
+		if (ownerGameMode.Get())
+			ownerGameMode->ReceiveDisconnectedPlayerInfo(number);
+		break;
+	}
+	case EPacketType::DESTROYITEM:
+	{
+		int itemNumber = 0;
+		recvStream >> itemNumber;
+		if (ownerGameMode.Get())
+			ownerGameMode->DestroyItem(itemNumber);
+		break;
+	}
+	case EPacketType::PICKUPITEM:
+	{
+		int itemNumber = 0;
+		recvStream >> itemNumber;
+		if (ownerGameMode.Get())
+			ownerGameMode->PickUpItem(itemNumber);
+		break;
+	}
+	case EPacketType::ZOMBIEDEAD:
+	{
+		int zombieNumber = 0;
+		recvStream >> zombieNumber;
+		if (ownerGameMode.Get())
+			ownerGameMode->ReceiveDeadZombieNumber(zombieNumber);
+		break;
+	}
+	case EPacketType::PLAYERDEAD:
+	{
+		int playerNumber = 0;
+		recvStream >> playerNumber;
+		if (ownerGameMode.Get())
+			ownerGameMode->ReceiveDeadPlayerNumber(playerNumber);
+		break;
+	}
 	}
 }
 
@@ -347,17 +337,5 @@ void ClientSocket::SetPlayerController(APlayerControllerLoginMap* controller)
 
 void ClientSocket::SetGameMode(AGameModeMainMap* gameMode)
 {
-	ownerGameMode = gameMode; 
-}
-
-bool ClientSocket::IsMessageQueueEmpty()
-{
-	return messageQ.empty();
-}
-
-void ClientSocket::GetDataInMessageQueue(std::stringstream& recvStream)
-{
-	//std::string temp;
-	//messageQ.try_pop(temp);
-	//recvStream << std::move(temp);
+	ownerGameMode = gameMode;
 }

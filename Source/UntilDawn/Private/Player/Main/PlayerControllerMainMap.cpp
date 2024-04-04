@@ -29,7 +29,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	myCharacter->UpdatePlayerInfo();
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo().characterInfo);
-	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.016f, true);
+	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
 }
 
 void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType)
@@ -66,7 +66,8 @@ void APlayerControllerMainMap::PlayerDead()
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();
-	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
+	double start = GetWorld()->GetTimeSeconds();
+	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo(), start);
 	myCharacter->ResetPlayerInfoBitMask();
 }
 

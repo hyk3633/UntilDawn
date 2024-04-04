@@ -1,11 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <sstream>
-#include <concurrent_queue.h>
 #include "Enums/PacketType.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "UntilDawn/UntilDawn.h"
@@ -13,7 +12,7 @@
 #include "CoreMinimal.h"
 
 /**
- * 
+ *
  */
 
 class APlayerControllerLoginMap;
@@ -24,7 +23,7 @@ class UNTILDAWN_API ClientSocket : public FRunnable
 public:
 
 	ClientSocket();
-	
+
 	~ClientSocket();
 
 	bool InitSocket();
@@ -37,7 +36,7 @@ public:
 
 	void NotifyAccessingGame(const CharacterInfo& info);
 
-	void SynchronizeMyCharacterInfo(const PlayerInfo& info);
+	void SynchronizeMyCharacterInfo(const PlayerInfo& info, double start);
 
 	void SendPlayerInputAction(const int inputType);
 
@@ -51,7 +50,7 @@ public:
 
 	void SendRespawnRequest();
 
-	// FRunnable °¡»ó ÇÔ¼ö
+	// FRunnable 
 
 	virtual bool Init() override;
 
@@ -71,10 +70,6 @@ public:
 
 	void SetGameMode(AGameModeMainMap* gameMode);
 
-	bool IsMessageQueueEmpty();
-
-	void GetDataInMessageQueue(std::stringstream& recvStream);
-
 private:
 
 	bool isInitialized;
@@ -86,7 +81,6 @@ private:
 	HANDLE sendThread, recvThread;
 
 	FRunnableThread* thread;
-	FRunnableThread* thread2;
 
 	char recvBuf[PACKET_SIZE];
 
@@ -102,8 +96,8 @@ private:
 
 	TWeakObjectPtr<AGameModeMainMap> ownerGameMode;
 
-	FCriticalSection criticalSection;
 public:
-	Concurrency::concurrent_queue<std::vector<char>> messageQ;
-	std::vector<char> mVec;
+
+	TQueue<std::stringstream> messageQ;
+
 };

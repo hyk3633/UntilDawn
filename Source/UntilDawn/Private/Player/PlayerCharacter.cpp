@@ -417,6 +417,13 @@ void APlayerCharacter::Tick(float deltaTime)
 		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
 	}
 
+	if (bset)
+	{
+		FVector de = FMath::VInterpConstantTo(GetActorLocation(), nextLocation, deltaTime, 150);
+		VectorTruncate(de);
+		SetActorLocation(de);
+	}
+
 	ItemTrace();
 }
 
@@ -683,5 +690,11 @@ void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
 	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
+}
+
+void APlayerCharacter::DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency)
+{
+	nextLocation = lastLocation + ratency * lastVelocity;
+	bset = true;
 }
 

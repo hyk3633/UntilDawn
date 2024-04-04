@@ -108,12 +108,14 @@ struct CharacterInfo
 	float vectorX, vectorY, vectorZ;
 	float velocityX, velocityY, velocityZ;
 	float pitch, yaw, roll;
+	double ratencyStart;
 
 	friend std::istream& operator>>(std::istream& stream, CharacterInfo& info)
 	{
 		stream >> info.vectorX >> info.vectorY >> info.vectorZ;
 		stream >> info.pitch >> info.yaw >> info.roll;
 		stream >> info.velocityX >> info.velocityY >> info.velocityZ;
+		stream >> info.ratencyStart;
 		return stream;
 	}
 
