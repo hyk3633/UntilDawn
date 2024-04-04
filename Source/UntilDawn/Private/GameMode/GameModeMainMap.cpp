@@ -35,8 +35,23 @@ void AGameModeMainMap::BeginPlay()
 {
 	Super::BeginPlay();
 
+	packetCallbacks = std::vector<void (AGameModeMainMap::*)(std::stringstream&)>(PACKETTYPE_MAX);
+	packetCallbacks[static_cast<int>(EPacketType::SPAWNPLAYER)]			= &AGameModeMainMap::SpawnNewPlayerCharacter;
+	packetCallbacks[static_cast<int>(EPacketType::SYNCHPLAYER)]			= &AGameModeMainMap::SynchronizePlayers;
+	packetCallbacks[static_cast<int>(EPacketType::SYNCHZOMBIE)]			= &AGameModeMainMap::SynchronizeZombies;
+	packetCallbacks[static_cast<int>(EPacketType::SYNCHITEM)]			= &AGameModeMainMap::SynchronizeItems;
+	packetCallbacks[static_cast<int>(EPacketType::INITIALINFO)]			= &AGameModeMainMap::InitializeWorld;
+	packetCallbacks[static_cast<int>(EPacketType::PLAYERINPUTACTION)]	= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
+	packetCallbacks[static_cast<int>(EPacketType::WRESTLINGRESULT)]		= &AGameModeMainMap::PlayWrestlingResultAction;
+	packetCallbacks[static_cast<int>(EPacketType::WRESTLINGSTART)]		= &AGameModeMainMap::StartPlayerWrestling;
+	packetCallbacks[static_cast<int>(EPacketType::PLAYERDISCONNECTED)]	= &AGameModeMainMap::ProcessDisconnectedPlayer;
+	packetCallbacks[static_cast<int>(EPacketType::DESTROYITEM)]			= &AGameModeMainMap::DestroyItem;
+	packetCallbacks[static_cast<int>(EPacketType::PICKUPITEM)]			= &AGameModeMainMap::PickUpItem;
+	packetCallbacks[static_cast<int>(EPacketType::PLAYERDEAD)]			= &AGameModeMainMap::ProcessPlayerDead;
+	packetCallbacks[static_cast<int>(EPacketType::PLAYERRESPAWN)]		= &AGameModeMainMap::RespawnPlayer;
+	packetCallbacks[static_cast<int>(EPacketType::ZOMBIEDEAD)]			= &AGameModeMainMap::ProcessZombieDead;
+
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
-	clientSocket->SetGameMode(this);
 
 	myNumber = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetPlayerNumber();
 
@@ -51,176 +66,40 @@ void AGameModeMainMap::BeginPlay()
 	actorSpawner->SpawnActor(itemPooler->GetPoolSize(), EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
 }
 
-void AGameModeMainMap::PlayerSpawnAfterDelay()
+void AGameModeMainMap::ProcessPacket()
 {
-	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
-	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
-	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	myPlayerController->Possess(myPlayerCharacter);
-	playerCharacterMap.Add(myNumber, myPlayerCharacter);
-}
+	check(clientSocket);
+	if (clientSocket->messageQ.IsEmpty())
+		return;
 
-void AGameModeMainMap::Tick(float deltaTime)
-{
-	Super::Tick(deltaTime);
+	std::stringstream recvStream;
+	clientSocket->messageQ.Dequeue(recvStream);
 
-	if (!playerToDelete.IsEmpty())
+	int packetType = -1;
+	recvStream >> packetType;
+	if (packetType >= PACKETTYPE_MIN && packetType < PACKETTYPE_MAX)
 	{
-		DestroyPlayer();
-	}
-	if (playerInfoSetEx)
-	{
-		SpawnNewPlayerCharacter();
-	}
-	if (playerInfoSet)
-	{
-		SynchronizePlayersInfo();
-	}
-	if (zombieInfoSet)
-	{
-		SynchronizeZombieInfo();
-	}
-	if (itemInfoSet)
-	{
-		SynchronizeItemInfo();
-	}
-	if (!wrestlingResultQ.IsEmpty())
-	{
-		ProcessWrestlingResult();
-	}
-	if (!wrestlingStartQ.IsEmpty())
-	{
-		StartPlayerWrestlingAction();
-	}
-	if (!destroyItemQ.IsEmpty())
-	{
-		DestroyItem();
-	}
-	if (!pickUpItemQ.IsEmpty())
-	{
-		PickUpItem();
-	}
-	if (!deadZombieQ.IsEmpty())
-	{
-		ProcessZombieDead();
-	}
-	if (!deadPlayerQ.IsEmpty())
-	{
-		ProcessPlayerDead();
-	}
-	if (respawnNumber != -1)
-	{
-		RespawnPlayer();
-	}
-}
-
-void AGameModeMainMap::DestroyPlayer()
-{
-	int number;
-	while (!playerToDelete.IsEmpty())
-	{
-		playerToDelete.Dequeue(number);
-		APlayerCharacter* tempCharacter = playerCharacterMap[number];
-		tempCharacter->Destroy();
-		playerCharacterMap.Remove(number);
-	}
-}
-
-void AGameModeMainMap::ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet)
-{
-	playerInfoSetEx = newPlayerInfoSet;
-}
-
-void AGameModeMainMap::ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet)
-{
-	playerInfoSet = synchPlayerInfoSet;
-}
-
-void AGameModeMainMap::ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet)
-{
-	zombieInfoSet = synchZombieInfoSet;
-}
-
-void AGameModeMainMap::ReceiveItemInfo(ItemInfoSet* synchItemInfoSet)
-{
-	itemInfoSet = synchItemInfoSet;
-}
-
-void AGameModeMainMap::DestroyItem(const int itemNumber)
-{
-	if (itemMap.Find(itemNumber))
-	{
-		destroyItemQ.Enqueue(itemNumber);
-	}
-}
-
-void AGameModeMainMap::PickUpItem(const int itemNumber)
-{
-	if (itemMap.Find(itemNumber))
-	{
-		pickUpItemQ.Enqueue(itemNumber);
-	}
-}
-
-void AGameModeMainMap::ReceiveDeadZombieNumber(const int zombieNumber)
-{
-	if (zombieCharacterMap.Find(zombieNumber))
-	{
-		deadZombieQ.Enqueue(zombieNumber);
-	}
-}
-
-void AGameModeMainMap::ReceiveDeadPlayerNumber(const int playerNumber)
-{
-	if (playerCharacterMap.Find(playerNumber))
-	{
-		deadPlayerQ.Enqueue(playerNumber);
-	}
-}
-
-void AGameModeMainMap::ReceiveRespawnPlayerNumber(const int playerNumber, CharacterInfo info)
-{
-	respawnNumber = playerNumber;
-	respawnInfo = info;
-}
-
-void AGameModeMainMap::ReceiveDisconnectedPlayerInfo(const int playerNumber)
-{
-	if (playerCharacterMap.Find(playerNumber))
-	{
-		APlayerCharacter* tempCharacter = playerCharacterMap[playerNumber];
-		if (IsValid(tempCharacter))
+		if (packetCallbacks[packetType] == nullptr)
 		{
-			playerToDelete.Enqueue(playerNumber);
+			PLOG(TEXT("Callback is nullptr! : type number %d"), packetType);
+		}
+		else
+		{
+			(this->*packetCallbacks[packetType])(recvStream);
 		}
 	}
-}
-
-void AGameModeMainMap::SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType)
-{
-	if (playerCharacterMap.Find(playerNumber))
+	else
 	{
-		APlayerCharacter* tempCharacter = playerCharacterMap[playerNumber];
-		if (IsValid(tempCharacter))
-		{
-			tempCharacter->DoPlayerInputAction(inputType);
-		}
+		PLOG(TEXT("Invalid packet number! : type number %d"), packetType);
 	}
 }
 
-void AGameModeMainMap::PlayWrestlingResultAction(const int playerNumber, const bool wrestlingResult)
+void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 {
-	wrestlingResultQ.Enqueue({ playerNumber, wrestlingResult });
-}
-
-void AGameModeMainMap::ReceiveWrestlingPlayer(const int playerNumber)
-{
-	wrestlingStartQ.Enqueue(playerNumber);
-}
-
-void AGameModeMainMap::SpawnNewPlayerCharacter()
-{
-	for (auto& kv : playerInfoSetEx->characterInfoMap)
+	PlayerInfoSetEx playerInfoSetEx;
+	playerInfoSetEx.InputStreamWithID(recvStream);
+	
+	for (auto& kv : playerInfoSetEx.characterInfoMap)
 	{
 		int number = kv.first;
 		if (number == myNumber) continue;
@@ -232,54 +111,52 @@ void AGameModeMainMap::SpawnNewPlayerCharacter()
 				FRotator(info.pitch, info.yaw, info.roll)
 			);
 		newPlayerCharacter->SetPlayerNumber(number);
-		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx->playerIDMap[number].c_str())));
+		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx.playerIDMap[number].c_str())));
 		playerCharacterMap.Add(number, newPlayerCharacter);
 	}
-	playerInfoSetEx = nullptr;
 }
 
-void AGameModeMainMap::SynchronizePlayersInfo()
+void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
 {
-	for (auto& playerInfo : playerInfoSet->characterInfoMap)
+	PlayerInfoSet playerInfoSet;
+	recvStream >> playerInfoSet;
+	
+	double end = GetWorld()->GetTimeSeconds();
+
+	for (auto& playerInfo : playerInfoSet.characterInfoMap)
 	{
-		const int bitMax = static_cast<int>(PIBTS::MAX);
-		for (int bit = 0; bit < bitMax; bit++)
-		{
-			if (playerInfo.second.recvInfoBitMask & (1 << bit))
-			{
-				ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
-			}
-		}
 		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
 			CharacterInfo& info = playerInfo.second.characterInfo;
 			if (IsValid(character))
 			{
-				character->AddMovementInput(FVector(info.velocityX, info.velocityY, info.velocityZ));
-				character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
 				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
+				const FVector lastLocation = FVector(info.vectorX, info.vectorY, info.vectorZ);
+				const FVector lastVelocity = FVector(info.velocityX, info.velocityY, info.velocityZ);
+				character->DeadReckoningMovement(lastLocation, lastVelocity, (end - info.ratencyStart) / 2.f);
+			}
+		}
+		if (playerInfo.second.flag)
+		{
+			const int bitMax = static_cast<int>(PIBTS::MAX);
+			for (int bit = 0; bit < bitMax; bit++)
+			{
+				if (playerInfo.second.recvInfoBitMask & (1 << bit))
+				{
+					ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
+				}
 			}
 		}
 	}
-	playerInfoSet = nullptr;
 }
 
-void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType)
+void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 {
-	PIBTS type = static_cast<PIBTS>(bitType);
-	switch (type)
-	{
-		case PIBTS::WrestlingState:
-		{
-			break;
-		}
-	}
-}
+	ZombieInfoSet synchZombieInfoSet;
+	recvStream >> synchZombieInfoSet;
 
-void AGameModeMainMap::SynchronizeZombieInfo()
-{
-	for (auto& info : zombieInfoSet->zombieInfoMap)
+	for (auto& info : synchZombieInfoSet.zombieInfoMap)
 	{
 		const ZombieInfo& zombieInfo = info.second;
 		AZombieCharacter* zombie = nullptr;
@@ -311,12 +188,14 @@ void AGameModeMainMap::SynchronizeZombieInfo()
 		}
 		zombie->SetZombieInfo(info.second);
 	}
-	zombieInfoSet = nullptr;
 }
 
-void AGameModeMainMap::SynchronizeItemInfo()
+void AGameModeMainMap::SynchronizeItems(std::stringstream& recvStream)
 {
-	for (auto& info : itemInfoSet->itemInfoMap)
+	ItemInfoSet itemInfoSet;
+	recvStream >> itemInfoSet;
+
+	for (auto& info : itemInfoSet.itemInfoMap)
 	{
 		const FItemInfo& itemInfo = info.second;
 		AItemBase* item = nullptr;
@@ -342,94 +221,169 @@ void AGameModeMainMap::SynchronizeItemInfo()
 			itemMap.Remove(item->GetNumber());
 		}
 	}
-	itemInfoSet = nullptr;
 }
 
-void AGameModeMainMap::ProcessWrestlingResult()
+void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
 {
-	std::pair<int, bool> wrestlingResult;
-	wrestlingResultQ.Dequeue(wrestlingResult);
-
-	if (playerCharacterMap.Find(wrestlingResult.first))
+	while (1)
 	{
-		APlayerCharacter* character = playerCharacterMap[wrestlingResult.first];
-		character->PlayPushingZombieMontage(wrestlingResult.second);
+		int packetType = -1;
+		recvStream >> packetType;
+		if (packetType >= PACKETTYPE_MIN && packetType < PACKETTYPE_MAX)
+		{
+			if (packetCallbacks[packetType] == nullptr)
+			{
+				PLOG(TEXT("Callback is nullptr! : type number %d"), packetType);
+			}
+			else
+			{
+				(this->*packetCallbacks[packetType])(recvStream);
+			}
+		}
+		else break;
+	}
+}
+
+void AGameModeMainMap::SynchronizeOtherPlayerInputAction(std::stringstream& recvStream)
+{
+	int playerNumber = -1, inputType = -1;
+	recvStream >> playerNumber >> inputType;
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		APlayerCharacter* tempCharacter = playerCharacterMap[playerNumber];
+		if (IsValid(tempCharacter))
+		{
+			tempCharacter->DoPlayerInputAction(inputType);
+		}
+	}
+}
+
+void AGameModeMainMap::PlayWrestlingResultAction(std::stringstream& recvStream)
+{
+	bool wrestlingResult = false;
+	int playerNumber = -1;
+	recvStream >> playerNumber >> wrestlingResult;
+
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		APlayerCharacter* character = playerCharacterMap[playerNumber];
+		character->PlayPushingZombieMontage(wrestlingResult);
 		character->SetWrestlingOff();
 	}
 }
 
-void AGameModeMainMap::StartPlayerWrestlingAction()
+void AGameModeMainMap::StartPlayerWrestling(std::stringstream& recvStream)
 {
-	int wrestlingPlayer;
-	wrestlingStartQ.Dequeue(wrestlingPlayer);
+	int playerNumber = -1;
+	recvStream >> playerNumber;
 
-	if (playerCharacterMap.Find(wrestlingPlayer))
+	if (playerCharacterMap.Find(playerNumber))
 	{
-		playerCharacterMap[wrestlingPlayer]->SetWrestlingOn();
+		playerCharacterMap[playerNumber]->SetWrestlingOn();
 	}
 }
 
-void AGameModeMainMap::DestroyItem()
+void AGameModeMainMap::DestroyItem(std::stringstream& recvStream)
 {
-	int number = 0;
-	while (!destroyItemQ.IsEmpty())
+	int itemNumber = -1;
+	recvStream >> itemNumber;
+	if(itemMap.Find(itemNumber))
 	{
-		destroyItemQ.Dequeue(number);
-		itemMap[number]->DeactivateActor();
+		itemMap[itemNumber]->DeactivateActor();
 	}
 }
 
-void AGameModeMainMap::PickUpItem()
+void AGameModeMainMap::PickUpItem(std::stringstream& recvStream)
 {
-	int number = 0;
-	while (!pickUpItemQ.IsEmpty())
+	int itemNumber = -1;
+	recvStream >> itemNumber;
+	if (itemMap.Find(itemNumber))
 	{
-		pickUpItemQ.Dequeue(number);
-		playerCharacterMap[myNumber]->AddItemToInv(itemMap[number]);
+		playerCharacterMap[myNumber]->AddItemToInv(itemMap[itemNumber]);
 		//itemMap[number]->DeactivateActor();
 	}
 }
 
-void AGameModeMainMap::ProcessZombieDead()
+void AGameModeMainMap::ProcessDisconnectedPlayer(std::stringstream& recvStream)
 {
-	int number = 0;
-	while (!deadZombieQ.IsEmpty())
+	int playerNumber = -1;
+	recvStream >> playerNumber;
+	if (playerCharacterMap.Find(playerNumber))
 	{
-		deadZombieQ.Dequeue(number);
-		zombieCharacterMap[number]->ZombieDead();
-		zombieCharacterMap.Remove(number);
+		APlayerCharacter* player = playerCharacterMap[playerNumber];
+		playerCharacterMap.Remove(playerNumber);
+		player->Destroy();
 	}
 }
 
-void AGameModeMainMap::ProcessPlayerDead()
+void AGameModeMainMap::ProcessPlayerDead(std::stringstream& recvStream)
 {
-	int number = 0;
-	while (!deadPlayerQ.IsEmpty())
+	int playerNumber = -1;
+	recvStream >> playerNumber;
+
+	if (playerNumber == myNumber)
 	{
-		deadPlayerQ.Dequeue(number);
-		if (number == myNumber)
+		APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+		myPlayerController->PlayerDead();
+	}
+	else
+	{
+		if (playerCharacterMap.Find(playerNumber))
 		{
-			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-			myPlayerController->PlayerDead();
-		}
-		else
-		{
-			if (playerCharacterMap.Find(number))
-			{
-				playerCharacterMap[number]->PlayerDead();
-			}
+			playerCharacterMap[playerNumber]->PlayerDead();
 		}
 	}
 }
 
-void AGameModeMainMap::RespawnPlayer()
+void AGameModeMainMap::RespawnPlayer(std::stringstream& recvStream)
 {
-	if (playerCharacterMap.Find(respawnNumber))
+	int playerNumber = -1;
+	CharacterInfo characterInfo;
+	recvStream >> playerNumber >> characterInfo;
+	if (playerCharacterMap.Find(playerNumber))
 	{
-		WLOG(TEXT("dead"));
-		playerCharacterMap[respawnNumber]->SetActorLocation(FVector(respawnInfo.vectorX, respawnInfo.vectorY, respawnInfo.vectorZ));
-		playerCharacterMap[respawnNumber]->SetActorRotation(FRotator(respawnInfo.pitch, respawnInfo.yaw, respawnInfo.roll));
-		playerCharacterMap[respawnNumber]->PlayerRespawn(respawnNumber == myNumber);
+		playerCharacterMap[playerNumber]->SetActorLocation(FVector(characterInfo.vectorX, characterInfo.vectorY, characterInfo.vectorZ));
+		playerCharacterMap[playerNumber]->SetActorRotation(FRotator(characterInfo.pitch, characterInfo.yaw, characterInfo.roll));
+		playerCharacterMap[playerNumber]->PlayerRespawn(playerNumber == myNumber);
 	}
-	respawnNumber = -1;
+}
+
+void AGameModeMainMap::ProcessZombieDead(std::stringstream& recvStream)
+{
+	int zombieNumber = -1;
+	recvStream >> zombieNumber;
+
+	if(zombieCharacterMap.Find(zombieNumber))
+	{
+		zombieCharacterMap[zombieNumber]->ZombieDead();
+		zombieCharacterMap.Remove(zombieNumber);
+	}
+}
+
+void AGameModeMainMap::PlayerSpawnAfterDelay()
+{
+	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
+	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
+	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	myPlayerController->Possess(myPlayerCharacter);
+	playerCharacterMap.Add(myNumber, myPlayerCharacter);
+}
+
+void AGameModeMainMap::Tick(float deltaTime)
+{
+	Super::Tick(deltaTime);
+
+	ProcessPacket();
+}
+
+void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType)
+{
+	PIBTS type = static_cast<PIBTS>(bitType);
+	switch (type)
+	{
+		case PIBTS::WrestlingState:
+		{
+			break;
+		}
+	}
 }

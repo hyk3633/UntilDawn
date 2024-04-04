@@ -21,7 +21,7 @@
 
 FORCEINLINE void VectorTruncate(FVector& vector)
 {
-	vector.X = trunc(vector.X * 1000) / 1000;
-	vector.Y = trunc(vector.Y * 1000) / 1000;
-	vector.Z = trunc(vector.Z * 1000) / 1000;
+	vector.X = trunc(vector.X * 1000) * 0.001f;
+	vector.Y = trunc(vector.Y * 1000) * 0.001f;
+	vector.Z = trunc(vector.Z * 1000) * 0.001f;
 }

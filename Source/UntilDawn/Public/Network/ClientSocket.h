@@ -15,9 +15,6 @@
  * 
  */
 
-class APlayerControllerLoginMap;
-class AGameModeMainMap;
-
 class UNTILDAWN_API ClientSocket : public FRunnable
 {
 public:
@@ -30,8 +27,6 @@ public:
 
 	void StartSocket();
 
-	void Recv(std::stringstream&);
-
 	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);
 
 	void NotifyAccessingGame(const CharacterInfo& info);
@@ -39,6 +34,12 @@ public:
 	void SynchronizeMyCharacterInfo(const PlayerInfo& info);
 
 	void SendPlayerInputAction(const int inputType);
+
+	void SendInRangeZombie(int zombieNumber);
+
+	void SendOutRangeZombie(int zombieNumber);
+
+	void SendZombieHitsMe(int zombieNumber, bool bResult);
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
@@ -56,19 +57,11 @@ public:
 
 	virtual uint32 Run() override;
 
-protected:
-
-	void ProcessPacket(const EPacketType type, std::stringstream& recvStream);
-
 public:
 
 	virtual void Exit() override;
 
 	virtual void Stop() override;
-
-	void SetPlayerController(APlayerControllerLoginMap* controller);
-
-	void SetGameMode(AGameModeMainMap* gameMode);
 
 private:
 
@@ -84,8 +77,6 @@ private:
 
 	char recvBuf[PACKET_SIZE];
 
-	TWeakObjectPtr<APlayerControllerLoginMap> ownerController;
-
 	PlayerInfoSetEx newPlayerInfoSetEx;
 
 	PlayerInfoSet synchPlayerInfoSet;
@@ -94,7 +85,8 @@ private:
 
 	ItemInfoSet synchItemInfoSet;
 
-	TWeakObjectPtr<AGameModeMainMap> ownerGameMode;
+public:
 
+	TQueue<std::stringstream> messageQ;
 
 };

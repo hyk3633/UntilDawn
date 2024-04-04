@@ -30,6 +30,15 @@ public:
 
 	void SendPlayerInputAction(const EPlayerInputs inputType);
 
+	UFUNCTION()
+	void SendInRangeZombie(int zombieNumber);
+
+	UFUNCTION()
+	void SendOutRangeZombie(int zombieNumber);
+
+	UFUNCTION()
+	void SendZombieHitsMe(int zombieNumber, bool bResult);
+
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
 	void SendPickedItemInfo(const int itemNumber);

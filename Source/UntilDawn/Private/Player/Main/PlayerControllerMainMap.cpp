@@ -26,15 +26,33 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 
 	myCharacter = Cast<APlayerCharacter>(pawn);
 	// 서버에 게임 맵에 접속했음을 알림
+	myCharacter->DZombieInRange.BindUFunction(this, FName("SendInRangeZombie"));
+	myCharacter->DZombieOutRange.BindUFunction(this, FName("SendOutRangeZombie"));
+	myCharacter->DZombieHitsMe.BindUFunction(this, FName("SendZombieHitsMe"));
 	myCharacter->UpdatePlayerInfo();
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo().characterInfo);
-	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.016f, true);
+	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
 }
 
 void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType)
 {
 	clientSocket->SendPlayerInputAction(static_cast<int>(inputType));
+}
+
+void APlayerControllerMainMap::SendInRangeZombie(int zombieNumber)
+{
+	clientSocket->SendInRangeZombie(zombieNumber);
+}
+
+void APlayerControllerMainMap::SendOutRangeZombie(int zombieNumber)
+{
+	clientSocket->SendOutRangeZombie(zombieNumber);
+}
+
+void APlayerControllerMainMap::SendZombieHitsMe(int zombieNumber, bool bResult)
+{
+	clientSocket->SendZombieHitsMe(zombieNumber, bResult);
 }
 
 void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBlocking)
@@ -67,7 +85,6 @@ void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	myCharacter->UpdatePlayerInfo();
 	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
-	myCharacter->ResetPlayerInfoBitMask();
 }
 
 void APlayerControllerMainMap::respawnRequestAfterDelay()

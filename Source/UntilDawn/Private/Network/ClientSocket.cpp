@@ -3,8 +3,6 @@
 
 #include "Network/ClientSocket.h"
 #include "UntilDawn/UntilDawn.h"
-#include "GameMode/GameModeMainMap.h"
-#include "Player/Login/PlayerControllerLoginMap.h"
 
 ClientSocket::ClientSocket()
 {
@@ -73,11 +71,6 @@ void ClientSocket::StartSocket()
 	return;
 }
 
-void ClientSocket::Recv(std::stringstream& recvStream)
-{
-	
-}
-
 void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool isLogin)
 {
 	std::stringstream sendStream;
@@ -112,6 +105,31 @@ void ClientSocket::SendPlayerInputAction(const int inputType)
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::PLAYERINPUTACTION) << "\n";
 	sendStream << inputType << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendInRangeZombie(int zombieNumber)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ZOMBIEINRANGE) << "\n";
+	sendStream << zombieNumber << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendOutRangeZombie(int zombieNumber)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ZOMBIEOUTRANGE) << "\n";
+	sendStream << zombieNumber << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendZombieHitsMe(int zombieNumber, bool bResult)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ZOMBIEHITSME) << "\n";
+	sendStream << zombieNumber << "\n";
+	sendStream << bResult << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -168,28 +186,15 @@ uint32 ClientSocket::Run()
 		std::stringstream recvStream;
 		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
 
-		int packetType;
-		if (recvBytes > 0)
-		{
-			recvStream << recvBuf;
-			if (ownerController.Get())
-			{
-				ownerController->ReceivePacket(recvStream);
-			}
-			else if (ownerGameMode.Get())
-			{
-				recvStream >> packetType;
-				ProcessPacket(static_cast<EPacketType>(packetType), recvStream);
-			}
-		}
-		else
-		{
-			break;
-		}
+		if (recvBytes <= 0) break;
+
+		recvStream << recvBuf;
+		messageQ.Enqueue(std::move(recvStream));
 	}
 	return 0;
 }
 
+/*
 void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recvStream)
 {
 	switch (type)
@@ -309,6 +314,7 @@ void ClientSocket::ProcessPacket(const EPacketType type, std::stringstream& recv
 		}
 	}
 }
+*/
 
 void ClientSocket::Exit()
 {
@@ -326,14 +332,4 @@ void ClientSocket::Stop()
 		WSACleanup();
 		WLOG(TEXT("[Log] : Closed the connection to server."));
 	}
-}
-
-void ClientSocket::SetPlayerController(APlayerControllerLoginMap* controller)
-{
-	ownerController = controller;
-}
-
-void ClientSocket::SetGameMode(AGameModeMainMap* gameMode)
-{
-	ownerGameMode = gameMode; 
 }

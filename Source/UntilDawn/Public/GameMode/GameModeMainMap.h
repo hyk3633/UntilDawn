@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
+#include <sstream>
 #include "GameModeMainMap.generated.h"
 
 /**
@@ -33,63 +34,43 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	void ProcessPacket();
+
+	void SpawnNewPlayerCharacter(std::stringstream& recvStream);
+
+	void SynchronizePlayers(std::stringstream& recvStream);
+
+	void SynchronizeZombies(std::stringstream& recvStream);
+
+	void SynchronizeItems(std::stringstream& recvStream);
+
+	void InitializeWorld(std::stringstream& recvStream);
+
+	void SynchronizeOtherPlayerInputAction(std::stringstream& recvStream);
+
+	void PlayWrestlingResultAction(std::stringstream& recvStream);
+
+	void StartPlayerWrestling(std::stringstream& recvStream);
+
+	void DestroyItem(std::stringstream& recvStream);
+
+	void PickUpItem(std::stringstream& recvStream);
+
+	void ProcessDisconnectedPlayer(std::stringstream& recvStream);
+
+	void ProcessPlayerDead(std::stringstream& recvStream);
+
+	void RespawnPlayer(std::stringstream& recvStream);
+
+	void ProcessZombieDead(std::stringstream& recvStream);
+
 	void PlayerSpawnAfterDelay();
 
-	void DestroyPlayer();
-
-	void SpawnNewPlayerCharacter();
-
-	void SynchronizePlayersInfo();
-
 	void ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType);
-
-	void SynchronizeZombieInfo();
-
-	void SynchronizeItemInfo();
-
-	void ProcessWrestlingResult();
-
-	void StartPlayerWrestlingAction();
-
-	void DestroyItem();
-
-	void PickUpItem();
-
-	void ProcessZombieDead();
-
-	void ProcessPlayerDead();
-
-	void RespawnPlayer();
 
 public:
 
 	virtual void Tick(float deltaTime) override;
-
-	void ReceiveNewPlayerInfo(PlayerInfoSetEx* newPlayerInfoSet);
-
-	void ReceiveOtherPlayersInfo(PlayerInfoSet* synchPlayerInfoSet);
-
-	void ReceiveDisconnectedPlayerInfo(const int playerNumber);
-
-	void SynchronizeOtherPlayerInputAction(const int playerNumber, const int inputType);
-
-	void PlayWrestlingResultAction(const int playerNumber, const bool wrestlingResult);
-
-	void ReceiveWrestlingPlayer(const int playerNumber);
-
-	void ReceiveZombieInfo(ZombieInfoSet* synchZombieInfoSet);
-
-	void ReceiveItemInfo(ItemInfoSet* synchItemInfoSet);
-
-	void DestroyItem(const int itemNumber);
-
-	void PickUpItem(const int itemNumber);
-
-	void ReceiveDeadZombieNumber(const int zombieNumber);
-
-	void ReceiveDeadPlayerNumber(const int playerNumber);
-
-	void ReceiveRespawnPlayerNumber(const int playerNumber, CharacterInfo info);
 
 private:
 
@@ -104,40 +85,16 @@ private:
 	
 	ClientSocket* clientSocket;
 
-	TQueue<int> playerToDelete;
-
 	TMap<int, APlayerCharacter*> playerCharacterMap;
-
-	PlayerInfoSetEx* playerInfoSetEx;
-
-	PlayerInfoSet* playerInfoSet;
 
 	TMap<int, AZombieCharacter*> zombieCharacterMap;
 
-	ZombieInfoSet* zombieInfoSet;
-
 	TMap<int, AItemBase*> itemMap;
-
-	ItemInfoSet* itemInfoSet;
 
 	int myNumber;
 
 	FTimerHandle playerSpawnDelayTimer;
 
-	TQueue<std::pair<int, bool>> wrestlingResultQ;
-
-	TQueue<int> wrestlingStartQ;
-
-	TQueue<int> destroyItemQ;
-
-	TQueue<int> pickUpItemQ;
-
-	TQueue<int> deadZombieQ;
-
-	TQueue<int> deadPlayerQ;
-
-	int respawnNumber;
-
-	CharacterInfo respawnInfo;
+	std::vector<void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
 
 };

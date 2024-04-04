@@ -28,8 +28,6 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	void ReceivePacket(std::stringstream& recvStream);
-
 protected:
 
 	void ProcessPacket();
@@ -50,13 +48,9 @@ private:
 	UPROPERTY()
 	AHUDLoginMap* loginMapHUD;
 
-	FCriticalSection criticalSection;
-
 	bool isConnected;
 
 	FTimerHandle levelTransitionTimer;
-
-	std::queue<std::stringstream> messageQ;
 
 	std::vector<void (APlayerControllerLoginMap::*)(std::stringstream&)> packetCallbacks;
 

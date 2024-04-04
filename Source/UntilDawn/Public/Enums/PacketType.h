@@ -7,11 +7,14 @@ enum class EPacketType : uint8
 	SPAWNPLAYER,
 	SYNCHPLAYER,
 	PLAYERINPUTACTION,
+	ZOMBIEINRANGE,
+	ZOMBIEOUTRANGE,
 	WRESTLINGRESULT,
 	WRESTLINGSTART,
 	SYNCHITEM,
 	HITPLAYER,
 	HITZOMBIE,
+	ZOMBIEHITSME,
 	PLAYERRESPAWN,
 	PACKETTYPE_MAX, // MAX
 	INITIALINFO,
@@ -25,3 +28,9 @@ enum class EPacketType : uint8
 
 // 로그인 맵에서 받는 패킷 타입 최대 값 + 1
 #define LOGINMAP_MAX static_cast<int>(EPacketType::LOGIN) + 1
+
+// 메인 맵에서 받는 패킷 타입 최소 값
+#define PACKETTYPE_MIN static_cast<int>(EPacketType::SPAWNPLAYER)
+
+// 메인 맵에서 받는 패킷 타입 최대 값 + 1
+#define PACKETTYPE_MAX static_cast<int>(EPacketType::PLAYERDEAD) + 1

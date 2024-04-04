@@ -64,8 +64,6 @@ public:
 
 protected:
 
-	void InitializePathStatus();
-
 	void UpdateMovement();
 
 	void FollowPath();

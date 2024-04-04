@@ -199,15 +199,9 @@ void AZombieCharacter::SetNextLocation(const FVector& nextLoc)
 		const float dist = FVector::Distance(nextPoint, GetActorLocation());
 		if (GetWorldTimerManager().IsTimerActive(movementUpdateTimer) == false && dist >= 1.f)
 		{
-			InitializePathStatus();
+			GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, interval, true);
 		}
 	}
-}
-
-void AZombieCharacter::InitializePathStatus()
-{
-	nextDirection = (nextPoint - GetActorLocation()).GetSafeNormal();
-	GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, interval, true);
 }
 
 void AZombieCharacter::UpdateMovement()

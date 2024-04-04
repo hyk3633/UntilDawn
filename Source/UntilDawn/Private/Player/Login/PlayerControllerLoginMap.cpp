@@ -18,7 +18,6 @@ void APlayerControllerLoginMap::BeginPlay()
 	Super::BeginPlay();
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
-	clientSocket->SetPlayerController(this);
 	if (clientSocket->InitSocket())
 	{
 		clientSocket->StartSocket();
@@ -43,23 +42,17 @@ void APlayerControllerLoginMap::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!messageQ.empty())
-	{
-		ProcessPacket();
-	}
-}
-
-void APlayerControllerLoginMap::ReceivePacket(std::stringstream& recvStream)
-{
-	FScopeLock Lock(&criticalSection);
-	messageQ.push(std::move(recvStream));
+	ProcessPacket();
 }
 
 void APlayerControllerLoginMap::ProcessPacket()
 {
-	FScopeLock Lock(&criticalSection);
-	std::stringstream recvStream = std::move(messageQ.front());
-	messageQ.pop();
+	check(clientSocket);
+	if (clientSocket->messageQ.IsEmpty())
+		return;
+
+	std::stringstream recvStream;
+	clientSocket->messageQ.Dequeue(recvStream);
 
 	int packetType = -1;
 	recvStream >> packetType;
@@ -67,7 +60,7 @@ void APlayerControllerLoginMap::ProcessPacket()
 	{
 		if (packetCallbacks[packetType] == nullptr)
 		{
-			ELOG(TEXT("Callback is nullptr!"));
+			PLOG(TEXT("Callback is nullptr! : type number %d"), packetType);
 		}
 		else
 		{
@@ -76,7 +69,7 @@ void APlayerControllerLoginMap::ProcessPacket()
 	}
 	else
 	{
-		ELOG(TEXT("Invalid packet number!"));
+		PLOG(TEXT("Invalid packet number! : type number %d"), packetType);
 	}
 }
 

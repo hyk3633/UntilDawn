@@ -366,25 +366,19 @@ void APlayerCharacter::EKeyPressed()
 
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	FScopeLock Lock(&criticalSection);
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
-	if (zombie->GetZombieState() != EZombieState::IDLE) 
-		return;
-	if (IsValid(zombie))
+	if (IsValid(zombie) && zombie->GetZombieState() == EZombieState::IDLE)
 	{
-		zombiesInRange.push_back(zombie->GetNumber());
-		MaskToInfoBit(sendInfoBitMask, PIBTC::ZombiesInRange);
+		DZombieInRange.ExecuteIfBound(zombie->GetNumber());
 	}
 }
 
 void APlayerCharacter::OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	FScopeLock Lock(&criticalSection);
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
 	if (IsValid(zombie))
 	{
-		zombiesOutRange.push_back(zombie->GetNumber());
-		MaskToInfoBit(sendInfoBitMask, PIBTC::ZombiesOutRange);
+		DZombieOutRange.ExecuteIfBound(zombie->GetNumber());
 	}
 }
 
@@ -417,6 +411,13 @@ void APlayerCharacter::Tick(float deltaTime)
 		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
 	}
 
+	if (bset)
+	{
+		FVector de = FMath::VInterpConstantTo(GetActorLocation(), nextLocation, deltaTime, 150);
+		VectorTruncate(de);
+		SetActorLocation(de);
+	}
+
 	ItemTrace();
 }
 
@@ -434,46 +435,6 @@ void APlayerCharacter::UpdatePlayerInfo()
 	myInfo.characterInfo.pitch = rotation.Pitch;
 	myInfo.characterInfo.yaw = rotation.Yaw;
 	myInfo.characterInfo.roll = rotation.Roll;
-
-	FScopeLock Lock(&criticalSection);
-
-	const int bitMax = static_cast<int>(PIBTC::MAX);
-	for (int bit = 0; bit < bitMax; bit++)
-	{
-		if (sendInfoBitMask & (1 << bit))
-		{
-			SaveInfoToPacket(bit);
-		}
-	}
-}
-
-void APlayerCharacter::SaveInfoToPacket(const int bitType)
-{
-	FScopeLock Lock(&criticalSection);
-	PIBTC type = static_cast<PIBTC>(bitType);
-	switch (type)
-	{
-		case PIBTC::ZombiesInRange:
-		{
-			myInfo.zombiesInRange = zombiesInRange;
-			zombiesInRange.clear();
-			break;
-		}
-		case PIBTC::ZombiesOutRange:
-		{
-			myInfo.zombiesOutRange = zombiesOutRange;
-			zombiesOutRange.clear();
-			break;
-		}
-		case PIBTC::ZombieAttackResult:
-		{
-			myInfo.isHitted = isHitted;
-			myInfo.zombieNumberAttackedMe = zombieNumberAttackedMe;
-			break;
-		}
-	}
-	MaskToInfoBit(myInfo.sendInfoBitMask, static_cast<PIBTC>(bitType));
-	RemoveMaskedBit(sendInfoBitMask, static_cast<PIBTC>(bitType));
 }
 
 const bool APlayerCharacter::GetIsFalling() const
@@ -519,9 +480,7 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType)
 
 void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber)
 {
-	MaskToInfoBit(sendInfoBitMask, PIBTC::ZombieAttackResult);
-	isHitted = result;
-	zombieNumberAttackedMe = zombieNumber;
+	DZombieHitsMe.ExecuteIfBound(zombieNumber, result);
 }
 
 void APlayerCharacter::SetWrestlingOn()
@@ -654,11 +613,6 @@ void APlayerCharacter::InitializePlayerInfo()
 	isAbleShoot = false;
 	shootPower = false;
 	currentWeaponType = EWeaponType::DEFAULT;
-	zombiesInRange.clear();
-	zombiesOutRange.clear();
-	sendInfoBitMask = 0;
-	isHitted = false;
-	zombieNumberAttackedMe = -1;
 	bWrestling = false;
 	isAttackActivated = false;
 	equippedWeapon = nullptr;
@@ -685,3 +639,8 @@ void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 }
 
+void APlayerCharacter::DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency)
+{
+	nextLocation = lastLocation + ratency * lastVelocity;
+	bset = true;
+}

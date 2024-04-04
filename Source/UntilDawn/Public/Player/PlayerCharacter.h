@@ -22,6 +22,10 @@ class AZombieCharacter;
 class AItemBase;
 class AItemMeleeWeapon;
 
+DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
+DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
+DECLARE_DELEGATE_TwoParams(DelegateZombieHitsMe, int zombieNumber, bool bResult);
+
 UCLASS()
 class UNTILDAWN_API APlayerCharacter : public ACharacter
 {
@@ -30,6 +34,10 @@ class UNTILDAWN_API APlayerCharacter : public ACharacter
 public:
 
 	APlayerCharacter();
+
+	DelegateZombieInRange DZombieInRange;
+	DelegateZombieInRange DZombieOutRange;
+	DelegateZombieHitsMe DZombieHitsMe;
 
 protected:
 
@@ -107,8 +115,6 @@ public:
 
 	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
 
-	FORCEINLINE void ResetPlayerInfoBitMask() { myInfo.sendInfoBitMask = 0; };
-
 	void DoPlayerInputAction(const int inputType);
 
 	void SetAttackResult(const bool result, const int zombieNumber);
@@ -142,6 +148,8 @@ public:
 	void InitializePlayerInfo();
 
 	void PlayerRespawn(const bool isLocalPlayer);
+
+	void DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency);
 
 private:
 
@@ -212,17 +220,7 @@ private:
 
 	EWeaponType currentWeaponType = EWeaponType::DEFAULT;
 
-	std::vector<int> zombiesInRange, zombiesOutRange;
-
 	PlayerInfo myInfo;
-
-	int sendInfoBitMask;
-
-	bool isHitted;
-
-	int zombieNumberAttackedMe;
-
-	FCriticalSection criticalSection;
 
 	bool bWrestling;
 
@@ -238,4 +236,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	TArray<AItemBase*> items;
+
+	FVector nextLocation;
+
+	bool bset;
+
 };

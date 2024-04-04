@@ -108,12 +108,14 @@ struct CharacterInfo
 	float vectorX, vectorY, vectorZ;
 	float velocityX, velocityY, velocityZ;
 	float pitch, yaw, roll;
+	double ratencyStart;
 
 	friend std::istream& operator>>(std::istream& stream, CharacterInfo& info)
 	{
 		stream >> info.vectorX >> info.vectorY >> info.vectorZ;
 		stream >> info.pitch >> info.yaw >> info.roll;
 		stream >> info.velocityX >> info.velocityY >> info.velocityZ;
+		stream >> info.ratencyStart;
 		return stream;
 	}
 
@@ -128,10 +130,7 @@ struct CharacterInfo
 
 enum class EPlayerInfoBitTypeClient
 {
-	ZombiesInRange,
-	ZombiesOutRange,
 	ZombieAttackResult,
-	PickedItems,
 	MAX
 };
 
@@ -149,79 +148,24 @@ struct PlayerInfo
 {
 	// 필수 데이터
 	CharacterInfo characterInfo;
-	int sendInfoBitMask;
-
-	// 서버 전송용 데이터
-	std::vector<int> zombiesInRange, zombiesOutRange;	
-	bool isHitted;						
-	int zombieNumberAttackedMe;		
 
 	// 서버 수신용 데이터
 	int recvInfoBitMask;
 
+	bool flag;
+
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
 		stream << info.characterInfo;
-		if (info.sendInfoBitMask == 0)
-		{
-			stream << false << "\n";
-		}
-		else
-		{
-			stream << true << "\n";
-			stream << info.sendInfoBitMask << "\n";
-			const int bitMax = static_cast<int>(PIBTC::MAX);
-			for (int bit = 0; bit < bitMax; bit++)
-			{
-				if (info.sendInfoBitMask & (1 << bit))
-				{
-					SaveInfoToPacket(stream, info, bit);
-				}
-			}
-		}
 		return stream;
-	}
-
-	friend void SaveInfoToPacket(std::ostream& stream, const PlayerInfo& info, const int bitType)
-	{
-		PIBTC type = static_cast<PIBTC>(bitType);
-		switch (type)
-		{
-			case PIBTC::ZombiesInRange:
-			{
-				stream << info.zombiesInRange.size() << "\n";
-				for (int n : info.zombiesInRange)
-				{
-					stream << n << "\n";
-				}
-				break;
-			}
-			case PIBTC::ZombiesOutRange:
-			{
-				stream << info.zombiesOutRange.size() << "\n";
-				for (int n : info.zombiesOutRange)
-				{
-					stream << n << "\n";
-				}
-				break;
-			}
-			case PIBTC::ZombieAttackResult:
-			{
-				stream << info.isHitted << "\n";
-				stream << info.zombieNumberAttackedMe << "\n";
-				break;
-			}
-		}
 	}
 
 	friend std::istream& operator>>(std::istream& stream, PlayerInfo& info)
 	{
 		stream >> info.characterInfo;
+		stream >> info.flag;
 
-		bool flag = false;
-		stream >> flag;
-
-		if (flag)
+		if (info.flag)
 		{
 			stream >> info.recvInfoBitMask;
 			const int bitMax = static_cast<int>(PIBTS::MAX);
