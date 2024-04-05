@@ -24,6 +24,9 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	UFUNCTION()
+	void InitializeHUD();
+
 public:
 
 	virtual void Tick(float deltaTime) override;

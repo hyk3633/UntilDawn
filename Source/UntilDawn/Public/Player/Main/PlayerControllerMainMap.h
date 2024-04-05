@@ -12,6 +12,8 @@
  * 
  */
 
+DECLARE_DELEGATE(DelegatePlayerDead);
+
 class ClientSocket;
 class APlayerCharacter;
 
@@ -48,6 +50,8 @@ public:
 	void SendHitZombieInfo(const int zombieNumber);
 
 	void PlayerDead();
+
+	DelegatePlayerDead DPlayerDead;
 
 protected:
 

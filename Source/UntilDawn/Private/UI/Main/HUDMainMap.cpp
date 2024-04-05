@@ -2,6 +2,8 @@
 #include "UI/Main/HUDMainMap.h"
 #include "UI/Main/WidgetWrestlingProgress.h"
 #include "../UntilDawn.h"
+#include "Player/Main/PlayerControllerMainMap.h"
+
 AHUDMainMap::AHUDMainMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -15,12 +17,21 @@ void AHUDMainMap::BeginPlay()
 {
 	Super::BeginPlay();
 
+	APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayerController());
+	check(playerController);
+	playerController->DPlayerDead.BindUFunction(this, FName("InitializeHUD"));
+
 	if (WidgetWrestlingProgressClass)
 	{
 		WrestlingProgressWidget = CreateWidget<UWidgetWrestlingProgress>(GetOwningPlayerController(), WidgetWrestlingProgressClass);
 		WrestlingProgressWidget->SetVisibility(ESlateVisibility::Hidden);
 		WrestlingProgressWidget->AddToViewport();
 	}
+}
+
+void AHUDMainMap::InitializeHUD()
+{
+	EndWrestlingProgressBar();
 }
 
 void AHUDMainMap::Tick(float deltaTime)

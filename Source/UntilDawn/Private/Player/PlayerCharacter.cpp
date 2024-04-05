@@ -536,7 +536,6 @@ void APlayerCharacter::ActivateAttackTrace()
 		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
 		if (IsValid(player))
 		{
-			// 서버에 결과 전송
 			myController->SendHitPlayerInfo(player->GetPlayerNumber());
 			EndAttack();
 		}
@@ -545,7 +544,6 @@ void APlayerCharacter::ActivateAttackTrace()
 			AZombieCharacter* zombie = Cast<AZombieCharacter>(hit.GetActor());
 			if (IsValid(zombie))
 			{
-				// 서버에 결과 전송
 				myController->SendHitZombieInfo(zombie->GetNumber());
 				EndAttack();
 			}

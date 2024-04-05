@@ -79,6 +79,7 @@ void APlayerControllerMainMap::PlayerDead()
 {
 	myCharacter->PlayerDead();
 	GetWorldTimerManager().SetTimer(respawnRequestTimer, this, &APlayerControllerMainMap::respawnRequestAfterDelay, 3.f);
+	DPlayerDead.ExecuteIfBound();
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()
