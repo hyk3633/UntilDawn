@@ -279,7 +279,15 @@ void AGameModeMainMap::StartPlayerWrestling(std::stringstream& recvStream)
 
 	if (playerCharacterMap.Find(playerNumber))
 	{
-		playerCharacterMap[playerNumber]->SetWrestlingOn();
+		if (playerNumber == myNumber)
+		{
+			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+			myPlayerController->WrestlingStart();
+		}
+		else
+		{
+			playerCharacterMap[playerNumber]->SetWrestlingOn();
+		}
 	}
 }
 
@@ -299,6 +307,7 @@ void AGameModeMainMap::PickUpItem(std::stringstream& recvStream)
 	recvStream >> itemNumber;
 	if (itemMap.Find(itemNumber))
 	{
+		// 플레이어 컨트롤러를 거치도록
 		playerCharacterMap[myNumber]->AddItemToInv(itemMap[itemNumber]);
 		//itemMap[number]->DeactivateActor();
 	}

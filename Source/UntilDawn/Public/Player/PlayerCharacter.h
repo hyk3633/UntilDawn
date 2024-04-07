@@ -25,6 +25,8 @@ class AItemMeleeWeapon;
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
 DECLARE_DELEGATE_TwoParams(DelegateZombieHitsMe, int zombieNumber, bool bResult);
+DECLARE_DELEGATE_OneParam(DelegateHitZombie, int zombieNumber);
+DECLARE_DELEGATE_OneParam(DelegateHitPlayer, int playerNumber);
 
 UCLASS()
 class UNTILDAWN_API APlayerCharacter : public ACharacter
@@ -38,6 +40,8 @@ public:
 	DelegateZombieInRange DZombieInRange;
 	DelegateZombieInRange DZombieOutRange;
 	DelegateZombieHitsMe DZombieHitsMe;
+	DelegateHitZombie DHitZombie;
+	DelegateHitPlayer DHitPlayer;
 
 protected:
 
@@ -59,21 +63,25 @@ protected:
 
 	void SprintEnd();
 
-	void LeftClick();
+public:
 
-	void LeftClickHold();
+	bool LeftClick();
 
-	void LeftClickEnd();
+	bool LeftClickHold();
 
-	void RightClick();
+	bool LeftClickEnd();
 
-	void RightClickEnd();
+	bool RightClick();
 
-	void RKeyPressed();
+	bool RightClickEnd();
 
-	void RKeyHold();
+	bool RKeyPressed();
 
-	void EKeyPressed();
+	bool RKeyHold();
+
+	void SuccessToBlocking();
+
+protected:
 
 	UFUNCTION()
 	void OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -90,8 +98,6 @@ public:
 	virtual void Tick(float deltaTime) override;
 
 	void UpdatePlayerInfo();
-
-	void SaveInfoToPacket(const int bitType);
 
 	FORCEINLINE void SetPlayerNumber(const int num) { number = num; }
 	FORCEINLINE int GetPlayerNumber() const { return number; }
@@ -139,8 +145,6 @@ public:
 
 	FORCEINLINE bool GetAttackActivated() const { return isAttackActivated; }
 
-	void ItemTrace();
-
 	void AddItemToInv(AItemBase* itemNumber);
 
 	void PlayerDead();
@@ -165,12 +169,6 @@ private:
 	UPROPERTY()
 	UPlayerAnimInst* animInst;
 
-	UPROPERTY()
-	APlayerControllerMainMap* myController;
-
-	UPROPERTY()
-	AHUDMainMap* myHUD;
-
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* defaultMappingContext;
 
@@ -186,24 +184,6 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* sprintAction;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* leftClickAction;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* leftClickHoldAction;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* rightClickAction;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* rKeyAction;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* rKeyHoldAction;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* eKeyAction;
-
 	int number;
 
 	FString playerID;
@@ -218,7 +198,7 @@ private:
 
 	float shootPower;
 
-	EWeaponType currentWeaponType = EWeaponType::DEFAULT;
+	EWeaponType currentWeaponType = EWeaponType::NONE;
 
 	PlayerInfo myInfo;
 
@@ -226,13 +206,7 @@ private:
 
 	bool isAttackActivated;
 
-	UPROPERTY()
-	AItemMeleeWeapon* equippedWeapon;
-
-	FHitResult itemHit;
-
-	UPROPERTY()
-	AItemMeleeWeapon* lookingWeapon;
+	TWeakObjectPtr<AItemMeleeWeapon> equippedWeapon;
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	TArray<AItemBase*> items;

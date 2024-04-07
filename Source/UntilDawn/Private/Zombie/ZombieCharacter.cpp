@@ -19,7 +19,7 @@ AZombieCharacter::AZombieCharacter()
 	AutoPossessAI = EAutoPossessAI::Spawned;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
+	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombieCapsule"));
 
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -44,7 +44,7 @@ AZombieCharacter::AZombieCharacter()
 void AZombieCharacter::ActivateActor()
 {
 	isActive = true;
-	GetCapsuleComponent()->SetCollisionProfileName(FName("ActivatedZombie"));
+	GetCapsuleComponent()->SetCollisionProfileName(FName("ActivatedZombieCapsule"));
 	GetMesh()->SetVisibility(true);
 }
 
@@ -54,7 +54,7 @@ void AZombieCharacter::DeactivateActor()
 	SetActorLocation(FVector(0, 0, -3500));
 	
 	GetMesh()->SetSimulatePhysics(false);
-	GetMesh()->SetCollisionProfileName(FName("Pawn"));
+	GetMesh()->SetCollisionProfileName(FName("NormalMesh"));
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetVisibility(false);
 	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
@@ -84,7 +84,7 @@ void AZombieCharacter::ZombieDead()
 	state = EZombieState::IDLE;
 	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
 	GetWorldTimerManager().SetTimer(deactivateDelayTimer, this, &AZombieCharacter::DeactivateAfterDelay, 3.f);
-	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombie"));
+	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombieCapsule"));
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
 }

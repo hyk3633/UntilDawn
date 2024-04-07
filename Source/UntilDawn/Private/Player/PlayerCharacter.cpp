@@ -20,7 +20,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "KismetAnimationLibrary.h"
 #include "UntilDawn/UntilDawn.h"
-#include "Zombie/ZombieCharacter.h"
 #include "Item/Weapon/ItemMeleeWeapon.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -73,7 +72,7 @@ APlayerCharacter::APlayerCharacter()
 	static ConstructorHelpers::FClassFinder<UPlayerAnimInst> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Player/AnimBP_Player.AnimBP_Player_C'"));
 	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
 
-	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_Defaults.IMC_Defaults"));
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsCharacter.IMC_DefaultsCharacter"));
 	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
 	
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Jump(TEXT("/Game/_Assets/Inputs/Actions/IA_Jump.IA_Jump"));
@@ -87,24 +86,6 @@ APlayerCharacter::APlayerCharacter()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Sprint(TEXT("/Game/_Assets/Inputs/Actions/IA_Sprint.IA_Sprint"));
 	if (obj_Sprint.Succeeded()) sprintAction = obj_Sprint.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClick(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClick.IA_LeftClick"));
-	if (obj_LeftClick.Succeeded()) leftClickAction = obj_LeftClick.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClickHold(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClickHold.IA_LeftClickHold"));
-	if (obj_LeftClickHold.Succeeded()) leftClickHoldAction = obj_LeftClickHold.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RightClick(TEXT("/Game/_Assets/Inputs/Actions/IA_RightClick.IA_RightClick"));
-	if (obj_RightClick.Succeeded()) rightClickAction = obj_RightClick.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RKey(TEXT("/Game/_Assets/Inputs/Actions/IA_RKey.IA_RKey"));
-	if (obj_RKey.Succeeded()) rKeyAction = obj_RKey.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RKeyHold(TEXT("/Game/_Assets/Inputs/Actions/IA_RKeyHold.IA_RKeyHold"));
-	if (obj_RKeyHold.Succeeded()) rKeyHoldAction = obj_RKeyHold.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_EKey(TEXT("/Game/_Assets/Inputs/Actions/IA_EKey.IA_EKey"));
-	if (obj_EKey.Succeeded()) eKeyAction = obj_EKey.Object;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -122,13 +103,11 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::PossessedBy(AController* newController)
 {
 	Super::PossessedBy(newController);
-	myController = Cast<APlayerControllerMainMap>(newController);
-	if (myController)
-	{
-		myHUD = myController->GetHUD<AHUDMainMap>();
-		myHUD->DFailedToResist.BindUFunction(this, FName("FailedToResist"));
 
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(myController->GetLocalPlayer()))
+	TWeakObjectPtr<APlayerController> playerController = Cast<APlayerController>(newController);
+	if (playerController.IsValid())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(playerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
@@ -142,22 +121,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 {
 	Super::SetupPlayerInputComponent(playerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(playerInputComponent)) {
-		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
-		EnhancedInputComponent->BindAction(jumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-		EnhancedInputComponent->BindAction(moveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
-		EnhancedInputComponent->BindAction(lookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Sprint);	// 컨트롤러 수정
-		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::SprintEnd);	// 컨트롤러 수정
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(playerInputComponent)) 
+	{
+		EnhancedInputComponent->BindAction(jumpAction,		ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
+		EnhancedInputComponent->BindAction(jumpAction,		ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
-		EnhancedInputComponent->BindAction(leftClickAction, ETriggerEvent::Started, this, &APlayerCharacter::LeftClick);
-		EnhancedInputComponent->BindAction(leftClickHoldAction, ETriggerEvent::Triggered, this, &APlayerCharacter::LeftClickHold);
-		EnhancedInputComponent->BindAction(leftClickAction, ETriggerEvent::Completed, this, &APlayerCharacter::LeftClickEnd);
-		EnhancedInputComponent->BindAction(rightClickAction, ETriggerEvent::Triggered, this, &APlayerCharacter::RightClick);
-		EnhancedInputComponent->BindAction(rightClickAction, ETriggerEvent::Completed, this, &APlayerCharacter::RightClickEnd);
-		EnhancedInputComponent->BindAction(rKeyAction, ETriggerEvent::Completed, this, &APlayerCharacter::RKeyPressed);
-		EnhancedInputComponent->BindAction(rKeyHoldAction, ETriggerEvent::Triggered, this, &APlayerCharacter::RKeyHold);
-		EnhancedInputComponent->BindAction(eKeyAction, ETriggerEvent::Completed, this, &APlayerCharacter::EKeyPressed);
+		EnhancedInputComponent->BindAction(moveAction,		ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
+		EnhancedInputComponent->BindAction(lookAction,		ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
+		EnhancedInputComponent->BindAction(sprintAction,	ETriggerEvent::Triggered, this, &APlayerCharacter::Sprint);	
+		EnhancedInputComponent->BindAction(sprintAction,	ETriggerEvent::Completed, this, &APlayerCharacter::SprintEnd);	
 	}
 }
 
@@ -220,26 +192,19 @@ void APlayerCharacter::Sprint()
 {
 	if (isAbleShoot || CheckAbleInput() == false)
 		return;
+
 	GetCharacterMovement()->MaxWalkSpeed = 600;
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::Sprint);
-	}
 }
 
 void APlayerCharacter::SprintEnd()
 {
 	GetCharacterMovement()->MaxWalkSpeed = 300;
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::SprintEnd);
-	}
 }
 
-void APlayerCharacter::LeftClick()
+bool APlayerCharacter::LeftClick()
 {
-	if (CheckAbleInput() == false)
-		return;
+	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+		return false;
 
 	if (currentWeaponType == EWeaponType::AXE)
 	{
@@ -249,119 +214,92 @@ void APlayerCharacter::LeftClick()
 	{
 		animInst->PlayBowDrawMontage();
 	}
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::LeftClick);
-	}
+	return true;
 }
 
-void APlayerCharacter::LeftClickHold()
+bool APlayerCharacter::LeftClickHold()
 {
-	if (CheckAbleInput() == false)
-		return;
+	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+		return false;
 
 	if (currentWeaponType == EWeaponType::BOW)
 	{
 		isAbleShoot = true;
 		GetCharacterMovement()->MaxWalkSpeed = 300;
 	}
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::LeftClickHold);
-	}
+	return true;
 }
 
-void APlayerCharacter::LeftClickEnd()
+bool APlayerCharacter::LeftClickEnd()
 {
+	if (isAbleShoot == false || currentWeaponType == EWeaponType::NONE)
+		return false;
+
 	if (currentWeaponType == EWeaponType::BOW)
 	{
-		if (isAbleShoot == false) 
-			return;
 		isAbleShoot = false;
 		animInst->PlayBowShootMontage();
 		shootPower = 0;
 	}
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::LeftClickEnd);
-	}
+	return true;
 }
 
-void APlayerCharacter::RightClick()
+bool APlayerCharacter::RightClick()
 {
-	if (CheckAbleInput() == false)
-		return;
+	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+		return false;
 
 	if (currentWeaponType == EWeaponType::AXE)
 	{
 		rightClick = true;
 	}
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::RightClick);
-	}
+	return true;
 }
 
-void APlayerCharacter::RightClickEnd()
+bool APlayerCharacter::RightClickEnd()
 {
+	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+		return false;
+
 	if (currentWeaponType == EWeaponType::AXE)
 	{
 		rightClick = false;
 	}
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::RightClickEnd);
-	}
+	return true;
 }
 
-void APlayerCharacter::RKeyPressed()
+bool APlayerCharacter::RKeyPressed()
 {
-	if (currentWeaponType != EWeaponType::DEFAULT || CheckAbleInput() == false)
-		return;
+	if (CheckAbleInput() == false || currentWeaponType != EWeaponType::NONE)
+		return false;
+
 	animInst->PlayWeaponArmMontage(EWeaponType::AXE);
 	currentWeaponType = EWeaponType::AXE;
 
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::RKeyPressed);
-	}
+	return true;
 }
 
-void APlayerCharacter::RKeyHold()
+bool APlayerCharacter::RKeyHold()
 {
-	if (currentWeaponType == EWeaponType::DEFAULT || CheckAbleInput() == false)
-		return;
+	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+		return false;
+
 	animInst->PlayWeaponDisarmMontage(currentWeaponType);
-	currentWeaponType = EWeaponType::DEFAULT;
+	currentWeaponType = EWeaponType::NONE;
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
-	if (myController)
-	{
-		myController->SendPlayerInputAction(EPlayerInputs::RKeyHold);
-	}
+	return true;
 }
 
-void APlayerCharacter::EKeyPressed()
+void APlayerCharacter::SuccessToBlocking()
 {
-	if (bWrestling && myHUD)
-	{
-		if (myHUD->IncreasingProgressBar())
-		{
-			SetWrestlingOff();
-			myController->SendPlayerBlockingResult(true);
-			PlayPushingZombieMontage(true);
-		}
-	}
-	else if (lookingWeapon)
-	{
-		myController->SendPickedItemInfo(lookingWeapon->GetNumber());
-		lookingWeapon = nullptr;
-	}
+	SetWrestlingOff();
+	PlayPushingZombieMontage(true);
 }
 
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -417,8 +355,6 @@ void APlayerCharacter::Tick(float deltaTime)
 		VectorTruncate(de);
 		SetActorLocation(de);
 	}
-
-	ItemTrace();
 }
 
 void APlayerCharacter::UpdatePlayerInfo()
@@ -448,12 +384,12 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType)
 		return;
 	switch (static_cast<EPlayerInputs>(inputType))
 	{
-	case EPlayerInputs::Sprint:
-		Sprint();
-		break;
-	case EPlayerInputs::SprintEnd:
-		SprintEnd();
-		break;
+	//case EPlayerInputs::Sprint:
+	//	Sprint();
+	//	break;
+	//case EPlayerInputs::SprintEnd:
+	//	SprintEnd();
+	//	break;
 	case EPlayerInputs::LeftClick:
 		LeftClick();
 		break;
@@ -485,19 +421,11 @@ void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber
 
 void APlayerCharacter::SetWrestlingOn()
 {
-	if (myHUD && !bWrestling)
-	{
-		myHUD->StartWrestlingProgressBar();
-	}
 	bWrestling = true;
 }
 
 void APlayerCharacter::SetWrestlingOff()
 {
-	if (myHUD)
-	{
-		myHUD->EndWrestlingProgressBar();
-	}
 	bWrestling = false;
 }
 
@@ -508,7 +436,6 @@ void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
 
 void APlayerCharacter::FailedToResist()
 {
-	myController->SendPlayerBlockingResult(false);
 	PlayPushingZombieMontage(false);
 	SetWrestlingOff();
 }
@@ -536,7 +463,7 @@ void APlayerCharacter::ActivateAttackTrace()
 		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
 		if (IsValid(player))
 		{
-			myController->SendHitPlayerInfo(player->GetPlayerNumber());
+			DHitPlayer.ExecuteIfBound(player->GetPlayerNumber());
 			EndAttack();
 		}
 		else
@@ -544,7 +471,7 @@ void APlayerCharacter::ActivateAttackTrace()
 			AZombieCharacter* zombie = Cast<AZombieCharacter>(hit.GetActor());
 			if (IsValid(zombie))
 			{
-				myController->SendHitZombieInfo(zombie->GetNumber());
+				DHitZombie.ExecuteIfBound(zombie->GetNumber());
 				EndAttack();
 			}
 		}
@@ -554,40 +481,6 @@ void APlayerCharacter::ActivateAttackTrace()
 void APlayerCharacter::EndAttack()
 {
 	isAttackActivated = false;
-}
-
-void APlayerCharacter::ItemTrace()
-{
-	if (equippedWeapon)
-		return;
-
-	FVector2D ViewPortSize;
-	if (GEngine && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->GetViewportSize(ViewPortSize);
-	}
-	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
-	FVector startLoc, dir;
-	UGameplayStatics::DeprojectScreenToWorld(myController, CrosshairLocation, startLoc, dir);
-	GetWorld()->LineTraceSingleByChannel
-	(
-		itemHit,
-		startLoc,
-		startLoc + dir * 5000.f,
-		ECC_ItemTrace
-	);
-	DrawDebugLine(GetWorld(), startLoc, startLoc + dir * 5000.f, FColor::Blue, false, -1.f, 0U, 1.5f);
-	if (itemHit.bBlockingHit)
-	{
-		AItemMeleeWeapon* weapon = Cast<AItemMeleeWeapon>(itemHit.GetActor());
-		if (IsValid(weapon))
-		{
-			lookingWeapon = weapon;
-			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Blue, TEXT("weapon"));
-		}
-		else lookingWeapon = nullptr;
-	}
-	else lookingWeapon = nullptr;
 }
 
 void APlayerCharacter::AddItemToInv(AItemBase* itemNumber)
@@ -610,11 +503,10 @@ void APlayerCharacter::InitializePlayerInfo()
 {
 	isAbleShoot = false;
 	shootPower = false;
-	currentWeaponType = EWeaponType::DEFAULT;
+	currentWeaponType = EWeaponType::NONE;
 	bWrestling = false;
 	isAttackActivated = false;
 	equippedWeapon = nullptr;
-	lookingWeapon = nullptr;
 }
 
 void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
@@ -629,7 +521,7 @@ void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
 	}
 	GetCapsuleComponent()->SetRelativeRotation(FRotator(0.f, GetActorRotation().Yaw, 0.f));
 	GetMesh()->SetSimulatePhysics(false);
-	GetMesh()->SetCollisionProfileName(FName("Pawn"));
+	GetMesh()->SetCollisionProfileName(FName("NormalMesh"));
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetVisibility(true);
 	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);

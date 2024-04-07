@@ -95,7 +95,7 @@ private:
 	UAnimMontage* wrestlingMontage;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	EWeaponType currentWeaponType = EWeaponType::DEFAULT;
+	EWeaponType currentWeaponType = EWeaponType::NONE;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool isWrestling;

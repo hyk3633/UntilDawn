@@ -5,9 +5,8 @@
 #include "GameFramework/HUD.h"
 #include "HUDMainMap.generated.h"
 
-DECLARE_DELEGATE(DelegateFailedToResist);
-
 class UWidgetWrestlingProgress;
+class APlayerControllerMainMap;
 
 UCLASS()
 class UNTILDAWN_API AHUDMainMap : public AHUD
@@ -18,8 +17,6 @@ public:
 
 	AHUDMainMap();
 
-	DelegateFailedToResist DFailedToResist;
-
 protected:
 
 	virtual void BeginPlay() override;
@@ -27,13 +24,16 @@ protected:
 	UFUNCTION()
 	void InitializeHUD();
 
-public:
+	UFUNCTION()
+	void IncreasingProgressBar();
+
+	void CheckWrestlingProgress(float deltaTime);
 
 	virtual void Tick(float deltaTime) override;
-
-	bool IncreasingProgressBar();
-
+	
+	UFUNCTION()
 	void StartWrestlingProgressBar();
+
 	void EndWrestlingProgressBar();
 
 private:
@@ -43,6 +43,8 @@ private:
 
 	UPROPERTY()
 	UWidgetWrestlingProgress* WrestlingProgressWidget;
+
+	TWeakObjectPtr<APlayerControllerMainMap> playerController;
 
 	bool bStartWrestling;
 

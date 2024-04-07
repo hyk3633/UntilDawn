@@ -17,9 +17,11 @@ void AHUDMainMap::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayerController());
-	check(playerController);
+	playerController = Cast<APlayerControllerMainMap>(GetOwningPlayerController());
+	check(playerController.Get());
 	playerController->DPlayerDead.BindUFunction(this, FName("InitializeHUD"));
+	playerController->DEKeyPressed.BindUFunction(this, FName("IncreasingProgressBar"));
+	playerController->DWrestlingStart.BindUFunction(this, FName("StartWrestlingProgressBar"));
 
 	if (WidgetWrestlingProgressClass)
 	{
@@ -34,22 +36,34 @@ void AHUDMainMap::InitializeHUD()
 	EndWrestlingProgressBar();
 }
 
-void AHUDMainMap::Tick(float deltaTime)
+void AHUDMainMap::IncreasingProgressBar()
 {
-	Super::Tick(deltaTime);
+	if (WrestlingProgressWidget->IncreasingProgressBar())
+	{
+		if (playerController.IsValid())
+		{
+			playerController->SuccessToBlocking();
+		}
+		EndWrestlingProgressBar();
+	}
+}
 
+void AHUDMainMap::CheckWrestlingProgress(float deltaTime)
+{
 	if (bStartWrestling && WrestlingProgressWidget)
 	{
 		if (WrestlingProgressWidget->ReducingProgressBar(deltaTime))
 		{
-			DFailedToResist.ExecuteIfBound();
+			playerController->FailedToBlocking();
 		}
 	}
 }
 
-bool AHUDMainMap::IncreasingProgressBar()
+void AHUDMainMap::Tick(float deltaTime)
 {
-	return WrestlingProgressWidget->IncreasingProgressBar();
+	Super::Tick(deltaTime);
+
+	CheckWrestlingProgress(deltaTime);
 }
 
 void AHUDMainMap::StartWrestlingProgressBar()
