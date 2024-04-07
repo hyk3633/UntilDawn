@@ -89,10 +89,6 @@ protected:
 	UFUNCTION()
 	void OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void MaskToInfoBit(int& infoBit, const PIBTC bitType);
-
-	void RemoveMaskedBit(int& infoBit, const PIBTC bitType);
-
 public:	
 
 	virtual void Tick(float deltaTime) override;

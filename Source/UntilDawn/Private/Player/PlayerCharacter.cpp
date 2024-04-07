@@ -320,16 +320,6 @@ void APlayerCharacter::OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* Ove
 	}
 }
 
-void APlayerCharacter::MaskToInfoBit(int& infoBit, const PIBTC bitType)
-{
-	infoBit |= (1 << static_cast<int>(bitType));
-}
-
-void APlayerCharacter::RemoveMaskedBit(int& infoBit, const PIBTC bitType)
-{
-	infoBit &= ~(1 << static_cast<int>(bitType));
-}
-
 void APlayerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);

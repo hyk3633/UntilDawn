@@ -137,17 +137,6 @@ void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
 				character->DeadReckoningMovement(lastLocation, lastVelocity, (end - info.ratencyStart) / 2.f);
 			}
 		}
-		if (playerInfo.second.flag)
-		{
-			const int bitMax = static_cast<int>(PIBTS::MAX);
-			for (int bit = 0; bit < bitMax; bit++)
-			{
-				if (playerInfo.second.recvInfoBitMask & (1 << bit))
-				{
-					ProcessPlayerInfo(playerInfo.first, playerInfo.second, bit);
-				}
-			}
-		}
 	}
 }
 
@@ -383,16 +372,4 @@ void AGameModeMainMap::Tick(float deltaTime)
 	Super::Tick(deltaTime);
 
 	ProcessPacket();
-}
-
-void AGameModeMainMap::ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType)
-{
-	PIBTS type = static_cast<PIBTS>(bitType);
-	switch (type)
-	{
-		case PIBTS::WrestlingState:
-		{
-			break;
-		}
-	}
 }

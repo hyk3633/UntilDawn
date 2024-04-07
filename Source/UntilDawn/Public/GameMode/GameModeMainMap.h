@@ -66,8 +66,6 @@ protected:
 
 	void PlayerSpawnAfterDelay();
 
-	void ProcessPlayerInfo(const int playerNumber, const PlayerInfo& info, const int bitType);
-
 public:
 
 	virtual void Tick(float deltaTime) override;

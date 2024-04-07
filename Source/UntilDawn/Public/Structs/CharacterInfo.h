@@ -128,31 +128,10 @@ struct CharacterInfo
 	}
 };
 
-enum class EPlayerInfoBitTypeClient
-{
-	ZombieAttackResult,
-	MAX
-};
-
-typedef EPlayerInfoBitTypeClient PIBTC;
-
-enum class EPlayerInfoBitTypeServer
-{
-	WrestlingState,
-	MAX
-};
-
-typedef EPlayerInfoBitTypeServer PIBTS;
-
 struct PlayerInfo
 {
 	// 필수 데이터
 	CharacterInfo characterInfo;
-
-	// 서버 수신용 데이터
-	int recvInfoBitMask;
-
-	bool flag;
 
 	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
 	{
@@ -163,33 +142,7 @@ struct PlayerInfo
 	friend std::istream& operator>>(std::istream& stream, PlayerInfo& info)
 	{
 		stream >> info.characterInfo;
-		stream >> info.flag;
-
-		if (info.flag)
-		{
-			stream >> info.recvInfoBitMask;
-			const int bitMax = static_cast<int>(PIBTS::MAX);
-			for (int bit = 0; bit < bitMax; bit++)
-			{
-				if (info.recvInfoBitMask & (1 << bit))
-				{
-					ReceiveInfoToPacket(stream, info, bit);
-				}
-			}
-		}
 		return stream;
-	}
-
-	friend void ReceiveInfoToPacket(std::istream& stream, PlayerInfo& info, const int bitType)
-	{
-		PIBTS type = static_cast<PIBTS>(bitType);
-		switch (type)
-		{
-			case PIBTS::WrestlingState:
-			{
-				break;
-			}
-		}
 	}
 };
 
