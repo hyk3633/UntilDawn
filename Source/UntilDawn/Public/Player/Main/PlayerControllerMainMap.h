@@ -69,6 +69,8 @@ public:
 
 	void WrestlingStart();
 
+	void WrestlingEnd(const bool wrestlingResult);
+
 	void SuccessToBlocking();
 
 	void FailedToBlocking();

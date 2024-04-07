@@ -100,8 +100,8 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 void APlayerControllerMainMap::LeftClick()
 {
-	WLOG(TEXT("hey"));
-	if (myCharacter && myCharacter->LeftClick())
+	check(myCharacter);
+	if (myCharacter->LeftClick())
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClick);
 	}
@@ -109,7 +109,8 @@ void APlayerControllerMainMap::LeftClick()
 
 void APlayerControllerMainMap::LeftClickHold()
 {
-	if (myCharacter && myCharacter->LeftClickHold())
+	check(myCharacter);
+	if (myCharacter->LeftClickHold())
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClickHold);
 	}
@@ -117,7 +118,8 @@ void APlayerControllerMainMap::LeftClickHold()
 
 void APlayerControllerMainMap::LeftClickEnd()
 {
-	if (myCharacter && myCharacter->LeftClickEnd())
+	check(myCharacter);
+	if (myCharacter->LeftClickEnd())
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClickEnd);
 	}
@@ -125,7 +127,8 @@ void APlayerControllerMainMap::LeftClickEnd()
 
 void APlayerControllerMainMap::RightClick()
 {
-	if (myCharacter && myCharacter->RightClick())
+	check(myCharacter);
+	if (myCharacter->RightClick())
 	{
 		SendPlayerInputAction(EPlayerInputs::RightClick);
 	}
@@ -133,7 +136,8 @@ void APlayerControllerMainMap::RightClick()
 
 void APlayerControllerMainMap::RightClickEnd()
 {
-	if (myCharacter && myCharacter->RightClickEnd())
+	check(myCharacter);
+	if (myCharacter->RightClickEnd())
 	{
 		SendPlayerInputAction(EPlayerInputs::RightClickEnd);
 	}
@@ -141,7 +145,8 @@ void APlayerControllerMainMap::RightClickEnd()
 
 void APlayerControllerMainMap::RKeyPressed()
 {
-	if (myCharacter && myCharacter->RKeyPressed())
+	check(myCharacter);
+	if (myCharacter->RKeyPressed())
 	{
 		SendPlayerInputAction(EPlayerInputs::RKeyPressed);
 	}
@@ -149,7 +154,8 @@ void APlayerControllerMainMap::RKeyPressed()
 
 void APlayerControllerMainMap::RKeyHold()
 {
-	if (myCharacter && myCharacter->RKeyHold())
+	check(myCharacter);
+	if (myCharacter->RKeyHold())
 	{
 		SendPlayerInputAction(EPlayerInputs::RKeyHold);
 	}
@@ -157,7 +163,8 @@ void APlayerControllerMainMap::RKeyHold()
 
 void APlayerControllerMainMap::EKeyPressed()
 {
-	if (myCharacter && myCharacter->GetWrestling())
+	check(myCharacter);
+	if (myCharacter->GetWrestling())
 	{
 		DEKeyPressed.ExecuteIfBound();
 	}
@@ -169,28 +176,31 @@ void APlayerControllerMainMap::EKeyPressed()
 
 void APlayerControllerMainMap::WrestlingStart()
 {
-	if (myCharacter)
-	{
-		myCharacter->SetWrestlingOn();
-	}
+	check(myCharacter);
+	myCharacter->SetWrestlingOn();
 	DWrestlingStart.ExecuteIfBound();
+}
+
+void APlayerControllerMainMap::WrestlingEnd(const bool wrestlingResult)
+{
+	check(myCharacter);
+	if (wrestlingResult)
+	{
+		myCharacter->SuccessToBlocking();
+	}
+	else
+	{
+		myCharacter->FailedToResist();
+	}
 }
 
 void APlayerControllerMainMap::SuccessToBlocking()
 {
-	if (myCharacter)
-	{
-		myCharacter->SuccessToBlocking();
-	}
 	SendPlayerBlockingResult(true);
 }
 
 void APlayerControllerMainMap::FailedToBlocking()
 {
-	if (myCharacter)
-	{
-		myCharacter->SuccessToBlocking();
-	}
 	SendPlayerBlockingResult(false);
 }
 
@@ -199,6 +209,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	Super::OnPossess(pawn);
 
 	myCharacter = Cast<APlayerCharacter>(pawn);
+	check(myCharacter);
 	// 서버에 게임 맵에 접속했음을 알림
 	myCharacter->DZombieInRange.BindUFunction(this, FName("SendInRangeZombie"));
 	myCharacter->DZombieOutRange.BindUFunction(this, FName("SendOutRangeZombie"));
@@ -223,46 +234,55 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 
 void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType)
 {
+	check(clientSocket);
 	clientSocket->SendPlayerInputAction(static_cast<int>(inputType));
 }
 
 void APlayerControllerMainMap::SendInRangeZombie(int zombieNumber)
 {
+	check(clientSocket);
 	clientSocket->SendInRangeZombie(zombieNumber);
 }
 
 void APlayerControllerMainMap::SendOutRangeZombie(int zombieNumber)
 {
+	check(clientSocket);
 	clientSocket->SendOutRangeZombie(zombieNumber);
 }
 
 void APlayerControllerMainMap::SendZombieHitsMe(int zombieNumber, bool bResult)
 {
+	check(clientSocket);
 	clientSocket->SendZombieHitsMe(zombieNumber, bResult);
 }
 
 void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 {
+	check(clientSocket);
 	clientSocket->SendPlayerBlockingResult(isSuccessToBlocking);
 }
 
 void APlayerControllerMainMap::SendPickedItemInfo(const int itemNumber)
 {
+	check(clientSocket);
 	clientSocket->SendPickedItemInfo(itemNumber);
 }
 
 void APlayerControllerMainMap::SendHitPlayerInfo(const int playerNumber)
 {
+	check(clientSocket);
 	clientSocket->SendHitPlayerInfo(playerNumber);
 }
 
 void APlayerControllerMainMap::SendHitZombieInfo(const int zombieNumber)
 {
+	check(clientSocket);
 	clientSocket->SendHitZombieInfo(zombieNumber);
 }
 
 void APlayerControllerMainMap::PlayerDead()
 {
+	check(myCharacter);
 	myCharacter->PlayerDead();
 	GetWorldTimerManager().SetTimer(respawnRequestTimer, this, &APlayerControllerMainMap::respawnRequestAfterDelay, 3.f);
 	DPlayerDead.ExecuteIfBound();
@@ -270,11 +290,13 @@ void APlayerControllerMainMap::PlayerDead()
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
+	check(myCharacter);
 	myCharacter->UpdatePlayerInfo();
 	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
 }
 
 void APlayerControllerMainMap::respawnRequestAfterDelay()
 {
+	check(clientSocket);
 	clientSocket->SendRespawnRequest();
 }

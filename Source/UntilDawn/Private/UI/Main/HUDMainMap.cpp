@@ -50,11 +50,13 @@ void AHUDMainMap::IncreasingProgressBar()
 
 void AHUDMainMap::CheckWrestlingProgress(float deltaTime)
 {
-	if (bStartWrestling && WrestlingProgressWidget)
+	check(WrestlingProgressWidget);
+	if (bStartWrestling)
 	{
 		if (WrestlingProgressWidget->ReducingProgressBar(deltaTime))
 		{
 			playerController->FailedToBlocking();
+			EndWrestlingProgressBar();
 		}
 	}
 }

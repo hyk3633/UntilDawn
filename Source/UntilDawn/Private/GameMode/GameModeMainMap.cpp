@@ -255,9 +255,22 @@ void AGameModeMainMap::PlayWrestlingResultAction(std::stringstream& recvStream)
 
 	if (playerCharacterMap.Find(playerNumber))
 	{
-		APlayerCharacter* character = playerCharacterMap[playerNumber];
-		character->PlayPushingZombieMontage(wrestlingResult);
-		character->SetWrestlingOff();
+		if (playerNumber == myNumber)
+		{
+			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+			myPlayerController->WrestlingEnd(wrestlingResult);
+		}
+		else
+		{
+			if (wrestlingResult)
+			{
+				playerCharacterMap[playerNumber]->SuccessToBlocking();
+			}
+			else
+			{
+				playerCharacterMap[playerNumber]->FailedToResist();
+			}
+		}
 	}
 }
 

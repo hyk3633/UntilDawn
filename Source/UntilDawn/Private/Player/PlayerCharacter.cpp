@@ -426,8 +426,8 @@ void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
 
 void APlayerCharacter::FailedToResist()
 {
-	PlayPushingZombieMontage(false);
 	SetWrestlingOff();
+	PlayPushingZombieMontage(false);
 }
 
 void APlayerCharacter::WrestlingEnd()
