@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "../Interface/PoolableActor.h"
-#include "../Enums/PoolableActorType.h"
+#include "../Enums/ItemType.h"
 #include "ActorSpawner.generated.h"
 
 class AZombieCharacter;
@@ -21,7 +21,9 @@ public:
 	UActorSpawner();
 
 public:	
+
+	void SpawnZombie(const int spawnCount, TArray<AActor*>& actorArray);
 		
-	void SpawnActor(const int spawnCount, const EPoolableActorType type, TArray<AActor*>& actorArray);
+	void SpawnItem(const int spawnCount, const EItemMainType type, TArray<AActor*>& actorArray);
 
 };

@@ -2,6 +2,7 @@
 
 
 #include "GameMode/GameModeMainMap.h"
+#include "GameSystem/JsonComponent.h"
 #include "GameSystem/ActorSpawner.h"
 #include "GameSystem/ActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
@@ -9,6 +10,7 @@
 #include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Item/ItemBase.h"
+#include "Item/ItemCore.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -20,36 +22,43 @@ AGameModeMainMap::AGameModeMainMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	jsonComponent = CreateDefaultSubobject<UJsonComponent>(TEXT("Json Component"));
+
 	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
 
 	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
 
-	itemPooler = CreateDefaultSubobject<UActorPooler>(TEXT("Item Pooler"));
+	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
+	{
+		itemPoolerMap.Add(i, CreateDefaultSubobject<UActorPooler>(FName(*FString::Printf(TEXT("Pooler %d"), i))));
+	}
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
 	HUDClass = AHUDMainMap::StaticClass();
+
+	
 }
 
 void AGameModeMainMap::BeginPlay()
 {
 	Super::BeginPlay();
-
-	packetCallbacks = std::vector<void (AGameModeMainMap::*)(std::stringstream&)>(PACKETTYPE_MAX);
-	packetCallbacks[static_cast<int>(EPacketType::SPAWNPLAYER)]			= &AGameModeMainMap::SpawnNewPlayerCharacter;
-	packetCallbacks[static_cast<int>(EPacketType::SYNCHPLAYER)]			= &AGameModeMainMap::SynchronizePlayers;
-	packetCallbacks[static_cast<int>(EPacketType::SYNCHZOMBIE)]			= &AGameModeMainMap::SynchronizeZombies;
-	packetCallbacks[static_cast<int>(EPacketType::SYNCHITEM)]			= &AGameModeMainMap::SynchronizeItems;
-	packetCallbacks[static_cast<int>(EPacketType::INITIALINFO)]			= &AGameModeMainMap::InitializeWorld;
-	packetCallbacks[static_cast<int>(EPacketType::PLAYERINPUTACTION)]	= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
-	packetCallbacks[static_cast<int>(EPacketType::WRESTLINGRESULT)]		= &AGameModeMainMap::PlayWrestlingResultAction;
-	packetCallbacks[static_cast<int>(EPacketType::WRESTLINGSTART)]		= &AGameModeMainMap::StartPlayerWrestling;
-	packetCallbacks[static_cast<int>(EPacketType::PLAYERDISCONNECTED)]	= &AGameModeMainMap::ProcessDisconnectedPlayer;
-	packetCallbacks[static_cast<int>(EPacketType::DESTROYITEM)]			= &AGameModeMainMap::DestroyItem;
-	packetCallbacks[static_cast<int>(EPacketType::PICKUPITEM)]			= &AGameModeMainMap::PickUpItem;
-	packetCallbacks[static_cast<int>(EPacketType::PLAYERDEAD)]			= &AGameModeMainMap::ProcessPlayerDead;
-	packetCallbacks[static_cast<int>(EPacketType::PLAYERRESPAWN)]		= &AGameModeMainMap::RespawnPlayer;
-	packetCallbacks[static_cast<int>(EPacketType::ZOMBIEDEAD)]			= &AGameModeMainMap::ProcessZombieDead;
+	
+	packetCallbacks[EPacketType::SPAWNPLAYER]			= &AGameModeMainMap::SpawnNewPlayerCharacter;
+	packetCallbacks[EPacketType::SYNCHPLAYER]			= &AGameModeMainMap::SynchronizePlayers;
+	packetCallbacks[EPacketType::SYNCHZOMBIE]			= &AGameModeMainMap::SynchronizeZombies;
+	packetCallbacks[EPacketType::SYNCHITEM]				= &AGameModeMainMap::SynchronizeItems;
+	packetCallbacks[EPacketType::INITIALINFO]			= &AGameModeMainMap::InitializeWorld;
+	packetCallbacks[EPacketType::PLAYERINPUTACTION]		= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
+	packetCallbacks[EPacketType::WRESTLINGRESULT]		= &AGameModeMainMap::PlayWrestlingResultAction;
+	packetCallbacks[EPacketType::WRESTLINGSTART]		= &AGameModeMainMap::StartPlayerWrestling;
+	packetCallbacks[EPacketType::PLAYERDISCONNECTED]	= &AGameModeMainMap::ProcessDisconnectedPlayer;
+	packetCallbacks[EPacketType::DESTROYITEM]			= &AGameModeMainMap::DestroyItem;
+	packetCallbacks[EPacketType::PICKUPITEM]			= &AGameModeMainMap::PickUpItem;
+	packetCallbacks[EPacketType::PLAYERDEAD]			= &AGameModeMainMap::ProcessPlayerDead;
+	packetCallbacks[EPacketType::PLAYERRESPAWN]			= &AGameModeMainMap::RespawnPlayer;
+	packetCallbacks[EPacketType::ZOMBIEDEAD]			= &AGameModeMainMap::ProcessZombieDead;
+	packetCallbacks[EPacketType::SPAWNITEM]				= &AGameModeMainMap::SpawnItems;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -59,11 +68,54 @@ void AGameModeMainMap::BeginPlay()
 
 	// 좀비 캐릭터 스폰 및 풀링
 	zombiePooler->SetPoolSize(2);
-	actorSpawner->SpawnActor(zombiePooler->GetPoolSize(), EPoolableActorType::Zombie, zombiePooler->GetActorPool());
+	actorSpawner->SpawnZombie(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
 
 	// 아이템 스폰 및 풀링
-	itemPooler->SetPoolSize(5);
-	actorSpawner->SpawnActor(itemPooler->GetPoolSize(), EPoolableActorType::MeleeWeapon, itemPooler->GetActorPool());
+	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
+	{
+		itemPoolerMap[i]->SetPoolSize(5);
+		actorSpawner->SpawnItem(itemPoolerMap[i]->GetPoolSize(), static_cast<EItemMainType>(i), itemPoolerMap[i]->GetActorPool());
+	}
+
+	LoadItemInfoAndAsset();
+}
+
+void AGameModeMainMap::LoadItemInfoAndAsset()
+{
+	// json 받아오기
+	jsonComponent->FillItemInfoMap(itemInfoMap);
+
+	/*for (auto& kv : itemInfoMap)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("item key %d"), kv.Key);
+		UE_LOG(LogTemp, Warning, TEXT("item type %d, item Name %s, grid size %d %d"),
+			kv.Value->itemType, *kv.Value->itemName, kv.Value->itemGridSize.X, kv.Value->itemGridSize.Y);
+
+		if (kv.Value->itemType == EItemMainType::MeleeWeapon)
+		{
+			const FMeleeWeaponInfo* meleeWeaponInfo = static_cast<FMeleeWeaponInfo*>(kv.Value);
+
+			UE_LOG(LogTemp, Warning, TEXT("attack %f %f"), meleeWeaponInfo->attackPower, meleeWeaponInfo->attackSpeed);
+		}
+		else if (kv.Value->itemType == EItemMainType::RangedWeapon)
+		{
+			const FRangedWeaponInfo* rangedWeaponInfo = static_cast<FRangedWeaponInfo*>(kv.Value);
+
+			UE_LOG(LogTemp, Warning, TEXT("gun %f %f %f %d %f"),
+				rangedWeaponInfo->attackPower, rangedWeaponInfo->fireRate, rangedWeaponInfo->recoil, rangedWeaponInfo->magazine, rangedWeaponInfo->reloadingSpeed);
+		}
+		else if (kv.Value->itemType == EItemMainType::RecoveryItem)
+		{
+			const FRecoveryItemInfo* recoveryItemInfo = static_cast<FRecoveryItemInfo*>(kv.Value);
+		}
+		else if (kv.Value->itemType == EItemMainType::AmmoItem)
+		{
+			const FAmmoItemInfo* ammoItemInfo = static_cast<FAmmoItemInfo*>(kv.Value);
+		}
+	}*/
+
+	// fasset 받아오기
+	jsonComponent->FillItemAssetMap(itemAssetMap);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -77,20 +129,13 @@ void AGameModeMainMap::ProcessPacket()
 
 	int packetType = -1;
 	recvStream >> packetType;
-	if (packetType >= PACKETTYPE_MIN && packetType < PACKETTYPE_MAX)
+	if (packetCallbacks.find(static_cast<EPacketType>(packetType)) == packetCallbacks.end())
 	{
-		if (packetCallbacks[packetType] == nullptr)
-		{
-			PLOG(TEXT("Callback is nullptr! : type number %d"), packetType);
-		}
-		else
-		{
-			(this->*packetCallbacks[packetType])(recvStream);
-		}
+		PLOG(TEXT("Invalid packet number! : type number %d"), packetType);
 	}
 	else
 	{
-		PLOG(TEXT("Invalid packet number! : type number %d"), packetType);
+		(this->*packetCallbacks[static_cast<EPacketType>(packetType)])(recvStream);
 	}
 }
 
@@ -148,14 +193,14 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 	for (auto& info : synchZombieInfoSet.zombieInfoMap)
 	{
 		const ZombieInfo& zombieInfo = info.second;
-		AZombieCharacter* zombie = nullptr;
+		TWeakObjectPtr<AZombieCharacter> zombie = nullptr;
 
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
 			zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
 			if (zombie == nullptr)
 			{
-				actorSpawner->SpawnActor(1, EPoolableActorType::Zombie, zombiePooler->GetActorPool());
+				actorSpawner->SpawnZombie(1, zombiePooler->GetActorPool());
 				zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
 			}
 			zombie->SetNumber(info.first);
@@ -164,7 +209,7 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 		}
 		else
 		{
-			zombie = zombieCharacterMap[info.first];
+			zombie = MakeWeakObjectPtr<AZombieCharacter>(zombieCharacterMap[info.first].Get());
 		}
 
 		// 콜백 함수로 
@@ -181,7 +226,7 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 
 void AGameModeMainMap::SynchronizeItems(std::stringstream& recvStream)
 {
-	ItemInfoSet itemInfoSet;
+	/*ItemInfoSet itemInfoSet;
 	recvStream >> itemInfoSet;
 
 	for (auto& info : itemInfoSet.itemInfoMap)
@@ -209,7 +254,7 @@ void AGameModeMainMap::SynchronizeItems(std::stringstream& recvStream)
 		{
 			itemMap.Remove(item->GetNumber());
 		}
-	}
+	}*/
 }
 
 void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
@@ -218,18 +263,15 @@ void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
 	{
 		int packetType = -1;
 		recvStream >> packetType;
-		if (packetType >= PACKETTYPE_MIN && packetType < PACKETTYPE_MAX)
+		if (packetCallbacks.find(static_cast<EPacketType>(packetType)) == packetCallbacks.end())
 		{
-			if (packetCallbacks[packetType] == nullptr)
-			{
-				PLOG(TEXT("Callback is nullptr! : type number %d"), packetType);
-			}
-			else
-			{
-				(this->*packetCallbacks[packetType])(recvStream);
-			}
+			PLOG(TEXT("Invalid packet number! : type number %d"), packetType);
+			break;
 		}
-		else break;
+		else
+		{
+			(this->*packetCallbacks[static_cast<EPacketType>(packetType)])(recvStream);
+		}
 	}
 }
 
@@ -310,7 +352,7 @@ void AGameModeMainMap::PickUpItem(std::stringstream& recvStream)
 	if (itemMap.Find(itemNumber))
 	{
 		// 플레이어 컨트롤러를 거치도록
-		playerCharacterMap[myNumber]->AddItemToInv(itemMap[itemNumber]);
+		//playerCharacterMap[myNumber]->AddItemToInv(itemMap[itemNumber]);
 		//itemMap[number]->DeactivateActor();
 	}
 }
@@ -368,6 +410,33 @@ void AGameModeMainMap::ProcessZombieDead(std::stringstream& recvStream)
 	{
 		zombieCharacterMap[zombieNumber]->ZombieDead();
 		zombieCharacterMap.Remove(zombieNumber);
+	}
+}
+
+void AGameModeMainMap::SpawnItems(std::stringstream& recvStream)
+{
+	// 패킷은 아이템의 id, key, 위치 배열
+	int size = 0;
+	recvStream >> size;
+	for (int i = 0; i < size; i++)
+	{
+		int id = -1, key = -1;
+		recvStream >> id >> key;
+		FVector location;
+		recvStream >> location.X >> location.Y >> location.Z;
+
+		if (itemInfoMap.Find(key) && itemAssetMap.Find(key))
+		{
+			TSharedPtr<ItemCore> itemCore = MakeShareable<ItemCore>(new ItemCore(itemInfoMap[key], itemAssetMap[key]));
+			TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPoolerMap[itemInfoMap[key]->itemKey]->GetPooledActor());
+			if (itemActor.IsValid())
+			{
+				itemMap.Add(id, itemActor);
+				itemActor->SetItemCore(itemCore);
+				itemActor->ActivateActor();
+				itemActor->SetActorLocation(location);
+			}
+		}
 	}
 }
 

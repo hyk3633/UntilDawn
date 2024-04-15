@@ -230,7 +230,7 @@ public:
 		while (size--)
 		{
 			stream >> number;
-			stream >> info.itemInfoMap[number];
+			//stream >> info.itemInfoMap[number];
 		}
 		return stream;
 	}

@@ -6,11 +6,13 @@
 #include "GameFramework/Actor.h"
 #include "../Interface/PoolableActor.h"
 #include "../Structs/ItemInfo.h"
+#include "../Enums/ItemType.h"
 #include "ItemBase.generated.h"
 
 class USceneComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
+class ItemCore;
 
 UCLASS()
 class UNTILDAWN_API AItemBase : public AActor, public IPoolableActor
@@ -21,9 +23,11 @@ public:
 
 	AItemBase();
 
-	FORCEINLINE int GetNumber() const { return number; }
+	FORCEINLINE int GetItemID() const { return itemID; }
 
-	void SetNumber(const int num);
+	void SetID(const int id);
+
+	void SetItemCore(TSharedPtr<ItemCore> newItemCore);
 
 	void SetItemInfo(const FItemInfo& info);
 
@@ -42,15 +46,7 @@ protected:
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Info")
-	int number;
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Info")
-	EItemState state;
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Info")
-	EItemMainType mainType;
-
-	ItemSubType itemSubType;
+	int itemID;
 
 	UPROPERTY()
 	USceneComponent* scene;
@@ -62,5 +58,7 @@ private:
 	USkeletalMeshComponent* skeletalMesh;
 
 	bool isActive;
+
+	TSharedPtr<ItemCore> itemCore;
 
 };

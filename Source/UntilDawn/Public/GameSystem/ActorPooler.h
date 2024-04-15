@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Enums/PoolableActorType.h"
 #include "../Interface/PoolableActor.h"
 #include "ActorPooler.generated.h"
 
@@ -19,13 +20,13 @@ public:
 
 public:	
 
-	FORCEINLINE TArray<AActor*>& GetActorPool() { return actorPool; }
+	TArray<AActor*>& GetActorPool();
 
 	FORCEINLINE void SetPoolSize(const int size) { poolSize = size; } // 액터 추가되면 값 변하게
 
 	FORCEINLINE const int8 GetPoolSize() const { return poolSize; }
 
-	AActor* GetPooledActor();
+	TWeakObjectPtr<AActor> GetPooledActor();
 
 private:
 

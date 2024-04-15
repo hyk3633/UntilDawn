@@ -5,6 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
+#include "Structs/ItemInfo.h"
+#include "Structs/ItemAsset.h"
+#include "Enums/PacketType.h"
+#include <unordered_map>
 #include <sstream>
 #include "GameModeMainMap.generated.h"
 
@@ -12,6 +16,7 @@
  * 
  */
 
+class UJsonComponent;
 class UActorSpawner;
 class UActorPooler;
 class ClientSocket;
@@ -20,6 +25,7 @@ class AZombieCharacter;
 class PlayerInfoSetEx;
 class ItemInfoSet;
 class AItemBase;
+class ItemCore;
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -33,6 +39,8 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+
+	void LoadItemInfoAndAsset();
 
 	void ProcessPacket();
 
@@ -64,6 +72,8 @@ protected:
 
 	void ProcessZombieDead(std::stringstream& recvStream);
 
+	void SpawnItems(std::stringstream& recvStream);
+
 	void PlayerSpawnAfterDelay();
 
 public:
@@ -72,6 +82,9 @@ public:
 
 private:
 
+	UPROPERTY(VisibleAnywhere, Category = "Item Info", meta = (AllowPrivateAccess = "true"))
+	UJsonComponent* jsonComponent;
+
 	UPROPERTY()
 	UActorSpawner* actorSpawner;
 
@@ -79,20 +92,24 @@ private:
 	UActorPooler* zombiePooler;
 
 	UPROPERTY()
-	UActorPooler* itemPooler;
+	TMap<int, UActorPooler*> itemPoolerMap;
+
+	TMap<int, FItemInfo*> itemInfoMap;
+
+	TMap<int, TSharedPtr<FItemAsset>> itemAssetMap;
 	
 	ClientSocket* clientSocket;
 
 	TMap<int, APlayerCharacter*> playerCharacterMap;
 
-	TMap<int, AZombieCharacter*> zombieCharacterMap;
+	TMap<int, TWeakObjectPtr<AZombieCharacter>> zombieCharacterMap;
 
-	TMap<int, AItemBase*> itemMap;
+	TMap<int, TWeakObjectPtr<AItemBase>> itemMap;
 
 	int myNumber;
 
 	FTimerHandle playerSpawnDelayTimer;
 
-	std::vector<void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
+	std::unordered_map<EPacketType, void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
 
 };

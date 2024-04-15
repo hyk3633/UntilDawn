@@ -170,7 +170,7 @@ void APlayerControllerMainMap::EKeyPressed()
 	}
 	else if(lookingItem.IsValid())
 	{
-		SendPickedItemInfo(lookingItem->GetNumber());
+		//SendPickedItemInfo(lookingItem->GetNumber());
 	}
 }
 

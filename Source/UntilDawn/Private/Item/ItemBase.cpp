@@ -1,5 +1,7 @@
 
 #include "Item/ItemBase.h"
+#include "Item/ItemCore.h"
+#include "Structs/ItemAsset.h"
 #include "UntilDawn/UntilDawn.h"
 
 AItemBase::AItemBase()
@@ -48,24 +50,32 @@ void AItemBase::BeginPlay()
 	
 }
 
-void AItemBase::SetNumber(const int num)
+void AItemBase::SetID(const int id)
 {
-	number = num;
+	itemID = id;
+}
+
+void AItemBase::SetItemCore(TSharedPtr<ItemCore> newItemCore)
+{
+	itemCore = newItemCore;
+	TSharedPtr<FItemAsset> itemAsset = itemCore->GetItemAsset();
+	// type check
+	skeletalMesh->SetSkeletalMesh(itemAsset->skeletalMesh);
 }
 
 void AItemBase::SetItemInfo(const FItemInfo& info)
 {
-	state = info.state;
-	if (state == EItemState::Activated)
-	{
-		ActivateActor();
-	}
-	else
-	{
-		DeactivateActor();
-	}
-	mainType = info.mainType;
-	itemSubType = info.itemSubType;
-	SetActorLocation(info.location);
+	//state = info.state;
+	//if (state == EItemState::Activated)
+	//{
+	//	ActivateActor();
+	//}
+	//else
+	//{
+	//	DeactivateActor();
+	//}
+	//mainType = info.mainType;
+	//itemSubType = info.itemSubType;
+	//SetActorLocation(info.location);
 }
 

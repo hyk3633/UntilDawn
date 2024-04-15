@@ -1,6 +1,6 @@
 #pragma once
-#include "../Enums/ItemType.h"
 #include <sstream>
+#include "../Enums/ItemType.h"
 #include "ItemInfo.generated.h"
 
 union ItemSubType
@@ -15,38 +15,118 @@ struct FItemInfo
 
 public:
 
-	EItemState state;
+	FItemInfo() {};
 
-	EItemMainType mainType;
+	int itemKey;
 
-	ItemSubType itemSubType;
+	FString itemName;
 
-	FVector location;
+	EItemMainType itemType;
 
-	friend std::istream& operator>>(std::istream& stream, FItemInfo& item)
+	FIntPoint itemGridSize;
+
+	void CopyTo(FItemInfo* otherInfo)
 	{
-		int itemEnum = 0;
+		otherInfo->itemKey = itemKey;
+		otherInfo->itemName = itemName;
+		otherInfo->itemType = itemType;
+		otherInfo->itemGridSize = itemGridSize;
+	}
+};
 
-		stream >> itemEnum;
-		item.state = static_cast<EItemState>(itemEnum);
+USTRUCT()
+struct FMeleeWeaponInfo : public FItemInfo
+{
+	GENERATED_BODY()
 
-		stream >> itemEnum;
-		item.mainType = static_cast<EItemMainType>(itemEnum);
+public:
 
-		stream >> itemEnum;
-		item.itemSubType.meleeWeaponType = static_cast<EMeleeWeaponType>(itemEnum);
+	FMeleeWeaponInfo() {};
 
-		stream >> item.location.X >> item.location.Y >> item.location.Z;
+	float attackPower;
 
-		return stream;
+	float attackSpeed;
+
+	void CopyTo(FMeleeWeaponInfo* otherInfo)
+	{
+		FItemInfo::CopyTo(otherInfo);
+		otherInfo->attackPower = attackPower;
+		otherInfo->attackSpeed = attackSpeed;
 	}
 
-	//friend std::ostream& operator<<(std::ostream& stream, FItemInfo* item)
-	//{
-	//	stream << item->number << "\n";
-	//	stream << static_cast<int>(item->state) << "\n";
-	//	stream << static_cast<int>(item->mainType) << "\n";
-	//	stream << static_cast<int>(item->itemSubType.meleeWeaponType) << "\n"; // 타입에 따라 다르게 넣도록
-	//	stream << item->location;
-	//}
+};
+
+USTRUCT()
+struct FRangedWeaponInfo : public FItemInfo
+{
+	GENERATED_BODY()
+
+public:
+
+	FRangedWeaponInfo() {};
+
+	float attackPower;
+
+	float fireRate;
+
+	float recoil;
+
+	int magazine;
+
+	float reloadingSpeed;
+
+	void CopyTo(FRangedWeaponInfo* otherInfo)
+	{
+		FItemInfo::CopyTo(otherInfo);
+		otherInfo->attackPower		= attackPower;
+		otherInfo->fireRate			= fireRate;
+		otherInfo->recoil			= recoil;
+		otherInfo->magazine			= magazine;
+		otherInfo->reloadingSpeed	= reloadingSpeed;
+	}
+
+};
+
+USTRUCT()
+struct FRecoveryItemInfo : public FItemInfo
+{
+	GENERATED_BODY()
+
+public:
+
+	FRecoveryItemInfo() {};
+
+	int recoveryAmount;
+
+	float usingSpeed;
+
+	void CopyTo(FRecoveryItemInfo* otherInfo)
+	{
+		FItemInfo::CopyTo(otherInfo);
+		otherInfo->recoveryAmount	= recoveryAmount;
+		otherInfo->usingSpeed		= usingSpeed;
+	}
+
+};
+
+USTRUCT()
+struct FAmmoItemInfo : public FItemInfo
+{
+	GENERATED_BODY()
+
+public:
+
+	FAmmoItemInfo() {};
+
+	int amount;
+
+	int ammoType;
+
+	void CopyTo(FAmmoItemInfo* otherInfo)
+	{
+		FItemInfo::CopyTo(otherInfo);
+		otherInfo->amount		= amount;
+		otherInfo->ammoType		= ammoType;
+	}
+
 };

@@ -8,16 +8,21 @@ UActorPooler::UActorPooler()
 
 }
 
-AActor* UActorPooler::GetPooledActor()
+TArray<AActor*>& UActorPooler::GetActorPool()
+{
+	return actorPool;
+}
+
+TWeakObjectPtr<AActor> UActorPooler::GetPooledActor()
 {
 	IPoolableActor* poolableActor = nullptr;
-	for (AActor* actor : actorPool)
+	for (auto actor : actorPool)
 	{
 		poolableActor = Cast<IPoolableActor>(actor);
 		if (poolableActor->IsActorActivated() == false)
 		{
 			poolableActor->ActivateActor();
-			return actor;
+			return MakeWeakObjectPtr<AActor>(actor);
 		}
 	}
 	return nullptr;
