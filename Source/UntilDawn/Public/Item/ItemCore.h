@@ -21,10 +21,20 @@ public:
 	
 	FORCEINLINE TSharedPtr<FItemAsset> GetItemAsset() const { return itemAsset; };
 
+	FIntPoint GetDimensions() const;
+
+	UMaterialInstance* GetIcon() const;
+
+	void Rotate();
+
+	FORCEINLINE bool IsRotated() const { return rotated; }
+
 private:
 
 	TSharedPtr<FItemAsset> itemAsset;
 
 	FItemInfo* itemInfo;
+
+	bool rotated;
 
 };

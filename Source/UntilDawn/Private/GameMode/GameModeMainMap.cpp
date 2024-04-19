@@ -2,7 +2,7 @@
 
 
 #include "GameMode/GameModeMainMap.h"
-#include "GameSystem/JsonComponent.h"
+#include "GameSystem/ItemManager.h"
 #include "GameSystem/ActorSpawner.h"
 #include "GameSystem/ActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
@@ -10,7 +10,7 @@
 #include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Item/ItemBase.h"
-#include "Item/ItemCore.h"
+#include "Item/ItemObject.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -22,22 +22,15 @@ AGameModeMainMap::AGameModeMainMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	jsonComponent = CreateDefaultSubobject<UJsonComponent>(TEXT("Json Component"));
+	itemManager = CreateDefaultSubobject<UItemManager>(TEXT("Item Manager"));
 
 	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
 
 	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
 
-	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
-	{
-		itemPoolerMap.Add(i, CreateDefaultSubobject<UActorPooler>(FName(*FString::Printf(TEXT("Pooler %d"), i))));
-	}
-
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
 	HUDClass = AHUDMainMap::StaticClass();
-
-	
 }
 
 void AGameModeMainMap::BeginPlay()
@@ -53,8 +46,7 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::WRESTLINGRESULT]		= &AGameModeMainMap::PlayWrestlingResultAction;
 	packetCallbacks[EPacketType::WRESTLINGSTART]		= &AGameModeMainMap::StartPlayerWrestling;
 	packetCallbacks[EPacketType::PLAYERDISCONNECTED]	= &AGameModeMainMap::ProcessDisconnectedPlayer;
-	packetCallbacks[EPacketType::DESTROYITEM]			= &AGameModeMainMap::DestroyItem;
-	packetCallbacks[EPacketType::PICKUPITEM]			= &AGameModeMainMap::PickUpItem;
+	packetCallbacks[EPacketType::ITEMPICKUPOTHER]		= &AGameModeMainMap::ItemPickUpOtherPlayer;
 	packetCallbacks[EPacketType::PLAYERDEAD]			= &AGameModeMainMap::ProcessPlayerDead;
 	packetCallbacks[EPacketType::PLAYERRESPAWN]			= &AGameModeMainMap::RespawnPlayer;
 	packetCallbacks[EPacketType::ZOMBIEDEAD]			= &AGameModeMainMap::ProcessZombieDead;
@@ -69,53 +61,6 @@ void AGameModeMainMap::BeginPlay()
 	// 좀비 캐릭터 스폰 및 풀링
 	zombiePooler->SetPoolSize(2);
 	actorSpawner->SpawnZombie(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
-
-	// 아이템 스폰 및 풀링
-	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
-	{
-		itemPoolerMap[i]->SetPoolSize(5);
-		actorSpawner->SpawnItem(itemPoolerMap[i]->GetPoolSize(), static_cast<EItemMainType>(i), itemPoolerMap[i]->GetActorPool());
-	}
-
-	LoadItemInfoAndAsset();
-}
-
-void AGameModeMainMap::LoadItemInfoAndAsset()
-{
-	// json 받아오기
-	jsonComponent->FillItemInfoMap(itemInfoMap);
-
-	/*for (auto& kv : itemInfoMap)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("item key %d"), kv.Key);
-		UE_LOG(LogTemp, Warning, TEXT("item type %d, item Name %s, grid size %d %d"),
-			kv.Value->itemType, *kv.Value->itemName, kv.Value->itemGridSize.X, kv.Value->itemGridSize.Y);
-
-		if (kv.Value->itemType == EItemMainType::MeleeWeapon)
-		{
-			const FMeleeWeaponInfo* meleeWeaponInfo = static_cast<FMeleeWeaponInfo*>(kv.Value);
-
-			UE_LOG(LogTemp, Warning, TEXT("attack %f %f"), meleeWeaponInfo->attackPower, meleeWeaponInfo->attackSpeed);
-		}
-		else if (kv.Value->itemType == EItemMainType::RangedWeapon)
-		{
-			const FRangedWeaponInfo* rangedWeaponInfo = static_cast<FRangedWeaponInfo*>(kv.Value);
-
-			UE_LOG(LogTemp, Warning, TEXT("gun %f %f %f %d %f"),
-				rangedWeaponInfo->attackPower, rangedWeaponInfo->fireRate, rangedWeaponInfo->recoil, rangedWeaponInfo->magazine, rangedWeaponInfo->reloadingSpeed);
-		}
-		else if (kv.Value->itemType == EItemMainType::RecoveryItem)
-		{
-			const FRecoveryItemInfo* recoveryItemInfo = static_cast<FRecoveryItemInfo*>(kv.Value);
-		}
-		else if (kv.Value->itemType == EItemMainType::AmmoItem)
-		{
-			const FAmmoItemInfo* ammoItemInfo = static_cast<FAmmoItemInfo*>(kv.Value);
-		}
-	}*/
-
-	// fasset 받아오기
-	jsonComponent->FillItemAssetMap(itemAssetMap);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -335,26 +280,11 @@ void AGameModeMainMap::StartPlayerWrestling(std::stringstream& recvStream)
 	}
 }
 
-void AGameModeMainMap::DestroyItem(std::stringstream& recvStream)
+void AGameModeMainMap::ItemPickUpOtherPlayer(std::stringstream& recvStream)
 {
 	int itemNumber = -1;
 	recvStream >> itemNumber;
-	if(itemMap.Find(itemNumber))
-	{
-		itemMap[itemNumber]->DeactivateActor();
-	}
-}
-
-void AGameModeMainMap::PickUpItem(std::stringstream& recvStream)
-{
-	int itemNumber = -1;
-	recvStream >> itemNumber;
-	if (itemMap.Find(itemNumber))
-	{
-		// 플레이어 컨트롤러를 거치도록
-		//playerCharacterMap[myNumber]->AddItemToInv(itemMap[itemNumber]);
-		//itemMap[number]->DeactivateActor();
-	}
+	itemManager->ItemPickUpOtherPlayer(itemNumber);
 }
 
 void AGameModeMainMap::ProcessDisconnectedPlayer(std::stringstream& recvStream)
@@ -425,18 +355,7 @@ void AGameModeMainMap::SpawnItems(std::stringstream& recvStream)
 		FVector location;
 		recvStream >> location.X >> location.Y >> location.Z;
 
-		if (itemInfoMap.Find(key) && itemAssetMap.Find(key))
-		{
-			TSharedPtr<ItemCore> itemCore = MakeShareable<ItemCore>(new ItemCore(itemInfoMap[key], itemAssetMap[key]));
-			TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPoolerMap[itemInfoMap[key]->itemKey]->GetPooledActor());
-			if (itemActor.IsValid())
-			{
-				itemMap.Add(id, itemActor);
-				itemActor->SetItemCore(itemCore);
-				itemActor->ActivateActor();
-				itemActor->SetActorLocation(location);
-			}
-		}
+		itemManager->SpawnItem(id, key, location);
 	}
 }
 
@@ -447,6 +366,39 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	myPlayerController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
+}
+
+void AGameModeMainMap::DropItem(TWeakObjectPtr<UItemObject> droppedItemObj)
+{
+	APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	myPlayerController->SendDropItem(droppedItemObj->GetItemID());
+
+	FVector spawnLocation = playerCharacterMap[myNumber]->GetActorLocation() + playerCharacterMap[myNumber]->GetActorForwardVector() * 150.f;
+	FVector EndLocation = spawnLocation;
+	EndLocation.Z = -1000.f;
+	FHitResult hit;
+	GetWorld()->LineTraceSingleByChannel
+	(
+		hit,
+		spawnLocation,
+		EndLocation,
+		ECC_Visibility
+	);
+	DrawDebugLine(GetWorld(),
+		spawnLocation,
+		EndLocation,
+		FColor::Red,
+		true,
+		-1.f,
+		0U,
+		2.f);
+
+	TWeakObjectPtr<AItemBase> itemActor = itemManager->DropItem(droppedItemObj);
+	if (itemActor.IsValid())
+	{
+		itemActor->SetActorLocation(hit.ImpactPoint);
+		itemActor->ActivateActor();
+	}
 }
 
 void AGameModeMainMap::Tick(float deltaTime)

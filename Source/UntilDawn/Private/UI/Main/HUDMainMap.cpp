@@ -1,5 +1,6 @@
 
 #include "UI/Main/HUDMainMap.h"
+#include "UI/Main/WidgetMainInterface.h"
 #include "UI/Main/WidgetWrestlingProgress.h"
 #include "../UntilDawn.h"
 #include "Player/Main/PlayerControllerMainMap.h"
@@ -8,26 +9,42 @@ AHUDMainMap::AHUDMainMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	static ConstructorHelpers::FClassFinder<UWidgetMainInterface> WBP_MainInterface
+	(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Inventory/WBP_MainInterface.WBP_MainInterface_C'"));
+	if (WBP_MainInterface.Succeeded()) widgetMainInterfaceClass = WBP_MainInterface.Class;
+
 	static ConstructorHelpers::FClassFinder<UWidgetWrestlingProgress> WBP_WrestlingProgress
 	(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Wrestling/WBP_Wrestling.WBP_Wrestling_C'"));
-	if (WBP_WrestlingProgress.Succeeded()) WidgetWrestlingProgressClass = WBP_WrestlingProgress.Class;
+	if (WBP_WrestlingProgress.Succeeded()) widgetWrestlingProgressClass = WBP_WrestlingProgress.Class;
 }
 
 void AHUDMainMap::BeginPlay()
 {
 	Super::BeginPlay();
 
+}
+
+void AHUDMainMap::StartHUD()
+{
 	playerController = Cast<APlayerControllerMainMap>(GetOwningPlayerController());
 	check(playerController.Get());
 	playerController->DPlayerDead.BindUFunction(this, FName("InitializeHUD"));
 	playerController->DEKeyPressed.BindUFunction(this, FName("IncreasingProgressBar"));
+	playerController->DIKeyPressed.BindUFunction(this, FName("ToggleInventoryUI"));
 	playerController->DWrestlingStart.BindUFunction(this, FName("StartWrestlingProgressBar"));
 
-	if (WidgetWrestlingProgressClass)
+	if (widgetMainInterfaceClass)
 	{
-		WrestlingProgressWidget = CreateWidget<UWidgetWrestlingProgress>(GetOwningPlayerController(), WidgetWrestlingProgressClass);
-		WrestlingProgressWidget->SetVisibility(ESlateVisibility::Hidden);
-		WrestlingProgressWidget->AddToViewport();
+		mainInterfaceWidget = CreateWidget<UWidgetMainInterface>(GetOwningPlayerController(), widgetMainInterfaceClass);
+		mainInterfaceWidget->InitializeWidget();
+		mainInterfaceWidget->AddToViewport();
+	}
+
+	if (widgetWrestlingProgressClass)
+	{
+		wrestlingProgressWidget = CreateWidget<UWidgetWrestlingProgress>(GetOwningPlayerController(), widgetWrestlingProgressClass);
+		wrestlingProgressWidget->SetVisibility(ESlateVisibility::Hidden);
+		wrestlingProgressWidget->AddToViewport();
 	}
 }
 
@@ -36,9 +53,14 @@ void AHUDMainMap::InitializeHUD()
 	EndWrestlingProgressBar();
 }
 
+void AHUDMainMap::ToggleInventoryUI()
+{
+	mainInterfaceWidget->ToggleInventoryUI();
+}
+
 void AHUDMainMap::IncreasingProgressBar()
 {
-	if (WrestlingProgressWidget->IncreasingProgressBar())
+	if (wrestlingProgressWidget->IncreasingProgressBar())
 	{
 		if (playerController.IsValid())
 		{
@@ -50,10 +72,10 @@ void AHUDMainMap::IncreasingProgressBar()
 
 void AHUDMainMap::CheckWrestlingProgress(float deltaTime)
 {
-	check(WrestlingProgressWidget);
 	if (bStartWrestling)
 	{
-		if (WrestlingProgressWidget->ReducingProgressBar(deltaTime))
+		check(wrestlingProgressWidget);
+		if (wrestlingProgressWidget->ReducingProgressBar(deltaTime))
 		{
 			playerController->FailedToBlocking();
 			EndWrestlingProgressBar();
@@ -71,13 +93,13 @@ void AHUDMainMap::Tick(float deltaTime)
 void AHUDMainMap::StartWrestlingProgressBar()
 {
 	bStartWrestling = true;
-	WrestlingProgressWidget->SetVisibility(ESlateVisibility::Visible);
-	WrestlingProgressWidget->PlayHighlightTextAnimation();
+	wrestlingProgressWidget->SetVisibility(ESlateVisibility::Visible);
+	wrestlingProgressWidget->PlayHighlightTextAnimation();
 }
 
 void AHUDMainMap::EndWrestlingProgressBar()
 {
 	bStartWrestling = false;
-	WrestlingProgressWidget->SetVisibility(ESlateVisibility::Hidden);
-	WrestlingProgressWidget->ResetProgressBar();
+	wrestlingProgressWidget->SetVisibility(ESlateVisibility::Hidden);
+	wrestlingProgressWidget->ResetProgressBar();
 }

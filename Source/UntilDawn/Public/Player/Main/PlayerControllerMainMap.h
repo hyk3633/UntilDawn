@@ -15,12 +15,13 @@
 DECLARE_DELEGATE(DelegatePlayerDead);
 DECLARE_DELEGATE(DelegateWrestlingStart);
 DECLARE_DELEGATE(DelegateEKeyPressed);
+DECLARE_DELEGATE(DelegateIKeyPressed);
 
 class ClientSocket;
 class APlayerCharacter;
 class UInputMappingContext;
 class UInputAction;
-class AItemMeleeWeapon;
+class AItemBase;
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
@@ -34,6 +35,7 @@ public:
 	DelegatePlayerDead DPlayerDead;
 	DelegateWrestlingStart DWrestlingStart;
 	DelegateEKeyPressed DEKeyPressed;
+	DelegateIKeyPressed DIKeyPressed;
 
 protected:
 
@@ -64,6 +66,8 @@ protected:
 	void RKeyHold();
 
 	void EKeyPressed();
+
+	void IKeyPressed();
 
 public:
 
@@ -99,6 +103,8 @@ public:
 	void SendHitZombieInfo(const int zombieNumber);
 
 	void PlayerDead();
+
+	void SendDropItem(const int itemID);
 
 protected:
 
@@ -138,8 +144,11 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* eKeyAction;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* iKeyAction;
+
 	FHitResult itemHit;
 
-	TWeakObjectPtr<AItemMeleeWeapon> lookingItem;
+	TWeakObjectPtr<AItemBase> lookingItem;
 
 };

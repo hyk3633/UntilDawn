@@ -3,6 +3,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerAnimInst.h"
+#include "GameSystem/InventoryComponent.h"
 #include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Camera/CameraComponent.h"
@@ -56,6 +57,10 @@ APlayerCharacter::APlayerCharacter()
 	followCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	followCamera->SetupAttachment(cameraBoom, USpringArmComponent::SocketName);
 	followCamera->bUsePawnControlRotation = false;
+
+	inventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory Component"));
+	inventoryComponent->SetColumns(6);
+	inventoryComponent->SetRows(15);
 
 	playerRange = CreateDefaultSubobject<USphereComponent>(TEXT("PlayerRange"));
 	playerRange->SetupAttachment(RootComponent);
@@ -473,12 +478,21 @@ void APlayerCharacter::EndAttack()
 	isAttackActivated = false;
 }
 
-void APlayerCharacter::AddItemToInv(AItemBase* itemNumber)
+bool APlayerCharacter::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj)
 {
-	items.Add(itemNumber);
-	equippedWeapon = Cast<AItemMeleeWeapon>(itemNumber);
-	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
-	socket->AttachActor(itemNumber, GetMesh());
+	if (inventoryComponent->TryAddItem(itemObj))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+	//items.Add(itemNumber);
+	//equippedWeapon = Cast<AItemMeleeWeapon>(itemNumber);
+	//const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
+	//socket->AttachActor(itemNumber, GetMesh());
 }
 
 void APlayerCharacter::PlayerDead()

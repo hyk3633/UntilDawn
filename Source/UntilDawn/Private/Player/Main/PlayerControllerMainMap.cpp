@@ -4,8 +4,10 @@
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
+#include "UI/Main/HUDMainMap.h"
 #include "Player/PlayerCharacter.h"
-#include "Item/Weapon/ItemMeleeWeapon.h"
+#include "Item/ItemBase.h"
+#include "Item/ItemObject.h"
 #include "Kismet/GameplayStatics.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -33,6 +35,9 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_EKey(TEXT("/Game/_Assets/Inputs/Actions/IA_EKey.IA_EKey"));
 	if (obj_EKey.Succeeded()) eKeyAction = obj_EKey.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_IKey(TEXT("/Game/_Assets/Inputs/Actions/IA_IKey.IA_IKey"));
+	if (obj_IKey.Succeeded()) iKeyAction = obj_IKey.Object;
 }
 
 void APlayerControllerMainMap::BeginPlay()
@@ -70,11 +75,11 @@ void APlayerControllerMainMap::ItemTrace()
 	DrawDebugLine(GetWorld(), startLoc, startLoc + dir * 5000.f, FColor::Blue, false, -1.f, 0U, 1.5f);
 	if (itemHit.bBlockingHit)
 	{
-		AItemMeleeWeapon* weapon = Cast<AItemMeleeWeapon>(itemHit.GetActor());
-		if (IsValid(weapon))
+		TWeakObjectPtr<AItemBase> item = Cast<AItemBase>(itemHit.GetActor());
+		if (item.IsValid())
 		{
-			lookingItem = weapon;
-			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Blue, TEXT("weapon"));
+			lookingItem = item;
+			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Blue, TEXT("item"));
 		}
 		else lookingItem = nullptr;
 	}
@@ -95,6 +100,7 @@ void APlayerControllerMainMap::SetupInputComponent()
 		EnhancedInputComponent->BindAction(rKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::RKeyPressed);
 		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RKeyHold);
 		EnhancedInputComponent->BindAction(eKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::EKeyPressed);
+		EnhancedInputComponent->BindAction(iKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::IKeyPressed);
 	}
 }
 
@@ -170,8 +176,17 @@ void APlayerControllerMainMap::EKeyPressed()
 	}
 	else if(lookingItem.IsValid())
 	{
-		//SendPickedItemInfo(lookingItem->GetNumber());
+		if (myCharacter->AddItemToInventory(lookingItem->GetItemObject()))
+		{
+			SendPickedItemInfo(lookingItem->GetItemID());
+			lookingItem->Picked();
+		}
 	}
+}
+
+void APlayerControllerMainMap::IKeyPressed()
+{
+	DIKeyPressed.ExecuteIfBound();
 }
 
 void APlayerControllerMainMap::WrestlingStart()
@@ -218,14 +233,12 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	myCharacter->DHitPlayer.BindUFunction(this, FName("SendHitPlayerInfo"));
 	myCharacter->UpdatePlayerInfo();
 
-	TWeakObjectPtr<APlayerController> playerController = Cast<APlayerController>(this);
-	if (playerController.IsValid())
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(this->GetLocalPlayer()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(playerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(defaultMappingContext, 1);
-		}
+		Subsystem->AddMappingContext(defaultMappingContext, 1);
 	}
+
+	GetHUD<AHUDMainMap>()->StartHUD();
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo().characterInfo);
@@ -286,6 +299,11 @@ void APlayerControllerMainMap::PlayerDead()
 	myCharacter->PlayerDead();
 	GetWorldTimerManager().SetTimer(respawnRequestTimer, this, &APlayerControllerMainMap::respawnRequestAfterDelay, 3.f);
 	DPlayerDead.ExecuteIfBound();
+}
+
+void APlayerControllerMainMap::SendDropItem(const int itemID)
+{
+
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

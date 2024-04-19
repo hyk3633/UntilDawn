@@ -1,6 +1,6 @@
 
 #include "Item/ItemBase.h"
-#include "Item/ItemCore.h"
+#include "Item/ItemObject.h"
 #include "Structs/ItemAsset.h"
 #include "UntilDawn/UntilDawn.h"
 
@@ -36,6 +36,7 @@ void AItemBase::DeactivateActor()
 {
 	skeletalMesh->SetVisibility(false);
 	skeletalMesh->SetCollisionProfileName(FName("DeactivatedItem"));
+	itemObj.Reset();
 	isActive = false;
 }
 
@@ -44,38 +45,27 @@ bool AItemBase::IsActorActivated()
 	return isActive;
 }
 
+void AItemBase::Picked()
+{
+	itemObj->DItemPicked.ExecuteIfBound(itemObj->GetItemID());
+}
+
 void AItemBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-void AItemBase::SetID(const int id)
+int AItemBase::GetItemID() const
 {
-	itemID = id;
+	return itemObj->GetItemID();
 }
 
-void AItemBase::SetItemCore(TSharedPtr<ItemCore> newItemCore)
+void AItemBase::SetItemObject(TWeakObjectPtr<UItemObject> newItemObj)
 {
-	itemCore = newItemCore;
-	TSharedPtr<FItemAsset> itemAsset = itemCore->GetItemAsset();
+	itemObj = newItemObj;
+	TSharedPtr<FItemAsset> itemAsset = itemObj->GetItemAsset();
 	// type check
 	skeletalMesh->SetSkeletalMesh(itemAsset->skeletalMesh);
-}
-
-void AItemBase::SetItemInfo(const FItemInfo& info)
-{
-	//state = info.state;
-	//if (state == EItemState::Activated)
-	//{
-	//	ActivateActor();
-	//}
-	//else
-	//{
-	//	DeactivateActor();
-	//}
-	//mainType = info.mainType;
-	//itemSubType = info.itemSubType;
-	//SetActorLocation(info.location);
 }
 

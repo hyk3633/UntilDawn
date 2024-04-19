@@ -19,8 +19,10 @@ class USpringArmComponent;
 class UInputComponent;
 class USphereComponent;
 class AZombieCharacter;
+class UItemObject;
 class AItemBase;
 class AItemMeleeWeapon;
+class UInventoryComponent;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -117,6 +119,8 @@ public:
 
 	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
 
+	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return inventoryComponent; }
+
 	void DoPlayerInputAction(const int inputType);
 
 	void SetAttackResult(const bool result, const int zombieNumber);
@@ -141,7 +145,7 @@ public:
 
 	FORCEINLINE bool GetAttackActivated() const { return isAttackActivated; }
 
-	void AddItemToInv(AItemBase* itemNumber);
+	bool AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj);
 
 	void PlayerDead();
 
@@ -158,6 +162,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* followCamera;
+
+	UPROPERTY()
+	UInventoryComponent* inventoryComponent;
 
 	UPROPERTY()
 	USphereComponent* playerRange;

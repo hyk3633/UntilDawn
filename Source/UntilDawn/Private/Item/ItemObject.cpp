@@ -1,25 +1,29 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/ItemCore.h"
+#include "Item/ItemObject.h"
 
-ItemCore::ItemCore()
+UItemObject::UItemObject()
 {
 }
 
-ItemCore::ItemCore(FItemInfo* newInfo, TSharedPtr<FItemAsset> newAsset)
+void UItemObject::Init(const int id, FItemInfo* newInfo, TSharedPtr<FItemAsset> newAsset)
 {
+	itemID = id;
 	itemInfo = new FItemInfo();
 	newInfo->CopyTo(itemInfo);
 	itemAsset = newAsset;
 }
 
-ItemCore::~ItemCore()
+UItemObject::~UItemObject()
 {
-	delete itemInfo;
+	if (itemInfo)
+	{
+		delete itemInfo;
+	}
 }
 
-FIntPoint ItemCore::GetDimensions() const
+FIntPoint UItemObject::GetDimensions() const
 {
 	if (IsRotated())
 	{
@@ -31,7 +35,7 @@ FIntPoint ItemCore::GetDimensions() const
 	}
 }
 
-UMaterialInstance* ItemCore::GetIcon() const
+UMaterialInstance* UItemObject::GetIcon() const
 {
 	if (rotated)
 	{
@@ -43,7 +47,7 @@ UMaterialInstance* ItemCore::GetIcon() const
 	}
 }
 
-void ItemCore::Rotate()
+void UItemObject::Rotate()
 {
 	rotated = !rotated;
 }

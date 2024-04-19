@@ -5,14 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "../Interface/PoolableActor.h"
-#include "../Structs/ItemInfo.h"
 #include "../Enums/ItemType.h"
 #include "ItemBase.generated.h"
 
 class USceneComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
-class ItemCore;
+class UItemObject;
 
 UCLASS()
 class UNTILDAWN_API AItemBase : public AActor, public IPoolableActor
@@ -23,19 +22,19 @@ public:
 
 	AItemBase();
 
-	FORCEINLINE int GetItemID() const { return itemID; }
+	FORCEINLINE TWeakObjectPtr<UItemObject> GetItemObject() const { return itemObj; };
 
-	void SetID(const int id);
+	int GetItemID() const;
 
-	void SetItemCore(TSharedPtr<ItemCore> newItemCore);
-
-	void SetItemInfo(const FItemInfo& info);
+	void SetItemObject(TWeakObjectPtr<UItemObject> newItemCore);
 
 	virtual void ActivateActor() override;
 
 	virtual void DeactivateActor() override;
 
 	virtual bool IsActorActivated() override;
+
+	void Picked();
 
 protected:
 
@@ -44,9 +43,6 @@ protected:
 	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
 
 private:
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Info")
-	int itemID;
 
 	UPROPERTY()
 	USceneComponent* scene;
@@ -59,6 +55,6 @@ private:
 
 	bool isActive;
 
-	TSharedPtr<ItemCore> itemCore;
+	TWeakObjectPtr<UItemObject> itemObj;
 
 };

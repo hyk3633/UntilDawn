@@ -5,6 +5,7 @@
 #include "GameFramework/HUD.h"
 #include "HUDMainMap.generated.h"
 
+class UWidgetMainInterface;
 class UWidgetWrestlingProgress;
 class APlayerControllerMainMap;
 
@@ -17,12 +18,17 @@ public:
 
 	AHUDMainMap();
 
+	void StartHUD();
+
 protected:
 
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
 	void InitializeHUD();
+
+	UFUNCTION()
+	void ToggleInventoryUI();
 
 	UFUNCTION()
 	void IncreasingProgressBar();
@@ -39,10 +45,16 @@ protected:
 private:
 
 	UPROPERTY()
-	TSubclassOf<UWidgetWrestlingProgress> WidgetWrestlingProgressClass;
+	TSubclassOf<UWidgetMainInterface> widgetMainInterfaceClass;
 
 	UPROPERTY()
-	UWidgetWrestlingProgress* WrestlingProgressWidget;
+	UWidgetMainInterface* mainInterfaceWidget;
+
+	UPROPERTY()
+	TSubclassOf<UWidgetWrestlingProgress> widgetWrestlingProgressClass;
+
+	UPROPERTY()
+	UWidgetWrestlingProgress* wrestlingProgressWidget;
 
 	TWeakObjectPtr<APlayerControllerMainMap> playerController;
 

@@ -5,8 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
-#include "Structs/ItemInfo.h"
-#include "Structs/ItemAsset.h"
 #include "Enums/PacketType.h"
 #include <unordered_map>
 #include <sstream>
@@ -16,16 +14,14 @@
  * 
  */
 
-class UJsonComponent;
 class UActorSpawner;
 class UActorPooler;
 class ClientSocket;
+class UItemManager;
+class UItemObject;
 class APlayerCharacter;
 class AZombieCharacter;
 class PlayerInfoSetEx;
-class ItemInfoSet;
-class AItemBase;
-class ItemCore;
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -39,8 +35,6 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
-
-	void LoadItemInfoAndAsset();
 
 	void ProcessPacket();
 
@@ -60,9 +54,7 @@ protected:
 
 	void StartPlayerWrestling(std::stringstream& recvStream);
 
-	void DestroyItem(std::stringstream& recvStream);
-
-	void PickUpItem(std::stringstream& recvStream);
+	void ItemPickUpOtherPlayer(std::stringstream& recvStream);
 
 	void ProcessDisconnectedPlayer(std::stringstream& recvStream);
 
@@ -78,12 +70,11 @@ protected:
 
 public:
 
+	void DropItem(TWeakObjectPtr<UItemObject> droppedItemObj);
+
 	virtual void Tick(float deltaTime) override;
 
 private:
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Info", meta = (AllowPrivateAccess = "true"))
-	UJsonComponent* jsonComponent;
 
 	UPROPERTY()
 	UActorSpawner* actorSpawner;
@@ -92,19 +83,13 @@ private:
 	UActorPooler* zombiePooler;
 
 	UPROPERTY()
-	TMap<int, UActorPooler*> itemPoolerMap;
-
-	TMap<int, FItemInfo*> itemInfoMap;
-
-	TMap<int, TSharedPtr<FItemAsset>> itemAssetMap;
+	UItemManager* itemManager;
 	
 	ClientSocket* clientSocket;
 
 	TMap<int, APlayerCharacter*> playerCharacterMap;
 
 	TMap<int, TWeakObjectPtr<AZombieCharacter>> zombieCharacterMap;
-
-	TMap<int, TWeakObjectPtr<AItemBase>> itemMap;
 
 	int myNumber;
 

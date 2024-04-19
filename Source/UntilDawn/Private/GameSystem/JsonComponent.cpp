@@ -3,28 +3,16 @@
 #include "Item/ItemCore.h"
 #include "Engine/DataTable.h"
 
-UJsonComponent::UJsonComponent()
+JsonComponent::JsonComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
-
-	static ConstructorHelpers::FObjectFinder<UDataTable> Obj_ItemAssetDataTable(TEXT("/Game/_Assets/DataTable/DT_ItemAsset.DT_ItemAsset"));
-	if (Obj_ItemAssetDataTable.Succeeded()) itemAssetDataTable = Obj_ItemAssetDataTable.Object;
-}
-
-void UJsonComponent::BeginDestroy()
-{
-	Super::BeginDestroy();
-
 
 }
 
-void UJsonComponent::BeginPlay()
+JsonComponent::~JsonComponent()
 {
-	Super::BeginPlay();
-	Initialize();
 }
 
-void UJsonComponent::Initialize()
+void JsonComponent::Initialize()
 {
 	FString fileStr;
 	FString filePath = TEXT("D:\\UE5Projects\\UntilDawn\\Json\\ItemInfo.json");
@@ -44,7 +32,7 @@ void UJsonComponent::Initialize()
 	ReadJson(jsonItems);
 }
 
-void UJsonComponent::ReadJson(const TArray<TSharedPtr<FJsonValue>>* jsonItems)
+void JsonComponent::ReadJson(const TArray<TSharedPtr<FJsonValue>>* jsonItems)
 {
 	for (int i = 0; i < jsonItems->Num(); i++)
 	{
@@ -128,7 +116,7 @@ void UJsonComponent::ReadJson(const TArray<TSharedPtr<FJsonValue>>* jsonItems)
 	}
 }
 
-void UJsonComponent::FillItemInfoMap(TMap<int, FItemInfo*>& infoMap)
+void JsonComponent::FillItemInfoMap(TMap<int, FItemInfo*>& infoMap)
 {
 	for (auto& kv : itemInfoMap)
 	{
@@ -166,16 +154,7 @@ void UJsonComponent::FillItemInfoMap(TMap<int, FItemInfo*>& infoMap)
 	}
 }
 
-void UJsonComponent::FillItemAssetMap(TMap<int, TSharedPtr<FItemAsset>>& assetMap)
-{
-	for (auto& kv : itemInfoMap)
-	{
-		FItemAsset* itemAsset = itemAssetDataTable->FindRow<FItemAsset>(*FString::FromInt(StaticCast<int>(kv.Key)), TEXT(""));
-		assetMap.Add(kv.Key, MakeShareable<FItemAsset>(itemAsset));
-	}
-}
-
-void UJsonComponent::GetData(const int itemKey, FItemInfo* newInfo)
+void JsonComponent::GetData(const int itemKey, FItemInfo* newInfo)
 {
 	if (itemInfoMap.Find(itemKey) == nullptr)
 	{
