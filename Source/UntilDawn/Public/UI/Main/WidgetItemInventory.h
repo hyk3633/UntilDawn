@@ -46,7 +46,4 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	float tileSize = 50.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-	bool isCursorInWidgetArea;
-
 };

@@ -20,6 +20,8 @@ public:
 
 public:	
 
+	void SpawnPoolableActor(UClass* actorClass, const int spawnCount);
+
 	TArray<AActor*>& GetActorPool();
 
 	FORCEINLINE void SetPoolSize(const int size) { poolSize = size; } // 액터 추가되면 값 변하게

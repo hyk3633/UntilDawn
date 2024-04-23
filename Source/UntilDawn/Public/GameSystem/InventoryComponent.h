@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Structs/Tile.h"
+#include "../Enums/EquipmentBox.h"
 #include "InventoryComponent.generated.h"
 
 DECLARE_DELEGATE(DelegateOnInventoryChanged);
@@ -50,6 +51,8 @@ public:
 
 	void RemoveItem(TWeakObjectPtr<UItemObject> removedItem);
 
+	void RemoveEquipmentItem(const EEquipmentBox boxType);
+
 	void GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& itemsAll);
 
 	FORCEINLINE int GetColumns() const { return columns; }
@@ -70,5 +73,11 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	bool isDirty;
+
+	TWeakObjectPtr<UItemObject> rangedWeapon1;
+
+	TWeakObjectPtr<UItemObject> rangedWeapon2;
+
+	TWeakObjectPtr<UItemObject> meleeWeapon;
 		
 };

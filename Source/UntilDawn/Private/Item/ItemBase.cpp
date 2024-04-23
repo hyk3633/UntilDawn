@@ -64,8 +64,13 @@ int AItemBase::GetItemID() const
 void AItemBase::SetItemObject(TWeakObjectPtr<UItemObject> newItemObj)
 {
 	itemObj = newItemObj;
-	TSharedPtr<FItemAsset> itemAsset = itemObj->GetItemAsset();
-	// type check
-	skeletalMesh->SetSkeletalMesh(itemAsset->skeletalMesh);
+	if (static_cast<EItemMainType>(newItemObj->GetItemType()) == EItemMainType::MeleeWeapon ||
+		static_cast<EItemMainType>(newItemObj->GetItemType()) == EItemMainType::RangedWeapon)
+	{
+		skeletalMesh->SetSkeletalMesh(newItemObj->GetSkeletalMesh());
+	}
+	else
+	{
+		staticMesh->SetStaticMesh(newItemObj->GetStaticMesh());
+	}
 }
-

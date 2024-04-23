@@ -16,7 +16,7 @@
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Slate/SlateBrushAsset.h"
 
-void UWidgetInventoryGrid::Init(UInventoryComponent* invComp, float size)
+void UWidgetInventoryGrid::InitializeWidget(UInventoryComponent* invComp, float size)
 {
 	inventoryComponent = invComp;
 	inventoryComponent->DOnInventoryChanged.BindUFunction(this, FName("Refresh"));
@@ -109,7 +109,7 @@ bool UWidgetInventoryGrid::OnPaintCalled(FPaintContext context) const
 			FLinearColor{ 0.5f,0.5f,0.5f,0.5f }
 		);
 	}
-	if (drawDropLocation && UWidgetBlueprintLibrary::IsDragDropping())
+	if (isCursorInArea && UWidgetBlueprintLibrary::IsDragDropping())
 	{
 		TWeakObjectPtr<UItemObject> item = GetPayload(UWidgetBlueprintLibrary::GetDragDroppingContent());
 		FVector2D boxSize = item->GetDimensions() * tileSize;
@@ -184,7 +184,7 @@ UItemObject* UWidgetInventoryGrid::GetPayload(UDragDropOperation* operation) con
 	return nullptr;
 }
 
-void UWidgetInventoryGrid::SetDrawDropLocation(const bool bDraw)
+void UWidgetInventoryGrid::SetCursorInArea(const bool bIn)
 {
-	drawDropLocation = bDraw;
+	isCursorInArea = bIn;
 }

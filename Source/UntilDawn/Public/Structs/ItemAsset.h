@@ -13,6 +13,14 @@ public:
 
 	FItemAsset() : skeletalMesh(nullptr), staticMesh(nullptr) {}
 
+	void Copy(FItemAsset* asset)
+	{
+		skeletalMesh	= asset->skeletalMesh;
+		staticMesh		= asset->staticMesh;
+		icon			= asset->icon;
+		iconRotated		= asset->iconRotated;
+	}
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USkeletalMesh* skeletalMesh;
 

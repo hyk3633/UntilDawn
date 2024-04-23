@@ -60,6 +60,7 @@ bool UInventoryComponent::TryAddItem(TWeakObjectPtr<UItemObject> newItemObj)
 
 void UInventoryComponent::AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, int topLeftIndex)
 {
+	newItemObj->SetTopLeftIndex(topLeftIndex);
 	FTile tile = IndexToTile(topLeftIndex);
 	FIntPoint dim = newItemObj->GetDimensions();
 	for (int i = tile.Y; i < tile.Y + dim.Y; i++)
@@ -145,6 +146,22 @@ void UInventoryComponent::RemoveItem(TWeakObjectPtr<UItemObject> removedItem)
 				isDirty = true;
 			}
 		}
+	}
+}
+
+void UInventoryComponent::RemoveEquipmentItem(const EEquipmentBox boxType)
+{
+	switch (boxType)
+	{
+	case EEquipmentBox::RangedWeapon1:
+		rangedWeapon1 = nullptr;
+		break;
+	case EEquipmentBox::RangedWeapon2:
+		rangedWeapon2 = nullptr;
+		break;
+	case EEquipmentBox::MeleeWeapon:
+		meleeWeapon = nullptr;
+		break;
 	}
 }
 

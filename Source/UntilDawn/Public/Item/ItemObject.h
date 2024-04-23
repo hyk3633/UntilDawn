@@ -23,15 +23,21 @@ public:
 
 	UItemObject();
 
-	void Init(const int id, FItemInfo* newInfo, TSharedPtr<FItemAsset> newAsset);
+	void Init(const int id, FItemInfo* newInfo, FItemAsset* newAsset);
 
-	~UItemObject();
+	virtual void BeginDestroy() override;
 
-	FORCEINLINE TSharedPtr<FItemAsset> GetItemAsset() const { return itemAsset; };
+	USkeletalMesh* GetSkeletalMesh() const { return itemAsset.skeletalMesh; }
+
+	UStaticMesh* GetStaticMesh() const { return itemAsset.staticMesh; }
 
 	FIntPoint GetDimensions() const;
 
+	FIntPoint GetRotatedDimensions() const;
+
 	UMaterialInstance* GetIcon() const;
+
+	UMaterialInstance* GetRotatedIcon() const;
 
 	void Rotate();
 
@@ -41,16 +47,22 @@ public:
 
 	FORCEINLINE int GetItemType() const { return static_cast<int>(itemInfo->itemType); }
 
+	void SetTopLeftIndex(const int index);
+
+	FORCEINLINE int GetTopLeftIndex() const { return topLeftIndex; }
+
 	DelegateItemPicked DItemPicked;
 
 private:
 
 	int itemID;
 
-	TSharedPtr<FItemAsset> itemAsset;
+	FItemAsset itemAsset;
 
 	FItemInfo* itemInfo;
 
 	bool rotated;
+
+	int topLeftIndex;
 	
 };

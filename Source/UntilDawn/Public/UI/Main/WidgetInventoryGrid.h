@@ -26,9 +26,11 @@ class UNTILDAWN_API UWidgetInventoryGrid : public UUserWidget
 	
 public:
 
-	void Init(UInventoryComponent* invComp, float size);
+	void InitializeWidget(UInventoryComponent* invComp, float size);
 
 	FORCEINLINE FIntPoint GetDragged() const { return draggedItemTopLeftTile; }
+
+	FORCEINLINE bool GetIsCursorInArea() const { return isCursorInArea; }
 
 protected:
 
@@ -65,7 +67,7 @@ protected:
 	UItemObject* GetPayload(UDragDropOperation* operation) const;
 
 	UFUNCTION(BlueprintCallable)
-	void SetDrawDropLocation(const bool bDraw);
+	void SetCursorInArea(const bool bIn);
 
 private:
 
@@ -88,7 +90,7 @@ private:
 	FIntPoint draggedItemTopLeftTile;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-	bool drawDropLocation;
+	bool isCursorInArea;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	TArray<FLine> lines;

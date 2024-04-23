@@ -2,17 +2,16 @@
 
 
 #include "GameSystem/ItemManager.h"
-#include "GameSystem/ActorSpawner.h"
 #include "GameSystem/ActorPooler.h"
 #include "Item/ItemBase.h"
+#include "Item/Weapon/ItemMeleeWeapon.h"
+#include "Item/Weapon/ItemRangedWeapon.h"
 #include "Item/ItemObject.h"
 #include "Engine/DataTable.h"
 
 UItemManager::UItemManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
-	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
 
 	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
 	{
@@ -27,18 +26,36 @@ void UItemManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// 아이템 스폰 및 풀링
-	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
-	{
-		itemPoolerMap[i]->SetPoolSize(5);
-		actorSpawner->SpawnItem(itemPoolerMap[i]->GetPoolSize(), static_cast<EItemMainType>(i), itemPoolerMap[i]->GetActorPool());
-	}
-
-	Initialize();
+	SpawnItems();
+	InitializeJson();
 	FillItemAssetMap();
 }
 
-void UItemManager::Initialize()
+void UItemManager::SpawnItems()
+{
+	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
+	{
+		itemPoolerMap[i]->SpawnPoolableActor(GetItemClass(static_cast<EItemMainType>(i)), 10);
+	}
+}
+
+UClass* UItemManager::GetItemClass(EItemMainType type)
+{
+	switch (type)
+	{
+	case EItemMainType::MeleeWeapon:
+		return AItemMeleeWeapon::StaticClass();
+	case EItemMainType::RangedWeapon:
+		return AItemRangedWeapon::StaticClass();
+	case EItemMainType::RecoveryItem:
+		return AItemRangedWeapon::StaticClass();
+	case EItemMainType::AmmoItem:
+		return AItemRangedWeapon::StaticClass();
+	}
+	return nullptr;
+}
+
+void UItemManager::InitializeJson()
 {
 	FString fileStr;
 	FString filePath = TEXT("D:\\UE5Projects\\UntilDawn\\Json\\ItemInfo.json");
@@ -177,7 +194,7 @@ void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector 
 		UItemObject* itemObj = NewObject<UItemObject>(GetWorld());
 		itemObj->DItemPicked.BindUFunction(this, FName("ItemPicked"));
 		itemObjectMap.Add(itemID, itemObj);
-		itemObj->Init(itemID, itemInfoMap[itemKey], MakeShareable<FItemAsset>(itemAssetMap[itemKey]));
+		itemObj->Init(itemID, itemInfoMap[itemKey], itemAssetMap[itemKey]);
 
 		TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPoolerMap[itemInfoMap[itemKey]->itemKey]->GetPooledActor());
 		if (itemActor.IsValid())

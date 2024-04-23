@@ -28,7 +28,11 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	void Initialize();
+	void SpawnItems();
+
+	UClass* GetItemClass(EItemMainType type);
+
+	void InitializeJson();
 
 	void ReadJson(const TArray<TSharedPtr<FJsonValue>>* jsonItems);
 
@@ -58,9 +62,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Info", meta = (AllowPrivateAccess = "true"))
 	UDataTable* itemAssetDataTable;
-
-	UPROPERTY()
-	UActorSpawner* actorSpawner;
 
 	UPROPERTY()
 	TMap<int, UActorPooler*> itemPoolerMap;

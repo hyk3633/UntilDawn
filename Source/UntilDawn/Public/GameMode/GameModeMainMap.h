@@ -14,7 +14,6 @@
  * 
  */
 
-class UActorSpawner;
 class UActorPooler;
 class ClientSocket;
 class UItemManager;
@@ -75,9 +74,6 @@ public:
 	virtual void Tick(float deltaTime) override;
 
 private:
-
-	UPROPERTY()
-	UActorSpawner* actorSpawner;
 
 	UPROPERTY()
 	UActorPooler* zombiePooler;

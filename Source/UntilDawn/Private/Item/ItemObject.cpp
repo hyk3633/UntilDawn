@@ -7,16 +7,18 @@ UItemObject::UItemObject()
 {
 }
 
-void UItemObject::Init(const int id, FItemInfo* newInfo, TSharedPtr<FItemAsset> newAsset)
+void UItemObject::Init(const int id, FItemInfo* newInfo, FItemAsset* newAsset)
 {
 	itemID = id;
 	itemInfo = new FItemInfo();
 	newInfo->CopyTo(itemInfo);
-	itemAsset = newAsset;
+	itemAsset.Copy(newAsset);
 }
 
-UItemObject::~UItemObject()
+void UItemObject::BeginDestroy()
 {
+	Super::BeginDestroy();
+
 	if (itemInfo)
 	{
 		delete itemInfo;
@@ -35,19 +37,34 @@ FIntPoint UItemObject::GetDimensions() const
 	}
 }
 
+FIntPoint UItemObject::GetRotatedDimensions() const
+{
+	return FIntPoint(itemInfo->itemGridSize.Y, itemInfo->itemGridSize.X);
+}
+
 UMaterialInstance* UItemObject::GetIcon() const
 {
 	if (rotated)
 	{
-		return itemAsset->iconRotated;
+		return itemAsset.iconRotated;
 	}
 	else
 	{
-		return itemAsset->icon;
+		return itemAsset.icon;
 	}
+}
+
+UMaterialInstance* UItemObject::GetRotatedIcon() const
+{
+	return itemAsset.iconRotated;
 }
 
 void UItemObject::Rotate()
 {
 	rotated = !rotated;
+}
+
+void UItemObject::SetTopLeftIndex(const int index)
+{
+	topLeftIndex = index;
 }

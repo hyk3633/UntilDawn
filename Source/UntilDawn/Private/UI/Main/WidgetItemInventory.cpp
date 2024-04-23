@@ -13,15 +13,15 @@
 void UWidgetItemInventory::InitializeWidget()
 {
 	inventoryComponent = Cast<APlayerCharacter>(GetOwningPlayerPawn())->GetInventoryComponent();
-	InventoryGrid->Init(inventoryComponent, tileSize);
+	InventoryGrid->InitializeWidget(inventoryComponent, tileSize);
+	EquipmentWindow->InitializeWidget(inventoryComponent, tileSize);
 }
 
 void UWidgetItemInventory::ItemDrop(UDragDropOperation* operation)
 {
-	if (inventoryComponent->IsTileValid({ InventoryGrid->GetDragged().X, InventoryGrid->GetDragged().Y }) == false || isCursorInWidgetArea)
+	if (InventoryGrid->GetIsCursorInArea() == false && EquipmentWindow->GetIsCursorInArea() == false)
 	{
 		TWeakObjectPtr<UItemObject> payload = Cast<UItemObject>(operation->Payload);
 		GetWorld()->GetAuthGameMode<AGameModeMainMap>()->DropItem(payload);
 	}
-	isCursorInWidgetArea = false;
 }

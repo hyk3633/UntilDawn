@@ -3,7 +3,6 @@
 
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/ItemManager.h"
-#include "GameSystem/ActorSpawner.h"
 #include "GameSystem/ActorPooler.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
@@ -23,8 +22,6 @@ AGameModeMainMap::AGameModeMainMap()
 	PrimaryActorTick.bCanEverTick = true;
 
 	itemManager = CreateDefaultSubobject<UItemManager>(TEXT("Item Manager"));
-
-	actorSpawner = CreateDefaultSubobject<UActorSpawner>(TEXT("Actor Spawner"));
 
 	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
 
@@ -59,8 +56,8 @@ void AGameModeMainMap::BeginPlay()
 	GetWorldTimerManager().SetTimer(playerSpawnDelayTimer, this, &AGameModeMainMap::PlayerSpawnAfterDelay, 0.5f);
 
 	// 좀비 캐릭터 스폰 및 풀링
-	zombiePooler->SetPoolSize(2);
-	actorSpawner->SpawnZombie(zombiePooler->GetPoolSize(), zombiePooler->GetActorPool());
+
+	zombiePooler->SpawnPoolableActor(AZombieCharacter::StaticClass(), 2);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -145,7 +142,7 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 			zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
 			if (zombie == nullptr)
 			{
-				actorSpawner->SpawnZombie(1, zombiePooler->GetActorPool());
+				zombiePooler->SpawnPoolableActor(AZombieCharacter::StaticClass(), 1);
 				zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
 			}
 			zombie->SetNumber(info.first);
