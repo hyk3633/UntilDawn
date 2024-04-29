@@ -208,97 +208,148 @@ void APlayerCharacter::SprintEnd()
 
 bool APlayerCharacter::LeftClick()
 {
-	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+	if (CheckAbleInput() == false)
 		return false;
 
-	if (currentWeaponType == EWeaponType::AXE)
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+
+	if (weaponType == EWeaponType::NONE)
 	{
-		animInst->PlayAxeAttackMontage();
+		return false;
 	}
-	else if (currentWeaponType == EWeaponType::BOW)
+	else
 	{
-		animInst->PlayBowDrawMontage();
+		animInst->PlayLeftClickMontage(weaponType);
 	}
 	return true;
 }
 
 bool APlayerCharacter::LeftClickHold()
 {
-	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+	if (CheckAbleInput() == false)
 		return false;
 
-	if (currentWeaponType == EWeaponType::BOW)
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+
+	if (weaponType == EWeaponType::BOW)
 	{
 		isAbleShoot = true;
 		GetCharacterMovement()->MaxWalkSpeed = 300;
+		return true;
 	}
-	return true;
+	else
+	{
+		return false;
+	}
 }
 
 bool APlayerCharacter::LeftClickEnd()
 {
-	if (isAbleShoot == false || currentWeaponType == EWeaponType::NONE)
+	if (isAbleShoot == false)
 		return false;
 
-	if (currentWeaponType == EWeaponType::BOW)
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+
+	if (weaponType == EWeaponType::BOW)
 	{
 		isAbleShoot = false;
 		animInst->PlayBowShootMontage();
 		shootPower = 0;
+		return true;
 	}
-	return true;
+	else
+	{
+		return false;
+	}
 }
 
 bool APlayerCharacter::RightClick()
 {
-	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+	if (CheckAbleInput() == false)
 		return false;
 
-	if (currentWeaponType == EWeaponType::AXE)
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+
+	if (weaponType == EWeaponType::AXE)
 	{
 		rightClick = true;
+		return true;
 	}
-	return true;
+	else
+	{
+		return false;
+	}
 }
 
 bool APlayerCharacter::RightClickEnd()
 {
-	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+	if (CheckAbleInput() == false)
 		return false;
 
-	if (currentWeaponType == EWeaponType::AXE)
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+
+	if (weaponType == EWeaponType::AXE)
 	{
 		rightClick = false;
+		return true;
 	}
-	return true;
+	else
+	{
+		return false;
+	}
 }
 
 bool APlayerCharacter::RKeyPressed()
 {
-	if (CheckAbleInput() == false || currentWeaponType != EWeaponType::NONE)
+	if (CheckAbleInput() == false)
 		return false;
 
-	animInst->PlayWeaponArmMontage(EWeaponType::AXE);
-	currentWeaponType = EWeaponType::AXE;
+	EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
-	bUseControllerRotationYaw = true;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
+	if (weaponType == EWeaponType::NONE) // 장착중인 무기 있는지 확인
+	{
+		// 비무장 상태에 장착중인 무기가 있으면 최근 장착했던 무기 꺼내고 최근 장착이 없으면 1번 슬롯 없으면 2번...
+		weaponType = inventoryComponent->ArmRecentWeapon();
+		if (weaponType != EWeaponType::NONE)
+		{
+			animInst->PlayWeaponArmMontage(weaponType);
 
-	return true;
+			bUseControllerRotationYaw = true;
+			GetCharacterMovement()->bOrientRotationToMovement = false;
+
+			return true;
+		}
+	}
+	else if (weaponType == EWeaponType::BOW)
+	{
+		// 재장전
+		return true;
+	}
+	
+	return false;
 }
 
 bool APlayerCharacter::RKeyHold()
 {
-	if (CheckAbleInput() == false || currentWeaponType == EWeaponType::NONE)
+	if (CheckAbleInput() == false)
 		return false;
 
-	animInst->PlayWeaponDisarmMontage(currentWeaponType);
-	currentWeaponType = EWeaponType::NONE;
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
-	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	if (weaponType == EWeaponType::NONE)
+	{
+		return false;
+	}
+	else
+	{
+		inventoryComponent->DisarmWeapon();
+		animInst->PlayWeaponDisarmMontage(weaponType);
 
-	return true;
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+
+		return true;
+	}
 }
 
 void APlayerCharacter::SuccessToBlocking()
@@ -373,6 +424,11 @@ const bool APlayerCharacter::GetIsFalling() const
 	return GetMovementComponent()->IsFalling();
 }
 
+EWeaponType APlayerCharacter::GetCurrentWeaponType() const
+{
+	return inventoryComponent->GetCurrentWeaponType();
+}
+
 void APlayerCharacter::DoPlayerInputAction(const int inputType)
 {
 	if (inputType == 0) 
@@ -443,15 +499,16 @@ void APlayerCharacter::WrestlingEnd()
 void APlayerCharacter::StartAttack()
 {
 	isAttackActivated = true;
+	inventoryComponent->Attack(Cast<APlayerController>(GetController()));
 }
 
 void APlayerCharacter::ActivateAttackTrace()
 {
-	if (isAttackActivated == false || equippedWeapon == nullptr)
+	if (isAttackActivated == false)
 		return;
 
 	FHitResult hit;
-	equippedWeapon->ActivateAttackTrace(hit);
+	//equippedWeapon->ActivateAttackTrace(hit);
 
 	if (hit.bBlockingHit)
 	{
@@ -507,10 +564,9 @@ void APlayerCharacter::InitializePlayerInfo()
 {
 	isAbleShoot = false;
 	shootPower = false;
-	currentWeaponType = EWeaponType::NONE;
 	bWrestling = false;
 	isAttackActivated = false;
-	equippedWeapon = nullptr;
+	//inventoryComponent
 }
 
 void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)

@@ -23,7 +23,7 @@ public:
 
 	UItemObject();
 
-	void Init(const int id, FItemInfo* newInfo, FItemAsset* newAsset);
+	void Init(const int id, FItemInfo newInfo, FItemAsset newAsset);
 
 	virtual void BeginDestroy() override;
 
@@ -45,11 +45,15 @@ public:
 
 	FORCEINLINE int GetItemID() const { return itemID; }
 
-	FORCEINLINE int GetItemType() const { return static_cast<int>(itemInfo->itemType); }
+	FORCEINLINE int GetItemType() const { return static_cast<int>(itemInfo.itemType); }
+
+	FORCEINLINE bool GetIsConsumable() const { return itemInfo.isConsumable; }
 
 	void SetTopLeftIndex(const int index);
 
 	FORCEINLINE int GetTopLeftIndex() const { return topLeftIndex; }
+
+	FORCEINLINE FItemInfo GetItemInfo() const { return itemInfo; }
 
 	DelegateItemPicked DItemPicked;
 
@@ -59,7 +63,7 @@ private:
 
 	FItemAsset itemAsset;
 
-	FItemInfo* itemInfo;
+	FItemInfo itemInfo;
 
 	bool rotated;
 

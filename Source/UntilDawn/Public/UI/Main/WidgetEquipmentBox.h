@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "../../Enums/ItemType.h"
+#include "../../Enums/WeaponType.h"
 #include "../../Enums/EquipmentBox.h"
 #include "WidgetEquipmentBox.generated.h"
 
@@ -20,7 +21,7 @@ class UItemObject;
 class UWidgetDragVisual;
 class UInventoryComponent;
 
-DECLARE_DELEGATE_OneParam(DelegateOnEquipmentRemoved, EEquipmentBox boxType);
+DECLARE_DELEGATE_TwoParams(DelegateOnEquipmentRemoved, int slotNumber, EEquipmentBox boxType);
 
 UCLASS()
 class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
@@ -30,7 +31,7 @@ class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
 public:
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeWidget(UInventoryComponent* invComp, const float size);
+	void InitializeWidget(UInventoryComponent* invComp, const EItemMainType type, const float size);
 	
 	UFUNCTION(BlueprintCallable)
 	void OnDropCalled(UDragDropOperation* operation);
@@ -57,7 +58,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FSlateBrush GetOriginIconImage();
 
-	void SetEquipmentAndBoxType(const EItemMainType newItemType, const EEquipmentBox newBoxType);
+	void SetEquipmentAndBoxType(const EEquipmentBox newBoxType);
+
+	void SetNumber(const int num);
+	
+	void SetDragVisualClass(TSubclassOf<UWidgetDragVisual> dragVisClass);
 
 private:
 
@@ -91,8 +96,11 @@ private:
 
 	FVector2D widgetSize;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true", BindWidget))
 	EItemMainType equipmentType;
 
 	EEquipmentBox boxType;
 	
+	int number;
+
 };

@@ -7,39 +7,34 @@ UItemObject::UItemObject()
 {
 }
 
-void UItemObject::Init(const int id, FItemInfo* newInfo, FItemAsset* newAsset)
+void UItemObject::Init(const int id, FItemInfo newInfo, FItemAsset newAsset)
 {
 	itemID = id;
-	itemInfo = new FItemInfo();
-	newInfo->CopyTo(itemInfo);
-	itemAsset.Copy(newAsset);
+	itemInfo = newInfo;
+	itemAsset = newAsset;
 }
 
 void UItemObject::BeginDestroy()
 {
 	Super::BeginDestroy();
 
-	if (itemInfo)
-	{
-		delete itemInfo;
-	}
 }
 
 FIntPoint UItemObject::GetDimensions() const
 {
 	if (IsRotated())
 	{
-		return FIntPoint(itemInfo->itemGridSize.Y, itemInfo->itemGridSize.X);
+		return FIntPoint(itemInfo.itemGridSize.Y, itemInfo.itemGridSize.X);
 	}
 	else
 	{
-		return itemInfo->itemGridSize;
+		return itemInfo.itemGridSize;
 	}
 }
 
 FIntPoint UItemObject::GetRotatedDimensions() const
 {
-	return FIntPoint(itemInfo->itemGridSize.Y, itemInfo->itemGridSize.X);
+	return FIntPoint(itemInfo.itemGridSize.Y, itemInfo.itemGridSize.X);
 }
 
 UMaterialInstance* UItemObject::GetIcon() const

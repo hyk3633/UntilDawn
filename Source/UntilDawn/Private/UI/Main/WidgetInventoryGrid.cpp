@@ -65,6 +65,7 @@ void UWidgetInventoryGrid::Refresh()
 		itemWidget->SetTileSize(tileSize);
 		itemWidget->DOnRemoved.BindUFunction(this, FName("OnItemRemoved"));
 		itemWidget->Refresh();
+
 		UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>(GridCanvasPanel->AddChild(itemWidget));
 		slot->SetAutoSize(true);
 		slot->SetPosition(FVector2D{ kv.Value.X * tileSize, kv.Value.Y * tileSize });

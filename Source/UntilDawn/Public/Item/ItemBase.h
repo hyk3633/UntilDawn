@@ -34,6 +34,8 @@ public:
 
 	virtual bool IsActorActivated() override;
 
+	void ActivateEquipMode();
+
 	void Picked();
 
 protected:
@@ -41,6 +43,8 @@ protected:
 	virtual void BeginPlay() override;
 
 	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
+
+	FORCEINLINE UStaticMeshComponent* GetStaticMesh() const { return staticMesh; }
 
 private:
 

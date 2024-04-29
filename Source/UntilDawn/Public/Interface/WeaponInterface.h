@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "AttackShooting.generated.h"
+#include "../Enums/WeaponType.h"
+#include "WeaponInterface.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class UAttackShooting : public UInterface
+class UWeaponInterface : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -16,12 +17,12 @@ class UAttackShooting : public UInterface
 /**
  * 
  */
-class UNTILDAWN_API IAttackShooting
+class UNTILDAWN_API IWeaponInterface
 {
 	GENERATED_BODY()
 
 public:
 
-	virtual void Shooting(TWeakObjectPtr<APlayerController> shooterController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<class AProjectileBase> projectile) = 0;
+	virtual EWeaponType GetWeaponType() const = 0;
 
 };

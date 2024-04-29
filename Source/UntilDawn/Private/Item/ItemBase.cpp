@@ -45,6 +45,12 @@ bool AItemBase::IsActorActivated()
 	return isActive;
 }
 
+void AItemBase::ActivateEquipMode()
+{
+	skeletalMesh->SetVisibility(true);
+	isActive = true;
+}
+
 void AItemBase::Picked()
 {
 	itemObj->DItemPicked.ExecuteIfBound(itemObj->GetItemID());
@@ -64,13 +70,6 @@ int AItemBase::GetItemID() const
 void AItemBase::SetItemObject(TWeakObjectPtr<UItemObject> newItemObj)
 {
 	itemObj = newItemObj;
-	if (static_cast<EItemMainType>(newItemObj->GetItemType()) == EItemMainType::MeleeWeapon ||
-		static_cast<EItemMainType>(newItemObj->GetItemType()) == EItemMainType::RangedWeapon)
-	{
-		skeletalMesh->SetSkeletalMesh(newItemObj->GetSkeletalMesh());
-	}
-	else
-	{
-		staticMesh->SetStaticMesh(newItemObj->GetStaticMesh());
-	}
+	skeletalMesh->SetSkeletalMesh(newItemObj->GetSkeletalMesh());
+	staticMesh->SetStaticMesh(newItemObj->GetStaticMesh());
 }

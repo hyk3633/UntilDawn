@@ -6,11 +6,15 @@
 #include "Components/ActorComponent.h"
 #include "Structs/Tile.h"
 #include "../Enums/EquipmentBox.h"
+#include "../Enums/ItemType.h"
+#include "../Enums/WeaponType.h"
 #include "InventoryComponent.generated.h"
 
 DECLARE_DELEGATE(DelegateOnInventoryChanged);
 
 class UItemObject;
+class AItemBase;
+class AItemWeapon;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UInventoryComponent : public UActorComponent
@@ -51,9 +55,21 @@ public:
 
 	void RemoveItem(TWeakObjectPtr<UItemObject> removedItem);
 
-	void RemoveEquipmentItem(const EEquipmentBox boxType);
+	void RemoveEquipmentItem(const int slotNumber, const EEquipmentBox boxType);
 
 	void GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& itemsAll);
+
+	void EquipItem(const int slotNumber, const EEquipmentBox boxType, TWeakObjectPtr<AItemBase> item);
+
+	void Attack(TWeakObjectPtr<APlayerController> ownerController);
+
+	EWeaponType ArmRecentWeapon();
+
+	EWeaponType GetCurrentWeaponType() const;
+
+	void DisarmWeapon();
+
+	void InitializeEquippedWeaponArr(const int size);
 
 	FORCEINLINE int GetColumns() const { return columns; }
 	FORCEINLINE void SetColumns(int col) { columns = col; }
@@ -74,10 +90,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	bool isDirty;
 
-	TWeakObjectPtr<UItemObject> rangedWeapon1;
+	TArray<TWeakObjectPtr<AItemWeapon>> equippedWeaponArr;
 
-	TWeakObjectPtr<UItemObject> rangedWeapon2;
+	TWeakObjectPtr<AItemWeapon> armedWeapon;
+	
+	int recentWeaponSlot = -1;
 
-	TWeakObjectPtr<UItemObject> meleeWeapon;
-		
 };

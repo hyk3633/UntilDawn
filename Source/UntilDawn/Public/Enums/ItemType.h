@@ -1,17 +1,11 @@
 #pragma once
 
-UENUM()
-enum class EItemMainType
+UENUM(BlueprintType)
+enum class EItemMainType : uint8
 {
 	MeleeWeapon,
 	RangedWeapon,
 	RecoveryItem,
 	AmmoItem,
 	MAX,
-};
-
-UENUM()
-enum class EMeleeWeaponType
-{
-	Axe,
 };

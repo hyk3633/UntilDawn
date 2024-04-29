@@ -3,11 +3,6 @@
 #include "../Enums/ItemType.h"
 #include "ItemInfo.generated.h"
 
-union ItemSubType
-{
-	EMeleeWeaponType meleeWeaponType;
-};
-
 USTRUCT()
 struct FItemInfo
 {
@@ -15,7 +10,7 @@ struct FItemInfo
 
 public:
 
-	FItemInfo() {};
+	FItemInfo() {}
 
 	int itemKey;
 
@@ -25,23 +20,47 @@ public:
 
 	FIntPoint itemGridSize;
 
+	bool isConsumable;
+
 	void CopyTo(FItemInfo* otherInfo)
 	{
-		otherInfo->itemKey = itemKey;
-		otherInfo->itemName = itemName;
-		otherInfo->itemType = itemType;
-		otherInfo->itemGridSize = itemGridSize;
+		otherInfo->itemKey			= itemKey;
+		otherInfo->itemName			= itemName;
+		otherInfo->isConsumable		= isConsumable;
+		otherInfo->itemType			= itemType;
+		otherInfo->itemGridSize		= itemGridSize;
 	}
 };
 
 USTRUCT()
-struct FMeleeWeaponInfo : public FItemInfo
+struct FWeaponInfo
 {
 	GENERATED_BODY()
 
 public:
 
-	FMeleeWeaponInfo() {};
+	FWeaponInfo() {}
+
+	int weaponType;
+
+	float attackPower;
+
+	void CopyTo(FWeaponInfo* otherInfo)
+	{
+		otherInfo->weaponType = weaponType;
+		otherInfo->attackPower = attackPower;
+	}
+
+};
+
+/*USTRUCT()
+struct FMeleeWeaponInfo : public FWeaponInfo
+{
+	GENERATED_BODY()
+
+public:
+
+	FMeleeWeaponInfo() {}
 
 	float attackPower;
 
@@ -54,18 +73,16 @@ public:
 		otherInfo->attackSpeed = attackSpeed;
 	}
 
-};
+};*/
 
 USTRUCT()
-struct FRangedWeaponInfo : public FItemInfo
+struct FRangedWeaponInfo : public FWeaponInfo
 {
 	GENERATED_BODY()
 
 public:
 
-	FRangedWeaponInfo() {};
-
-	float attackPower;
+	FRangedWeaponInfo() {}
 
 	float fireRate;
 
@@ -77,8 +94,7 @@ public:
 
 	void CopyTo(FRangedWeaponInfo* otherInfo)
 	{
-		FItemInfo::CopyTo(otherInfo);
-		otherInfo->attackPower		= attackPower;
+		FWeaponInfo::CopyTo(otherInfo);
 		otherInfo->fireRate			= fireRate;
 		otherInfo->recoil			= recoil;
 		otherInfo->magazine			= magazine;
@@ -88,13 +104,13 @@ public:
 };
 
 USTRUCT()
-struct FRecoveryItemInfo : public FItemInfo
+struct FRecoveryItemInfo
 {
 	GENERATED_BODY()
 
 public:
 
-	FRecoveryItemInfo() {};
+	FRecoveryItemInfo() {}
 
 	int recoveryAmount;
 
@@ -102,7 +118,6 @@ public:
 
 	void CopyTo(FRecoveryItemInfo* otherInfo)
 	{
-		FItemInfo::CopyTo(otherInfo);
 		otherInfo->recoveryAmount	= recoveryAmount;
 		otherInfo->usingSpeed		= usingSpeed;
 	}
@@ -110,13 +125,13 @@ public:
 };
 
 USTRUCT()
-struct FAmmoItemInfo : public FItemInfo
+struct FAmmoItemInfo
 {
 	GENERATED_BODY()
 
 public:
 
-	FAmmoItemInfo() {};
+	FAmmoItemInfo() {}
 
 	int amount;
 
@@ -124,7 +139,6 @@ public:
 
 	void CopyTo(FAmmoItemInfo* otherInfo)
 	{
-		FItemInfo::CopyTo(otherInfo);
 		otherInfo->amount		= amount;
 		otherInfo->ammoType		= ammoType;
 	}

@@ -18,6 +18,7 @@ class UActorPooler;
 class ClientSocket;
 class UItemManager;
 class UItemObject;
+class AItemBase;
 class APlayerCharacter;
 class AZombieCharacter;
 class PlayerInfoSetEx;
@@ -70,6 +71,8 @@ protected:
 public:
 
 	void DropItem(TWeakObjectPtr<UItemObject> droppedItemObj);
+
+	TWeakObjectPtr<AItemBase> GetItemActor(TWeakObjectPtr<UItemObject> itemObj);
 
 	virtual void Tick(float deltaTime) override;
 

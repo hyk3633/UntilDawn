@@ -90,6 +90,18 @@ void UPlayerAnimInst::PlayBowShootMontage()
 	}
 }
 
+void UPlayerAnimInst::PlayLeftClickMontage(const EWeaponType type)
+{
+	if (type == EWeaponType::AXE)
+	{
+		PlayAxeAttackMontage();
+	}
+	else if (type == EWeaponType::BOW)
+	{
+		PlayBowDrawMontage();
+	}
+}
+
 void UPlayerAnimInst::PlayWrestlingMontage(const bool isBlocking)
 {
 	if (IsAnyMontagePlaying()) 

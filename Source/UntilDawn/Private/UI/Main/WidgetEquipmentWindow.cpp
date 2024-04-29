@@ -4,22 +4,32 @@
 #include "UI/Main/WidgetEquipmentWindow.h"
 #include "UI/Main/WidgetEquipmentBox.h"
 #include "GameSystem/InventoryComponent.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 
 void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, const float size)
 {
+	const int arrSize = equipmentTypeArr.Num();
+
 	inventoryComponent = invComp;
+	inventoryComponent->InitializeEquippedWeaponArr(arrSize);
 
-	RangedWeaponBox1->SetEquipmentAndBoxType(EItemMainType::RangedWeapon, EEquipmentBox::RangedWeapon1);
-	RangedWeaponBox1->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
-	RangedWeaponBox1->InitializeWidget(invComp, size);
+	for (int i = 0; i < arrSize; i++)
+	{
+		UWidgetEquipmentBox* equipmentBox = CreateWidget<UWidgetEquipmentBox>(GetOwningPlayer(), equipmentBoxClass);
+		UUniformGridSlot* gridSlot = EquipmentPanel->AddChildToUniformGrid(equipmentBox, i);
+		gridSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+		gridSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+		
+		equipmentBox->SetEquipmentAndBoxType(EEquipmentBox::Weapon);
+		equipmentBox->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
+		equipmentBox->InitializeWidget(invComp, equipmentTypeArr[i], size);
+		equipmentBox->SetNumber(i);
+		equipmentBox->SetDragVisualClass(dragVisualClass);
+		equipmentBox->Padding = FMargin(5, 5);
 
-	RangedWeaponBox2->SetEquipmentAndBoxType(EItemMainType::RangedWeapon, EEquipmentBox::RangedWeapon2);
-	RangedWeaponBox2->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
-	RangedWeaponBox2->InitializeWidget(invComp, size);
-
-	MeleeWeaponBox->SetEquipmentAndBoxType(EItemMainType::MeleeWeapon, EEquipmentBox::MeleeWeapon);
-	MeleeWeaponBox->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
-	MeleeWeaponBox->InitializeWidget(invComp, size);
+		equipmentBoxMap.Add(equipmentBox);
+	}
 }
 
 void UWidgetEquipmentWindow::SetCursorInArea(const bool bIn)
@@ -27,7 +37,7 @@ void UWidgetEquipmentWindow::SetCursorInArea(const bool bIn)
 	isCursorInArea = bIn;
 }
 
-void UWidgetEquipmentWindow::OnItemRemoved(EEquipmentBox boxType)
+void UWidgetEquipmentWindow::OnItemRemoved(const int slotNumber, EEquipmentBox boxType)
 {
-	inventoryComponent->RemoveEquipmentItem(boxType);
+	inventoryComponent->RemoveEquipmentItem(slotNumber, boxType);
 }

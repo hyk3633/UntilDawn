@@ -15,6 +15,8 @@
 class UInventoryComponent;
 class UWidgetEquipmentBox;
 class UItemObject;
+class UUniformGridPanel;
+class UWidgetDragVisual;
 
 UCLASS()
 class UNTILDAWN_API UWidgetEquipmentWindow : public UUserWidget
@@ -33,7 +35,7 @@ public:
 protected:
 
 	UFUNCTION()
-	void OnItemRemoved(EEquipmentBox boxType);
+	void OnItemRemoved(const int slotNumber, EEquipmentBox boxType);
 
 private:
 
@@ -41,15 +43,21 @@ private:
 	UInventoryComponent* inventoryComponent;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
-	UWidgetEquipmentBox* RangedWeaponBox1;
+	UUniformGridPanel* EquipmentPanel;
 
-	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
-	UWidgetEquipmentBox* RangedWeaponBox2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UWidgetEquipmentBox> equipmentBoxClass;
 
-	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
-	UWidgetEquipmentBox* MeleeWeaponBox;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UWidgetDragVisual> dragVisualClass;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	bool isCursorInArea;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true", ClampMin = "1", ClampMax = "5", BindWidget))
+	TArray<EItemMainType> equipmentTypeArr;
+
+	UPROPERTY()
+	TArray<UWidgetEquipmentBox*> equipmentBoxMap;
 	
 };

@@ -4,7 +4,10 @@
 #include "UI/Main/WidgetEquipmentBox.h"
 #include "UI/Main/WidgetDragVisual.h"
 #include "Item/ItemObject.h"
+#include "GameMode/GameModeMainMap.h"
+#include "GameSystem/ItemManager.h"
 #include "GameSystem/InventoryComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
@@ -13,11 +16,12 @@
 #include "Slate/SlateBrushAsset.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
-void UWidgetEquipmentBox::InitializeWidget(UInventoryComponent* invComp, const float size)
+void UWidgetEquipmentBox::InitializeWidget(UInventoryComponent* invComp, const EItemMainType type, const float size)
 {
 	inventoryComponent = invComp;
 	dragVisual = CreateWidget<UWidgetDragVisual>(GetOwningPlayer(), dragVisualClass);
 	dragVisual->SetVisibility(ESlateVisibility::Hidden);
+	equipmentType = type;
 	tileSize = size;
 }
 
@@ -29,6 +33,10 @@ void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 		itemObj = newItemObj;
 		Refresh();
 		ItemImage->SetBrush(GetIconImage());
+
+		AGameModeMainMap* gameMode = Cast<AGameModeMainMap>(UGameplayStatics::GetGameMode(this));
+		TWeakObjectPtr<AItemBase> item = gameMode->GetItemActor(itemObj);
+		inventoryComponent->EquipItem(number, boxType, item);
 	}
 	else
 	{
@@ -38,7 +46,7 @@ void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 
 void UWidgetEquipmentBox::OnRemoved()
 {
-	DOnEquipmentRemoved.ExecuteIfBound(boxType);
+	DOnEquipmentRemoved.ExecuteIfBound(number, boxType);
 }
 
 void UWidgetEquipmentBox::Refresh()
@@ -87,8 +95,17 @@ FSlateBrush UWidgetEquipmentBox::GetOriginIconImage()
 	);
 }
 
-void UWidgetEquipmentBox::SetEquipmentAndBoxType(const EItemMainType newItemType, const EEquipmentBox newBoxType)
+void UWidgetEquipmentBox::SetEquipmentAndBoxType(const EEquipmentBox newBoxType)
 {
-	equipmentType = newItemType;
 	boxType = newBoxType;
+}
+
+void UWidgetEquipmentBox::SetNumber(const int num)
+{
+	number = num;
+}
+
+void UWidgetEquipmentBox::SetDragVisualClass(TSubclassOf<UWidgetDragVisual> dragVisClass)
+{
+	dragVisualClass = dragVisClass;
 }

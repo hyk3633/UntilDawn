@@ -57,7 +57,7 @@ void AGameModeMainMap::BeginPlay()
 
 	// 좀비 캐릭터 스폰 및 풀링
 
-	zombiePooler->SpawnPoolableActor(AZombieCharacter::StaticClass(), 2);
+	zombiePooler->SpawnPoolableActor(0, AZombieCharacter::StaticClass(), 2);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -139,11 +139,11 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
-			zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
+			zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor(0));
 			if (zombie == nullptr)
 			{
-				zombiePooler->SpawnPoolableActor(AZombieCharacter::StaticClass(), 1);
-				zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor());
+				zombiePooler->SpawnPoolableActor(0, AZombieCharacter::StaticClass(), 1);
+				zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor(0));
 			}
 			zombie->SetNumber(info.first);
 			zombie->ActivateActor();
@@ -396,6 +396,11 @@ void AGameModeMainMap::DropItem(TWeakObjectPtr<UItemObject> droppedItemObj)
 		itemActor->SetActorLocation(hit.ImpactPoint);
 		itemActor->ActivateActor();
 	}
+}
+
+TWeakObjectPtr<AItemBase> AGameModeMainMap::GetItemActor(TWeakObjectPtr<UItemObject> itemObj)
+{
+	return itemManager->GetItemActor(itemObj);
 }
 
 void AGameModeMainMap::Tick(float deltaTime)

@@ -4,19 +4,20 @@
 #include "GameSystem/ItemManager.h"
 #include "GameSystem/ActorPooler.h"
 #include "Item/ItemBase.h"
+#include "Item/Weapon/ItemWeapon.h"
 #include "Item/Weapon/ItemMeleeWeapon.h"
 #include "Item/Weapon/ItemRangedWeapon.h"
+#include "Item/Consumable/ItemRecovery.h"
+#include "Item/Consumable/ItemAmmo.h"
 #include "Item/ItemObject.h"
 #include "Engine/DataTable.h"
+#include "../UntilDawn.h"
 
 UItemManager::UItemManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
-	{
-		itemPoolerMap.Add(i, CreateDefaultSubobject<UActorPooler>(FName(*FString::Printf(TEXT("Pooler %d"), i))));
-	}
+	itemPooler = CreateDefaultSubobject<UActorPooler>(TEXT("Item Pooler"));
 
 	static ConstructorHelpers::FObjectFinder<UDataTable> Obj_ItemAssetDataTable(TEXT("/Game/_Assets/DataTable/DT_ItemAsset.DT_ItemAsset"));
 	if (Obj_ItemAssetDataTable.Succeeded()) itemAssetDataTable = Obj_ItemAssetDataTable.Object;
@@ -26,17 +27,12 @@ void UItemManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SpawnItems();
 	InitializeJson();
-	FillItemAssetMap();
-}
 
-void UItemManager::SpawnItems()
-{
-	for (int i = 0; i < static_cast<int>(EItemMainType::MAX); i++)
-	{
-		itemPoolerMap[i]->SpawnPoolableActor(GetItemClass(static_cast<EItemMainType>(i)), 10);
-	}
+	//for (int i = 0; i < 4; i++)
+	//{
+	//	SpawnItem(i, i, FVector::ZeroVector);
+	//}
 }
 
 UClass* UItemManager::GetItemClass(EItemMainType type)
@@ -48,8 +44,20 @@ UClass* UItemManager::GetItemClass(EItemMainType type)
 	case EItemMainType::RangedWeapon:
 		return AItemRangedWeapon::StaticClass();
 	case EItemMainType::RecoveryItem:
-		return AItemRangedWeapon::StaticClass();
+		return AItemRecovery::StaticClass();
 	case EItemMainType::AmmoItem:
+		return AItemAmmo::StaticClass();
+	}
+	return nullptr;
+}
+
+UClass* UItemManager::GetWeaponClass(EWeaponType type)
+{
+	switch (type)
+	{
+	case EWeaponType::AXE:
+		return AItemMeleeWeapon::StaticClass();
+	case EWeaponType::BOW:
 		return AItemRangedWeapon::StaticClass();
 	}
 	return nullptr;
@@ -61,111 +69,93 @@ void UItemManager::InitializeJson()
 	FString filePath = TEXT("D:\\UE5Projects\\UntilDawn\\Json\\ItemInfo.json");
 	FFileHelper::LoadFileToString(fileStr, *filePath);
 
-	const TArray<TSharedPtr<FJsonValue>>* jsonItems;
-
 	const TSharedRef<TJsonReader<TCHAR>> jsonReader = TJsonReaderFactory<TCHAR>::Create(fileStr);
-	TSharedPtr<FJsonObject> jsonObj = MakeShareable(new FJsonObject());
+	jsonObj = MakeShareable(new FJsonObject());
 
 	const bool result = FJsonSerializer::Deserialize(jsonReader, jsonObj);
 	check(result);
 	check(jsonObj);
-	const bool getArray = jsonObj->TryGetArrayField(TEXT("Items"), jsonItems);
-	check(getArray);
-
-	ReadJson(jsonItems);
 }
 
-void UItemManager::ReadJson(const TArray<TSharedPtr<FJsonValue>>* jsonItems)
+FItemInfo UItemManager::GetItemCommonInfo(const int itemKey)
 {
-	for (int i = 0; i < jsonItems->Num(); i++)
+	const TSharedPtr<FJsonObject>* itemJson;
+	if (jsonObj->TryGetObjectField(*FString::FromInt(itemKey), itemJson))
 	{
-		const TSharedPtr<FJsonObject> jsonItem = jsonItems->GetData()[i]->AsObject();
-
-		int itemType;
-		jsonItem->TryGetNumberField(TEXT("ItemType"), itemType);
-		FItemInfo* itemInfoShPtr = nullptr;
-		EItemMainType mainType = StaticCast<EItemMainType>(itemType);
-
-		if (mainType == EItemMainType::MeleeWeapon)
-		{
-			itemInfoShPtr = new FMeleeWeaponInfo();
-		}
-		else if (mainType == EItemMainType::RangedWeapon)
-		{
-			itemInfoShPtr = new FRangedWeaponInfo();
-		}
-		else if (mainType == EItemMainType::RecoveryItem)
-		{
-			itemInfoShPtr = new FRecoveryItemInfo();
-		}
-		else if (mainType == EItemMainType::AmmoItem)
-		{
-			itemInfoShPtr = new FAmmoItemInfo();
-		}
-		itemInfoShPtr->itemType = mainType;
-
-		jsonItem->TryGetNumberField(TEXT("ItemKey"), itemInfoShPtr->itemKey);
-		jsonItem->TryGetStringField(TEXT("ItemName"), itemInfoShPtr->itemName);
-
-		const TSharedPtr<FJsonObject>* itemGridSizeJsonObject;
-		jsonItem->TryGetObjectField(TEXT("ItemGridSize"), itemGridSizeJsonObject);
-		itemGridSizeJsonObject->Get()->TryGetNumberField(TEXT("X"), itemInfoShPtr->itemGridSize.X);
-		itemGridSizeJsonObject->Get()->TryGetNumberField(TEXT("Y"), itemInfoShPtr->itemGridSize.Y);
-
-		if (itemInfoShPtr->itemType == EItemMainType::MeleeWeapon)
-		{
-			FMeleeWeaponInfo* meleeWeaponInfo = static_cast<FMeleeWeaponInfo*>(itemInfoShPtr);
-
-			const TSharedPtr<FJsonObject>* meleeWeaponJsonObject;
-			jsonItem->TryGetObjectField(TEXT("MeleeWeapon"), meleeWeaponJsonObject);
-
-			meleeWeaponJsonObject->Get()->TryGetNumberField(TEXT("AttackPower"), meleeWeaponInfo->attackPower);
-			meleeWeaponJsonObject->Get()->TryGetNumberField(TEXT("AttackSpeed"), meleeWeaponInfo->attackSpeed);
-		}
-		else if (itemInfoShPtr->itemType == EItemMainType::RangedWeapon)
-		{
-			FRangedWeaponInfo* rangedWeaponInfo = static_cast<FRangedWeaponInfo*>(itemInfoShPtr);
-
-			const TSharedPtr<FJsonObject>* rangedWeaponJsonObject;
-			jsonItem->TryGetObjectField(TEXT("RangedWeapon"), rangedWeaponJsonObject);
-
-			rangedWeaponJsonObject->Get()->TryGetNumberField(TEXT("AttackPower"), rangedWeaponInfo->attackPower);
-			rangedWeaponJsonObject->Get()->TryGetNumberField(TEXT("FireRate"), rangedWeaponInfo->fireRate);
-			rangedWeaponJsonObject->Get()->TryGetNumberField(TEXT("Recoil"), rangedWeaponInfo->recoil);
-			rangedWeaponJsonObject->Get()->TryGetNumberField(TEXT("Magazine"), rangedWeaponInfo->magazine);
-			rangedWeaponJsonObject->Get()->TryGetNumberField(TEXT("ReloadingSpeed"), rangedWeaponInfo->reloadingSpeed);
-		}
-		else if (itemInfoShPtr->itemType == EItemMainType::RecoveryItem)
-		{
-			FRecoveryItemInfo* recoveryItemInfo = static_cast<FRecoveryItemInfo*>(itemInfoShPtr);
-
-			const TSharedPtr<FJsonObject>* recoveryItemJsonObject;
-			jsonItem->TryGetObjectField(TEXT("RecoveryItem"), recoveryItemJsonObject);
-
-			recoveryItemJsonObject->Get()->TryGetNumberField(TEXT("RecoveryAmount"), recoveryItemInfo->recoveryAmount);
-			recoveryItemJsonObject->Get()->TryGetNumberField(TEXT("UsingSpeed"), recoveryItemInfo->usingSpeed);
-		}
-		else if (itemInfoShPtr->itemType == EItemMainType::AmmoItem)
-		{
-			FAmmoItemInfo* ammoItemInfo = static_cast<FAmmoItemInfo*>(itemInfoShPtr);
-
-			const TSharedPtr<FJsonObject>* ammoItemJsonObject;
-			jsonItem->TryGetObjectField(TEXT("AmmoItem"), ammoItemJsonObject);
-
-			ammoItemJsonObject->Get()->TryGetNumberField(TEXT("AmmoType"), ammoItemInfo->ammoType);
-			ammoItemJsonObject->Get()->TryGetNumberField(TEXT("Amount"), ammoItemInfo->amount);
-		}
-		itemInfoMap.Add(itemInfoShPtr->itemKey, itemInfoShPtr);
+		FItemInfo itemInfo;
+		SaveItemCommonInfo(itemJson, itemInfo);
+		return itemInfo;
 	}
+	return FItemInfo();
 }
 
-void UItemManager::FillItemAssetMap()
+void UItemManager::SaveItemCommonInfo(const TSharedPtr<FJsonObject>* jsonItem, FItemInfo& itemInfo)
 {
-	for (auto& kv : itemInfoMap)
-	{
-		FItemAsset* itemAsset = itemAssetDataTable->FindRow<FItemAsset>(*FString::FromInt(StaticCast<int>(kv.Key)), TEXT(""));
-		itemAssetMap.Add(kv.Key, itemAsset);
-	}
+	int itemType;
+	jsonItem->Get()->TryGetNumberField(TEXT("ItemKey"), itemInfo.itemKey);
+	jsonItem->Get()->TryGetStringField(TEXT("ItemName"), itemInfo.itemName);
+	jsonItem->Get()->TryGetNumberField(TEXT("ItemType"), itemType);
+	jsonItem->Get()->TryGetBoolField(TEXT("IsConsumable"), itemInfo.isConsumable);
+	itemInfo.itemType = static_cast<EItemMainType>(itemType);
+
+	const TSharedPtr<FJsonObject>* itemGridSizeJsonObject;
+	jsonItem->Get()->TryGetObjectField(TEXT("ItemGridSize"), itemGridSizeJsonObject);
+	itemGridSizeJsonObject->Get()->TryGetNumberField(TEXT("X"), itemInfo.itemGridSize.X);
+	itemGridSizeJsonObject->Get()->TryGetNumberField(TEXT("Y"), itemInfo.itemGridSize.Y);
+
+	//PLOG(TEXT("item : %d %s %d , grid : %d %d"), itemInfo.itemKey, *itemInfo.itemName, itemInfo.itemType, itemInfo.itemGridSize.X, itemInfo.itemGridSize.Y);
+}
+
+void UItemManager::SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FWeaponInfo& itemInfo)
+{
+	jsonItem->Get()->TryGetNumberField(TEXT("AttackPower"), itemInfo.attackPower);
+	jsonItem->Get()->TryGetNumberField(TEXT("WeaponType"), itemInfo.weaponType);
+}
+
+void UItemManager::SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FRangedWeaponInfo& itemInfo)
+{
+	jsonItem->Get()->TryGetNumberField(TEXT("AttackPower"),	itemInfo.attackPower);
+	jsonItem->Get()->TryGetNumberField(TEXT("WeaponType"),	itemInfo.weaponType);
+
+	const TSharedPtr<FJsonObject>* rangedJson;
+	jsonItem->Get()->TryGetObjectField(TEXT("RangedWeapon"), rangedJson);
+
+	rangedJson->Get()->TryGetNumberField(TEXT("FireRate"),			itemInfo.fireRate);
+	rangedJson->Get()->TryGetNumberField(TEXT("Recoil"),			itemInfo.recoil);
+	rangedJson->Get()->TryGetNumberField(TEXT("Magazine"),			itemInfo.magazine);
+	rangedJson->Get()->TryGetNumberField(TEXT("ReloadingSpeed"),	itemInfo.reloadingSpeed);
+
+	//PLOG(TEXT("ranged : %f %d , %f %f %d %f"), itemInfo.attackPower, itemInfo.weaponType, itemInfo.fireRate, itemInfo.recoil, itemInfo.magazine, itemInfo.reloadingSpeed);
+}
+
+void UItemManager::SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FRecoveryItemInfo& itemInfo)
+{
+	const TSharedPtr<FJsonObject>* recoveryJson;
+	jsonItem->Get()->TryGetObjectField(TEXT("RecoveryItem"), recoveryJson);
+
+	recoveryJson->Get()->TryGetNumberField(TEXT("RecoveryAmount"),	itemInfo.recoveryAmount);
+	recoveryJson->Get()->TryGetNumberField(TEXT("UsingSpeed"),		itemInfo.usingSpeed);
+
+	//PLOG(TEXT("recovery : %d %f"), itemInfo.recoveryAmount, itemInfo.usingSpeed);
+}
+
+void UItemManager::SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FAmmoItemInfo& itemInfo)
+{
+	const TSharedPtr<FJsonObject>* ammoJson;
+	jsonItem->Get()->TryGetObjectField(TEXT("AmmoItem"), ammoJson);
+
+	ammoJson->Get()->TryGetNumberField(TEXT("AmmoType"), itemInfo.ammoType);
+	ammoJson->Get()->TryGetNumberField(TEXT("Amount"), itemInfo.amount);
+
+	//PLOG(TEXT("ammo : %d %d"), itemInfo.ammoType, itemInfo.amount);
+}
+
+bool UItemManager::GetItemAssetMap(const int itemKey)
+{
+	FItemAsset* itemAsset = itemAssetDataTable->FindRow<FItemAsset>(*FString::FromInt(itemKey), TEXT(""));
+	if (itemAsset == nullptr) return false;
+	itemAssetMap.Add(itemKey, *itemAsset);
+	return true;
 }
 
 void UItemManager::GetData(const int itemKey, FItemInfo* newInfo)
@@ -188,23 +178,130 @@ void UItemManager::ItemPicked(const int itemID)
 
 void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector location)
 {
-
-	if (itemInfoMap.Find(itemKey) && itemAssetMap.Find(itemKey))
+	UItemObject* itemObj = NewObject<UItemObject>(GetWorld());
+	itemObj->DItemPicked.BindUFunction(this, FName("ItemPicked"));
+	itemObjectMap.Add(itemID, itemObj);
+	if (itemAssetMap.Find(itemKey) == nullptr)
 	{
-		UItemObject* itemObj = NewObject<UItemObject>(GetWorld());
-		itemObj->DItemPicked.BindUFunction(this, FName("ItemPicked"));
-		itemObjectMap.Add(itemID, itemObj);
-		itemObj->Init(itemID, itemInfoMap[itemKey], itemAssetMap[itemKey]);
+		const bool assetResult = GetItemAssetMap(itemKey);
+		check(assetResult);
+	}
+	itemObj->Init(itemID, GetItemCommonInfo(itemKey), itemAssetMap[itemKey]);
 
-		TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPoolerMap[itemInfoMap[itemKey]->itemKey]->GetPooledActor());
-		if (itemActor.IsValid())
+	TWeakObjectPtr<AItemBase> itemActor;
+	if (itemObj->GetIsConsumable())
+	{
+		const int type = itemObj->GetItemType();
+		if (itemPooler->IsActorTypeExist(type) == false)
 		{
-			itemInFieldMap.Add(itemID, itemActor);
-			itemActor->SetItemObject(itemObj);
-			itemActor->ActivateActor();
-			itemActor->SetActorLocation(location);
+			itemPooler->SpawnPoolableActor(type, GetItemClass(static_cast<EItemMainType>(type)), 10);
+		}
+		itemActor = Cast<AItemBase>(itemPooler->GetPooledActor(type));
+	}
+	else
+	{
+		AItemBase* itemBase = GetWorld()->SpawnActor<AItemBase>(GetItemClass(static_cast<EItemMainType>(itemObj->GetItemType())), FVector(0, 0, -3500), FRotator::ZeroRotator);
+		nonConsItemMap.Add(itemID, itemBase);
+		itemActor = itemBase;
+	}
+	if (itemActor.IsValid())
+	{
+		itemInFieldMap.Add(itemID, itemActor);
+		itemActor->SetItemObject(itemObj);
+		InitializeItemSpecificInfo(itemActor, itemKey);
+		itemActor->ActivateActor();
+		itemActor->SetActorLocation(location);
+	}
+
+	FItemInfo info = itemActor->GetItemObject()->GetItemInfo();
+	PLOG(TEXT("item : %d %s %d , grid : %d %d"), info.itemKey, *info.itemName, info.itemType, info.itemGridSize.X, info.itemGridSize.Y);
+
+	switch (info.itemType)
+	{
+		case EItemMainType::MeleeWeapon:
+		{
+			AItemMeleeWeapon* meleeWeapon = Cast<AItemMeleeWeapon>(itemActor.Get());
+			PLOG(TEXT("melee %f %d"), meleeWeapon->GetWeaponInfo().attackPower, meleeWeapon->GetWeaponInfo().weaponType);
+			break;
+		}
+		case EItemMainType::RangedWeapon:
+		{
+			AItemRangedWeapon* rangedWeapon = Cast<AItemRangedWeapon>(itemActor.Get());
+			PLOG(TEXT("ranged %f %d %f %d %f %f"), rangedWeapon->GetRangedInfo().attackPower, rangedWeapon->GetRangedInfo().weaponType,
+				rangedWeapon->GetRangedInfo().fireRate, rangedWeapon->GetRangedInfo().magazine, 
+				rangedWeapon->GetRangedInfo().recoil, rangedWeapon->GetRangedInfo().reloadingSpeed);
+			break;
+		}
+		case EItemMainType::RecoveryItem:
+		{
+			AItemRecovery* recoveryItem = Cast<AItemRecovery>(itemActor.Get());
+			PLOG(TEXT("recovery %d %f"), recoveryItem->GetRecoveryInfo().recoveryAmount, recoveryItem->GetRecoveryInfo().usingSpeed);
+			break;
+		}
+		case EItemMainType::AmmoItem:
+		{
+			AItemAmmo* ammoItem = Cast<AItemAmmo>(itemActor.Get());
+			PLOG(TEXT("ammo %d %d"), ammoItem->GetAmmoInfo().ammoType, ammoItem->GetAmmoInfo().amount);
+			break;
 		}
 	}
+}
+
+void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, const int itemKey)
+{
+	EItemMainType itemType = static_cast<EItemMainType>(item->GetItemObject()->GetItemType());
+	const TSharedPtr<FJsonObject>* itemJson;
+	if (jsonObj->TryGetObjectField(*FString::FromInt(itemKey), itemJson))
+	{
+		switch (itemType)
+		{
+			case EItemMainType::MeleeWeapon:
+			{
+				AItemMeleeWeapon* meleeWeapon = Cast<AItemMeleeWeapon>(item.Get());
+				FWeaponInfo weaponInfo;
+				SaveItemSpecificInfo(itemJson, weaponInfo);
+				meleeWeapon->InitializeWeaponInfo(weaponInfo);
+				break;
+			}
+			case EItemMainType::RangedWeapon:
+			{
+				AItemRangedWeapon* rangedWeapon = Cast<AItemRangedWeapon>(item.Get());
+				FRangedWeaponInfo rangedWeaponInfo;
+				SaveItemSpecificInfo(itemJson, rangedWeaponInfo);
+				rangedWeapon->InitializeRangedWeaponInfo(rangedWeaponInfo);
+				break;
+			}
+			case EItemMainType::RecoveryItem:
+			{
+				AItemRecovery* recoveryItem = Cast<AItemRecovery>(item.Get());
+				FRecoveryItemInfo recoveryItemInfo;
+				SaveItemSpecificInfo(itemJson, recoveryItemInfo);
+				recoveryItem->InitializeRecoveryInfo(recoveryItemInfo);
+				break;
+			}
+			case EItemMainType::AmmoItem:
+			{
+				AItemAmmo* ammoItem = Cast<AItemAmmo>(item.Get());
+				FAmmoItemInfo ammoItemInfo;
+				SaveItemSpecificInfo(itemJson, ammoItemInfo);
+				ammoItem->InitializeAmmoInfo(ammoItemInfo);
+				break;
+			}
+		}
+	}
+}
+
+TWeakObjectPtr<AItemBase> UItemManager::FindItemActor(TWeakObjectPtr<UItemObject> itemObj)
+{
+	if (itemObj->GetIsConsumable())
+	{
+		return Cast<AItemBase>(itemPooler->GetPooledActor(itemObj->GetItemType()));
+	}
+	else
+	{
+		return nonConsItemMap[itemObj->GetItemID()];
+	}
+	return nullptr;
 }
 
 TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const int itemID)
@@ -219,6 +316,20 @@ TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const int itemID)
 	}
 }
 
+TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(TWeakObjectPtr<UItemObject> itemObj)
+{
+	TWeakObjectPtr<AItemBase> itemActor = FindItemActor(itemObj);
+
+	if (itemActor.IsValid())
+	{
+		itemActor->SetItemObject(itemObj);
+		itemActor->ActivateEquipMode();
+		return itemActor;
+	}
+
+	return nullptr;
+}
+
 void UItemManager::ItemPickUpOtherPlayer(const int itemID)
 {
 	itemObjectPickedMap.Add(itemID, itemInFieldMap[itemID]->GetItemObject());
@@ -228,11 +339,15 @@ void UItemManager::ItemPickUpOtherPlayer(const int itemID)
 
 TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> droppedItemObj)
 {
-	AItemBase* item = Cast<AItemBase>(itemPoolerMap[droppedItemObj->GetItemType()]->GetPooledActor());
-	item->SetItemObject(droppedItemObj);
-	itemInFieldMap.Add(droppedItemObj->GetItemID(), item);
-	itemObjectPickedMap.Remove(droppedItemObj->GetItemID());
-	return item;
+	TWeakObjectPtr<AItemBase> itemActor = FindItemActor(droppedItemObj);
+	if (itemActor.IsValid()) 
+	{
+		itemActor->SetItemObject(droppedItemObj);
+		itemInFieldMap.Add(droppedItemObj->GetItemID(), itemActor);
+		itemObjectPickedMap.Remove(droppedItemObj->GetItemID());
+		return itemActor;
+	}
+	return nullptr;
 }
 
 void UItemManager::DestroyItem(const int itemID)

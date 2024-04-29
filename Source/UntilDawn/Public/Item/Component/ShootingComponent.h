@@ -7,6 +7,7 @@
 #include "../../Interface/AttackShooting.h"
 #include "ShootingComponent.generated.h"
 
+class AProjectileBase;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UShootingComponent : public UActorComponent, public IAttackShooting
@@ -23,6 +24,8 @@ protected:
 
 public:
 
-	virtual void Shooting() override;
+	FVector GetAimLocaion(TWeakObjectPtr<APlayerController> shooterController);
+
+	virtual void Shooting(TWeakObjectPtr<APlayerController> shooterController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<AProjectileBase> projectile) override;
 
 };

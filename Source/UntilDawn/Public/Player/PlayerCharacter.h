@@ -115,7 +115,8 @@ public:
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
 	FORCEINLINE const bool GetRightClick() const { return rightClick; }
 	FORCEINLINE const bool GetIsAbleShoot() const { return isAbleShoot; }
-	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return currentWeaponType; }
+
+	EWeaponType GetCurrentWeaponType() const;
 
 	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
 
@@ -201,18 +202,11 @@ private:
 
 	float shootPower;
 
-	EWeaponType currentWeaponType = EWeaponType::NONE;
-
 	PlayerInfo myInfo;
 
 	bool bWrestling;
 
 	bool isAttackActivated;
-
-	TWeakObjectPtr<AItemMeleeWeapon> equippedWeapon;
-
-	UPROPERTY(VisibleAnywhere, Category = "Info")
-	TArray<AItemBase*> items;
 
 	FVector nextLocation;
 

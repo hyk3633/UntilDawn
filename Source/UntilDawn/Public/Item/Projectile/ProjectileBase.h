@@ -3,12 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "../../Interface/PoolableActor.h"
+#include "Item/ItemBase.h"
 #include "ProjectileBase.generated.h"
 
+class UProjectileMovementComponent;
+class USphereComponent;
+
 UCLASS()
-class UNTILDAWN_API AProjectileBase : public AActor, public IPoolableActor
+class UNTILDAWN_API AProjectileBase : public AItemBase
 {
 	GENERATED_BODY()
 	
@@ -26,10 +28,23 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	UFUNCTION()
+	void OnImpact(const FHitResult& HitResult);
+
 public:	
 
 	virtual void Tick(float DeltaTime) override;
 
-	
+private:
 
+	UPROPERTY()
+	UParticleSystemComponent* particleComponent;
+
+	UPROPERTY()
+	UProjectileMovementComponent* movementComponent;
+
+	UPROPERTY()
+	USphereComponent* collision;
+	
+	bool isActive;
 };

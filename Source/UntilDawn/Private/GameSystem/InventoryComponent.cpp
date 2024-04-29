@@ -2,7 +2,11 @@
 
 
 #include "GameSystem/InventoryComponent.h"
+#include "Player/PlayerCharacter.h"
 #include "Item/ItemObject.h"
+#include "Item/ItemBase.h"
+#include "Item/Weapon/ItemWeapon.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -149,18 +153,15 @@ void UInventoryComponent::RemoveItem(TWeakObjectPtr<UItemObject> removedItem)
 	}
 }
 
-void UInventoryComponent::RemoveEquipmentItem(const EEquipmentBox boxType)
+void UInventoryComponent::RemoveEquipmentItem(const int slotNumber, const EEquipmentBox boxType)
 {
 	switch (boxType)
 	{
-	case EEquipmentBox::RangedWeapon1:
-		rangedWeapon1 = nullptr;
-		break;
-	case EEquipmentBox::RangedWeapon2:
-		rangedWeapon2 = nullptr;
-		break;
-	case EEquipmentBox::MeleeWeapon:
-		meleeWeapon = nullptr;
+	case EEquipmentBox::Weapon:
+		if (equippedWeaponArr.IsValidIndex(slotNumber))
+		{
+			equippedWeaponArr[slotNumber] = nullptr;
+		}
 		break;
 	}
 }
@@ -174,5 +175,75 @@ void UInventoryComponent::GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& 
 			itemsAll.Add(items[i], IndexToTile(i));
 		}
 	}
+}
+
+void UInventoryComponent::EquipItem(const int slotNumber, const EEquipmentBox boxType, TWeakObjectPtr<AItemBase> item)
+{
+	switch (boxType)
+	{
+		case EEquipmentBox::Weapon:
+		{
+			if (equippedWeaponArr.IsValidIndex(slotNumber))
+			{
+				equippedWeaponArr[slotNumber] = Cast<AItemWeapon>(item);
+			}
+			break;
+		}
+	}
+}
+
+void UInventoryComponent::Attack(TWeakObjectPtr<APlayerController> ownerController)
+{
+	armedWeapon->Attack(ownerController);
+}
+
+EWeaponType UInventoryComponent::ArmRecentWeapon()
+{
+	if (armedWeapon.IsValid())
+	{
+		return GetCurrentWeaponType();
+	}
+
+	if (recentWeaponSlot != -1)
+	{
+		armedWeapon = equippedWeaponArr[recentWeaponSlot];
+		armedWeapon->ActivateActor();
+		return GetCurrentWeaponType();
+	}
+
+	for (int i = 0; i < equippedWeaponArr.Num(); i++)
+	{
+		if (equippedWeaponArr[i].IsValid())
+		{
+			armedWeapon = equippedWeaponArr[i];
+			recentWeaponSlot = i;
+
+			APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+			const USkeletalMeshSocket* socket = player->GetMesh()->GetSocketByName(FName("RangedWeaponSocket"));
+			socket->AttachActor(armedWeapon.Get(), player->GetMesh());
+
+			return GetCurrentWeaponType();
+		}
+	}
+	return EWeaponType::NONE;
+}
+
+EWeaponType UInventoryComponent::GetCurrentWeaponType() const
+{
+	if (armedWeapon.IsValid())
+	{
+		return armedWeapon->GetWeaponType();
+	}
+	return EWeaponType::NONE;
+}
+
+void UInventoryComponent::DisarmWeapon()
+{
+	armedWeapon.Reset();
+}
+
+void UInventoryComponent::InitializeEquippedWeaponArr(const int size)
+{
+	equippedWeaponArr.Init(nullptr, size);
 }
 

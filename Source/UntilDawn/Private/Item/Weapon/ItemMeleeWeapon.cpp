@@ -10,6 +10,11 @@ AItemMeleeWeapon::AItemMeleeWeapon()
 
 }
 
+void AItemMeleeWeapon::InitializeWeaponInfo(const FWeaponInfo& newInfo)
+{
+	weaponInfo = newInfo;
+}
+
 void AItemMeleeWeapon::ActivateAttackTrace(FHitResult& hit)
 {
 	const FVector socketLocation = GetSkeletalMesh()->GetSocketLocation(FName("CollisionSocket"));
@@ -29,4 +34,13 @@ void AItemMeleeWeapon::ActivateAttackTrace(FHitResult& hit)
 		FLinearColor::Green,
 		2.f
 	);
+}
+
+void AItemMeleeWeapon::Attack(TWeakObjectPtr<APlayerController> ownerController)
+{
+}
+
+EWeaponType AItemMeleeWeapon::GetWeaponType() const
+{
+	return static_cast<EWeaponType>(weaponInfo.weaponType);
 }

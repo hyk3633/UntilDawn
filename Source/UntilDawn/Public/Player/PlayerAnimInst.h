@@ -38,6 +38,8 @@ public:
 
 	void PlayBowShootMontage();
 
+	void PlayLeftClickMontage(const EWeaponType type);
+
 	void PlayWrestlingMontage(const bool isBlocking);
 
 	DelegateMontageEnded DMontageEnded;
