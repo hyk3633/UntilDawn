@@ -19,7 +19,7 @@ void UShootingComponent::BeginPlay()
 	
 }
 
-FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> shooterController)
+FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> attackerController)
 {
 	check(GEngine);
 	check(GEngine->GameViewport);
@@ -28,7 +28,7 @@ FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> shoo
 	GEngine->GameViewport->GetViewportSize(ViewPortSize);
 	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
 	FVector startLoc, dir;
-	UGameplayStatics::DeprojectScreenToWorld(shooterController.Get(), CrosshairLocation, startLoc, dir);
+	UGameplayStatics::DeprojectScreenToWorld(attackerController.Get(), CrosshairLocation, startLoc, dir);
 	FHitResult hit;
 	GetWorld()->LineTraceSingleByChannel
 	(
@@ -48,15 +48,15 @@ FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> shoo
 	}
 }
 
-void UShootingComponent::Shooting(TWeakObjectPtr<APlayerController> shooterController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<AProjectileBase> projectile)
+void UShootingComponent::Shooting(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<AProjectileBase> projectile)
 {
-	check(shooterController.IsValid());
+	check(attackerController.IsValid());
 
-	FVector aimLocation = GetAimLocaion(shooterController);
+	FVector aimLocation = GetAimLocaion(attackerController);
 	FVector muzzleLocation = weaponMesh->GetSocketLocation(FName("MuzzleSocket"));
 	const FVector direction = (aimLocation - muzzleLocation).GetSafeNormal();
 
-	projectile->SetActorLocation(muzzleLocation);
+	projectile->SetActorLocation(muzzleLocation + direction * -50.f);
 	projectile->SetActorRotation(direction.Rotation());
 	projectile->ActivateActor();
 }

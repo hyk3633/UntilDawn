@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "Enums/WeaponType.h"
 #include "Structs/CharacterInfo.h"
+#include "Structs/Tile.h"
 #include "PlayerCharacter.generated.h"
 
 class APlayerControllerMainMap;
@@ -27,8 +28,7 @@ class UInventoryComponent;
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
 DECLARE_DELEGATE_TwoParams(DelegateZombieHitsMe, int zombieNumber, bool bResult);
-DECLARE_DELEGATE_OneParam(DelegateHitZombie, int zombieNumber);
-DECLARE_DELEGATE_OneParam(DelegateHitPlayer, int playerNumber);
+DECLARE_DELEGATE_OneParam(DelegateHealthChanged, float healthPercentage);
 
 UCLASS()
 class UNTILDAWN_API APlayerCharacter : public ACharacter
@@ -42,8 +42,7 @@ public:
 	DelegateZombieInRange DZombieInRange;
 	DelegateZombieInRange DZombieOutRange;
 	DelegateZombieHitsMe DZombieHitsMe;
-	DelegateHitZombie DHitZombie;
-	DelegateHitPlayer DHitPlayer;
+	DelegateHealthChanged DHealthChanged;
 
 protected:
 
@@ -80,6 +79,8 @@ public:
 	bool RKeyPressed();
 
 	bool RKeyHold();
+
+	bool HKeyPressed();
 
 	void SuccessToBlocking();
 
@@ -140,13 +141,17 @@ public:
 
 	void StartAttack();
 
-	void ActivateAttackTrace();
-
 	void EndAttack();
 
 	FORCEINLINE bool GetAttackActivated() const { return isAttackActivated; }
 
-	bool AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj);
+	void AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint);
+
+	void UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex);
+
+	void RestoreInventory(TWeakObjectPtr<UItemObject> itemObj);
+
+	void ItemEquip(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
 
 	void PlayerDead();
 
@@ -155,6 +160,12 @@ public:
 	void PlayerRespawn(const bool isLocalPlayer);
 
 	void DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency);
+
+	float GetHealthPercentage();
+
+	void RecoverHealth(const float recoveryAmount);
+
+	void AttachItemActor(TWeakObjectPtr<AItemBase> item);
 
 private:
 
@@ -211,5 +222,9 @@ private:
 	FVector nextLocation;
 
 	bool bset;
+
+	float health = 50.f;
+
+	float maxHealth = 100.f;
 
 };

@@ -24,6 +24,8 @@ public:
 
 	FORCEINLINE TWeakObjectPtr<UItemObject> GetItemObject() const { return itemObj; };
 
+	FName GetSocketName() const;
+
 	int GetItemID() const;
 
 	void SetItemObject(TWeakObjectPtr<UItemObject> newItemCore);
@@ -35,8 +37,6 @@ public:
 	virtual bool IsActorActivated() override;
 
 	void ActivateEquipMode();
-
-	void Picked();
 
 protected:
 

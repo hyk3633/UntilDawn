@@ -12,8 +12,6 @@
  * 
  */
 
-DECLARE_DELEGATE_OneParam(DelegateItemPicked, int itemID);
-
 UCLASS()
 class UNTILDAWN_API UItemObject : public UObject
 {
@@ -30,6 +28,8 @@ public:
 	USkeletalMesh* GetSkeletalMesh() const { return itemAsset.skeletalMesh; }
 
 	UStaticMesh* GetStaticMesh() const { return itemAsset.staticMesh; }
+
+	FName GetSocketName() const { return itemAsset.socketName; }
 
 	FIntPoint GetDimensions() const;
 
@@ -54,8 +54,6 @@ public:
 	FORCEINLINE int GetTopLeftIndex() const { return topLeftIndex; }
 
 	FORCEINLINE FItemInfo GetItemInfo() const { return itemInfo; }
-
-	DelegateItemPicked DItemPicked;
 
 private:
 

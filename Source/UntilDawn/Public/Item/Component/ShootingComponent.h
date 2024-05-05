@@ -24,8 +24,8 @@ protected:
 
 public:
 
-	FVector GetAimLocaion(TWeakObjectPtr<APlayerController> shooterController);
+	FVector GetAimLocaion(TWeakObjectPtr<APlayerController> attackerController);
 
-	virtual void Shooting(TWeakObjectPtr<APlayerController> shooterController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<AProjectileBase> projectile) override;
+	virtual void Shooting(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<AProjectileBase> projectile) override;
 
 };

@@ -22,7 +22,9 @@ void AItemRangedWeapon::InitializeRangedWeaponInfo(const FRangedWeaponInfo& newI
 
 void AItemRangedWeapon::Attack(TWeakObjectPtr<APlayerController> ownerController)
 {
+	//탄약 아이템이 있는지 검사
 	TWeakObjectPtr<AProjectileBase> projectile = Cast<AProjectileBase>(projectilePooler->GetPooledActor(0));
+	projectile->SetOwner(ownerController.Get());
 	check(projectile.Get());
 	shootingComponent->Shooting(ownerController, GetSkeletalMesh(), projectile);
 }

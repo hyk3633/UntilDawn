@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/ItemBase.h"
+#include "../../Interface/PoolableActor.h"
 #include "ProjectileBase.generated.h"
 
 class UProjectileMovementComponent;
 class USphereComponent;
 
 UCLASS()
-class UNTILDAWN_API AProjectileBase : public AItemBase
+class UNTILDAWN_API AProjectileBase : public AActor, public IPoolableActor
 {
 	GENERATED_BODY()
 	
@@ -29,7 +29,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
-	void OnImpact(const FHitResult& HitResult);
+	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	void DeactivateAfterDelay();
 
 public:	
 
@@ -37,14 +39,19 @@ public:
 
 private:
 
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
+	USkeletalMeshComponent* skeletalMesh;
+
+	UPROPERTY(EditAnywhere)
 	UParticleSystemComponent* particleComponent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	UProjectileMovementComponent* movementComponent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	USphereComponent* collision;
 	
 	bool isActive;
+
+	FTimerHandle deactivateTimer;
 };

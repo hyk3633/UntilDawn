@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
+#include "Structs/Tile.h"
 #include "Enums/PacketType.h"
 #include <unordered_map>
 #include <sstream>
@@ -44,7 +45,13 @@ protected:
 
 	void SynchronizeZombies(std::stringstream& recvStream);
 
-	void SynchronizeItems(std::stringstream& recvStream);
+	void PlayerItemPickUp(std::stringstream& recvStream);
+
+	void PlayerItemGridPointUpdate(std::stringstream& recvStream);
+
+	void PlayerItemEquip(std::stringstream& recvStream);
+
+	void PlayerItemDrop(std::stringstream& recvStream);
 
 	void InitializeWorld(std::stringstream& recvStream);
 
@@ -70,9 +77,9 @@ protected:
 
 public:
 
-	void DropItem(TWeakObjectPtr<UItemObject> droppedItemObj);
+	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);
 
-	TWeakObjectPtr<AItemBase> GetItemActor(TWeakObjectPtr<UItemObject> itemObj);
+	TWeakObjectPtr<AItemBase> GetItemActor(const int itemID);
 
 	virtual void Tick(float deltaTime) override;
 

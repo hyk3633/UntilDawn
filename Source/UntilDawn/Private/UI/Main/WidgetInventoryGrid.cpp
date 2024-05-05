@@ -3,7 +3,7 @@
 
 #include "UI/Main/WidgetInventoryGrid.h"
 #include "GameSystem/InventoryComponent.h"
-#include "GameMode/GameModeMainMap.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "UI/Main/WidgetItemGrid.h"
 #include "Item/ItemObject.h"
 #include "Components/Border.h"
@@ -133,16 +133,25 @@ bool UWidgetInventoryGrid::OnPaintCalled(FPaintContext context) const
 
 void UWidgetInventoryGrid::OnDropCalled(UDragDropOperation* operation)
 {
-	TWeakObjectPtr<UItemObject> payload = GetPayload(operation);
-	if (IsRoomAvailableForPayload(payload.Get()))
-	{
-		const int index = inventoryComponent->TileToIndex({ draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y });
-		inventoryComponent->AddItemAt(payload, index);
-	}
-	else if (inventoryComponent->TryAddItem(payload) == false)
-	{
-		GetWorld()->GetAuthGameMode<AGameModeMainMap>()->DropItem(payload);
-	}
+	APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
+	check(playerController);
+
+	TWeakObjectPtr<UItemObject> itemObj = GetPayload(operation);
+
+	playerController->UpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
+
+	//if (IsRoomAvailableForPayload(itemObj.Get()))
+	//{
+	//	playerController->UpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
+	//}
+	//else
+	//{
+	//	inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeftIndex());
+	//}
+	//else if (inventoryComponent->TryAddItem(itemObj) == false)
+	//{
+	//	playerController->SendItemInfoToDrop(itemObj->GetItemID());
+	//}
 }
 
 bool UWidgetInventoryGrid::OnDragOverCalled(FPointerEvent pointEvent, FGeometry geometry, UDragDropOperation* operation)

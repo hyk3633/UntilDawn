@@ -4,6 +4,8 @@
 #include "Network/ClientSocket.h"
 #include "UntilDawn/UntilDawn.h"
 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 ClientSocket::ClientSocket()
 {
 	thread = FRunnableThread::Create(this, TEXT("Network Thread"));
@@ -141,27 +143,52 @@ void ClientSocket::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendPickedItemInfo(const int itemNumber)
+void ClientSocket::SendPickedItemInfo(const int itemID)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::SYNCHITEM) << "\n";
-	sendStream << itemNumber << "\n";
+	sendStream << static_cast<int>(EPacketType::ITEMTOPICKUP) << "\n";
+	sendStream << itemID << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendHitPlayerInfo(const int playerNumber)
+void ClientSocket::UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::HITPLAYER) << "\n";
-	sendStream << playerNumber << "\n";
+	sendStream << static_cast<int>(EPacketType::ITEMGRIDPOINTUPDATE) << "\n";
+	sendStream << itemID << "\n";
+	sendStream << xPoint << "\n";
+	sendStream << yPoint << "\n";
+	sendStream << isRotated << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendHitZombieInfo(const int zombieNumber)
+void ClientSocket::SendItemInfoToEquip(const int itemID, const int boxNumber)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::HITZOMBIE) << "\n";
-	sendStream << zombieNumber << "\n";
+	sendStream << static_cast<int>(EPacketType::ITEMTOEQUIP) << "\n";
+	sendStream << itemID << "\n";
+	sendStream << boxNumber << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendItemInfoToDrop(const int itemID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ITEMTODROP) << "\n";
+	sendStream << itemID << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendHittedCharactersInfo(TArray<TPair<int, bool>>& hittedCharacters)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";
+	sendStream << hittedCharacters.Num() << "\n";
+	for (auto& pair : hittedCharacters)
+	{
+		sendStream << pair.Key << "\n";
+		sendStream << pair.Value << "\n";
+	}
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 

@@ -6,6 +6,8 @@
 #include "Item/ItemObject.h"
 #include "Item/ItemBase.h"
 #include "Item/Weapon/ItemWeapon.h"
+#include "Item/Consumable/ItemRecovery.h"
+#include "GameMode/GameModeMainMap.h"
 #include "Engine/SkeletalMeshSocket.h"
 
 UInventoryComponent::UInventoryComponent()
@@ -177,15 +179,17 @@ void UInventoryComponent::GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& 
 	}
 }
 
-void UInventoryComponent::EquipItem(const int slotNumber, const EEquipmentBox boxType, TWeakObjectPtr<AItemBase> item)
+void UInventoryComponent::EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
 {
-	switch (boxType)
+	const EItemMainType itemType = StaticCast<EItemMainType>(itemActor->GetItemObject()->GetItemType());
+	switch (itemType)
 	{
-		case EEquipmentBox::Weapon:
+		case EItemMainType::MeleeWeapon:
+		case EItemMainType::RangedWeapon:
 		{
-			if (equippedWeaponArr.IsValidIndex(slotNumber))
+			if (equippedWeaponArr.IsValidIndex(boxNumber))
 			{
-				equippedWeaponArr[slotNumber] = Cast<AItemWeapon>(item);
+				equippedWeaponArr[boxNumber] = Cast<AItemWeapon>(itemActor);
 			}
 			break;
 		}
@@ -219,9 +223,8 @@ EWeaponType UInventoryComponent::ArmRecentWeapon()
 			recentWeaponSlot = i;
 
 			APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-			const USkeletalMeshSocket* socket = player->GetMesh()->GetSocketByName(FName("RangedWeaponSocket"));
+			const USkeletalMeshSocket* socket = player->GetMesh()->GetSocketByName(armedWeapon->GetSocketName());
 			socket->AttachActor(armedWeapon.Get(), player->GetMesh());
-
 			return GetCurrentWeaponType();
 		}
 	}
@@ -245,5 +248,19 @@ void UInventoryComponent::DisarmWeapon()
 void UInventoryComponent::InitializeEquippedWeaponArr(const int size)
 {
 	equippedWeaponArr.Init(nullptr, size);
+}
+
+bool UInventoryComponent::UsingRecoveryItem()
+{
+	for (int i = 0; i < items.Num(); i++)
+	{
+		if (static_cast<EItemMainType>(items[i]->GetItemType()) == EItemMainType::RecoveryItem)
+		{
+			TWeakObjectPtr<AItemRecovery> recoveryItem = Cast<AItemRecovery>(GetWorld()->GetAuthGameMode<AGameModeMainMap>()->GetItemActor(items[i]->GetItemID()));
+			recoveryItem->UsingItem();
+			return true;
+		}
+	}
+	return false;
 }
 

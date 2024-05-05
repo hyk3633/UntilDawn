@@ -4,6 +4,7 @@
 #include "UI/Main/WidgetEquipmentBox.h"
 #include "UI/Main/WidgetDragVisual.h"
 #include "Item/ItemObject.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/ItemManager.h"
 #include "GameSystem/InventoryComponent.h"
@@ -16,27 +17,28 @@
 #include "Slate/SlateBrushAsset.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
-void UWidgetEquipmentBox::InitializeWidget(UInventoryComponent* invComp, const EItemMainType type, const float size)
+void UWidgetEquipmentBox::InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType newItemYype, const EEquipmentBox newBoxType, const float size)
 {
+	number = num;
 	inventoryComponent = invComp;
+	dragVisualClass = dragVisClass;
 	dragVisual = CreateWidget<UWidgetDragVisual>(GetOwningPlayer(), dragVisualClass);
 	dragVisual->SetVisibility(ESlateVisibility::Hidden);
-	equipmentType = type;
+	equipmentType = newItemYype;
+	boxType = newBoxType;
 	tileSize = size;
 }
 
 void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 {
 	TWeakObjectPtr<UItemObject> newItemObj = Cast<UItemObject>(operation->Payload);
+	check(newItemObj.IsValid());
 	if (static_cast<EItemMainType>(newItemObj->GetItemType()) == equipmentType)
 	{
-		itemObj = newItemObj;
-		Refresh();
-		ItemImage->SetBrush(GetIconImage());
-
-		AGameModeMainMap* gameMode = Cast<AGameModeMainMap>(UGameplayStatics::GetGameMode(this));
-		TWeakObjectPtr<AItemBase> item = gameMode->GetItemActor(itemObj);
-		inventoryComponent->EquipItem(number, boxType, item);
+		// 플레이어 컨트롤러 호출
+		APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
+		check(playerController);
+		playerController->SendItemInfoToEquip(newItemObj->GetItemID(), number);
 	}
 	else
 	{
@@ -70,6 +72,13 @@ void UWidgetEquipmentBox::OnDragDetectedCall()
 	UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemImage)->SetSize(FVector2D(0,0));
 }
 
+void UWidgetEquipmentBox::Equip(TWeakObjectPtr<UItemObject> newItemObj)
+{
+	itemObj = newItemObj;
+	Refresh();
+	ItemImage->SetBrush(GetIconImage());
+}
+
 UItemObject* UWidgetEquipmentBox::GetItem() const
 {
 	return itemObj.Get();
@@ -93,19 +102,4 @@ FSlateBrush UWidgetEquipmentBox::GetOriginIconImage()
 		FMath::TruncToInt(widgetSize.Y),
 		FMath::TruncToInt(widgetSize.X)
 	);
-}
-
-void UWidgetEquipmentBox::SetEquipmentAndBoxType(const EEquipmentBox newBoxType)
-{
-	boxType = newBoxType;
-}
-
-void UWidgetEquipmentBox::SetNumber(const int num)
-{
-	number = num;
-}
-
-void UWidgetEquipmentBox::SetDragVisualClass(TSubclassOf<UWidgetDragVisual> dragVisClass)
-{
-	dragVisualClass = dragVisClass;
 }

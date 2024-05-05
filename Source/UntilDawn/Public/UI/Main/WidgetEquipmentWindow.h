@@ -35,6 +35,9 @@ public:
 protected:
 
 	UFUNCTION()
+	void ItemEquipToBox(UItemObject* itemObj, const int boxNumber);
+
+	UFUNCTION()
 	void OnItemRemoved(const int slotNumber, EEquipmentBox boxType);
 
 private:
@@ -58,6 +61,6 @@ private:
 	TArray<EItemMainType> equipmentTypeArr;
 
 	UPROPERTY()
-	TArray<UWidgetEquipmentBox*> equipmentBoxMap;
+	TArray<UWidgetEquipmentBox*> equipmentBoxArr;
 	
 };

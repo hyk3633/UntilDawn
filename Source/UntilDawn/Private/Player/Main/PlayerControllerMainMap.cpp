@@ -6,6 +6,7 @@
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "UI/Main/HUDMainMap.h"
 #include "Player/PlayerCharacter.h"
+#include "Zombie/ZombieCharacter.h"
 #include "Item/ItemBase.h"
 #include "Item/ItemObject.h"
 #include "Kismet/GameplayStatics.h"
@@ -38,6 +39,9 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_IKey(TEXT("/Game/_Assets/Inputs/Actions/IA_IKey.IA_IKey"));
 	if (obj_IKey.Succeeded()) iKeyAction = obj_IKey.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_HKey(TEXT("/Game/_Assets/Inputs/Actions/IA_HKey.IA_HKey"));
+	if (obj_HKey.Succeeded()) hKeyAction = obj_HKey.Object;
 }
 
 void APlayerControllerMainMap::BeginPlay()
@@ -72,7 +76,7 @@ void APlayerControllerMainMap::ItemTrace()
 		startLoc + dir * 5000.f,
 		ECC_ItemTrace
 	);
-	DrawDebugLine(GetWorld(), startLoc, startLoc + dir * 5000.f, FColor::Blue, false, -1.f, 0U, 1.5f);
+	//DrawDebugLine(GetWorld(), startLoc, startLoc + dir * 5000.f, FColor::Blue, false, -1.f, 0U, 1.5f);
 	if (itemHit.bBlockingHit)
 	{
 		TWeakObjectPtr<AItemBase> item = Cast<AItemBase>(itemHit.GetActor());
@@ -101,6 +105,7 @@ void APlayerControllerMainMap::SetupInputComponent()
 		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RKeyHold);
 		EnhancedInputComponent->BindAction(eKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::EKeyPressed);
 		EnhancedInputComponent->BindAction(iKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::IKeyPressed);
+		EnhancedInputComponent->BindAction(hKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::HKeyPressed);
 	}
 }
 
@@ -176,17 +181,23 @@ void APlayerControllerMainMap::EKeyPressed()
 	}
 	else if(lookingItem.IsValid())
 	{
-		if (myCharacter->AddItemToInventory(lookingItem->GetItemObject()))
-		{
-			SendPickedItemInfo(lookingItem->GetItemID());
-			lookingItem->Picked();
-		}
+		SendPickedItemInfo(lookingItem->GetItemID());
+		lookingItem.Reset();
 	}
 }
 
 void APlayerControllerMainMap::IKeyPressed()
 {
 	DIKeyPressed.ExecuteIfBound();
+}
+
+void APlayerControllerMainMap::HKeyPressed()
+{
+	check(myCharacter);
+	if (myCharacter->HKeyPressed())
+	{
+		// send character heal;
+	}
 }
 
 void APlayerControllerMainMap::WrestlingStart()
@@ -229,8 +240,6 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	myCharacter->DZombieInRange.BindUFunction(this, FName("SendInRangeZombie"));
 	myCharacter->DZombieOutRange.BindUFunction(this, FName("SendOutRangeZombie"));
 	myCharacter->DZombieHitsMe.BindUFunction(this, FName("SendZombieHitsMe"));
-	myCharacter->DHitZombie.BindUFunction(this, FName("SendHitZombieInfo"));
-	myCharacter->DHitPlayer.BindUFunction(this, FName("SendHitPlayerInfo"));
 	myCharacter->UpdatePlayerInfo();
 
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(this->GetLocalPlayer()))
@@ -275,22 +284,71 @@ void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBl
 	clientSocket->SendPlayerBlockingResult(isSuccessToBlocking);
 }
 
-void APlayerControllerMainMap::SendPickedItemInfo(const int itemNumber)
+void APlayerControllerMainMap::SendPickedItemInfo(const int itemID)
 {
 	check(clientSocket);
-	clientSocket->SendPickedItemInfo(itemNumber);
+	clientSocket->SendPickedItemInfo(itemID);
 }
 
-void APlayerControllerMainMap::SendHitPlayerInfo(const int playerNumber)
+void APlayerControllerMainMap::UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated)
 {
 	check(clientSocket);
-	clientSocket->SendHitPlayerInfo(playerNumber);
+	clientSocket->UpdateItemGridPoint(itemID, xPoint, yPoint, isRotated);
 }
 
-void APlayerControllerMainMap::SendHitZombieInfo(const int zombieNumber)
+void APlayerControllerMainMap::SendItemInfoToEquip(const int itemID, const int boxNumber)
 {
 	check(clientSocket);
-	clientSocket->SendHitZombieInfo(zombieNumber);
+	clientSocket->SendItemInfoToEquip(itemID, boxNumber);
+}
+
+void APlayerControllerMainMap::ProcessItemEquipInUI(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
+{
+	DItemEquip.ExecuteIfBound(itemActor->GetItemObject().Get(), boxNumber);
+	check(myCharacter);
+	myCharacter->ItemEquip(boxNumber, itemActor);
+}
+
+void APlayerControllerMainMap::RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj)
+{
+	check(myCharacter);
+	myCharacter->RestoreInventory(itemObj);
+}
+
+void APlayerControllerMainMap::SendItemInfoToDrop(const int itemID)
+{
+	check(clientSocket);
+	clientSocket->SendItemInfoToDrop(itemID);
+}
+
+void APlayerControllerMainMap::SendHittedCharacterInfo(TArray<FHitResult>& hits)
+{
+	check(clientSocket);
+	TArray<TPair<int, bool>> hittedCharacters;
+	for (auto& hit : hits)
+	{
+		if (hit.bBlockingHit == false)
+			continue;
+		TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(hit.GetActor());
+		if (player.IsValid())
+		{
+			// 플레이어인 경우 구분하는 flag를 true로
+			hittedCharacters.Add(TPair<int, bool>(player->GetPlayerNumber(), true));
+		}
+		else
+		{
+			TWeakObjectPtr<AZombieCharacter> zombie = Cast<AZombieCharacter>(hit.GetActor());
+			if (zombie.IsValid())
+			{
+				// 좀비인 경우 구분하는 flag를 false로
+				hittedCharacters.Add(TPair<int, bool>(zombie->GetNumber(), false));
+			}
+		}
+	}
+	if (hittedCharacters.Num())
+	{
+		clientSocket->SendHittedCharactersInfo(hittedCharacters);
+	}
 }
 
 void APlayerControllerMainMap::PlayerDead()
@@ -299,11 +357,6 @@ void APlayerControllerMainMap::PlayerDead()
 	myCharacter->PlayerDead();
 	GetWorldTimerManager().SetTimer(respawnRequestTimer, this, &APlayerControllerMainMap::respawnRequestAfterDelay, 3.f);
 	DPlayerDead.ExecuteIfBound();
-}
-
-void APlayerControllerMainMap::SendDropItem(const int itemID)
-{
-
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

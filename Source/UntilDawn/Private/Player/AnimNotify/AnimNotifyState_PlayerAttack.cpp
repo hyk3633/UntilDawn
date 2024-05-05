@@ -26,7 +26,7 @@ void UAnimNotifyState_PlayerAttack::NotifyTick(USkeletalMeshComponent* MeshComp,
 		APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner());
 		if (IsValid(player) && player->GetAttackActivated())
 		{
-			player->ActivateAttackTrace();
+			player->StartAttack();
 		}
 		elapsedTime = 0.f;
 	}

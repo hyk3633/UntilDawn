@@ -10,11 +10,11 @@
 #include "../Enums/WeaponType.h"
 #include "InventoryComponent.generated.h"
 
-DECLARE_DELEGATE(DelegateOnInventoryChanged);
-
 class UItemObject;
 class AItemBase;
 class AItemWeapon;
+
+DECLARE_DELEGATE(DelegateOnInventoryChanged);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UInventoryComponent : public UActorComponent
@@ -55,11 +55,11 @@ public:
 
 	void RemoveItem(TWeakObjectPtr<UItemObject> removedItem);
 
-	void RemoveEquipmentItem(const int slotNumber, const EEquipmentBox boxType);
+	void RemoveEquipmentItem(const int boxNumber, const EEquipmentBox boxType);
 
 	void GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& itemsAll);
 
-	void EquipItem(const int slotNumber, const EEquipmentBox boxType, TWeakObjectPtr<AItemBase> item);
+	void EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
 
 	void Attack(TWeakObjectPtr<APlayerController> ownerController);
 
@@ -70,6 +70,8 @@ public:
 	void DisarmWeapon();
 
 	void InitializeEquippedWeaponArr(const int size);
+
+	bool UsingRecoveryItem();
 
 	FORCEINLINE int GetColumns() const { return columns; }
 	FORCEINLINE void SetColumns(int col) { columns = col; }
@@ -84,6 +86,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	int rows;
 
+	// 그리드용 배열은 격자 형태로 저장하므로 단순 숫자 값만을 저장하도록 하고 아이템 오브젝트는 일차원 배열에 저장
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	TArray<TWeakObjectPtr<UItemObject>> items;
 

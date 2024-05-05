@@ -22,14 +22,7 @@ public:
 
 	bool isConsumable;
 
-	void CopyTo(FItemInfo* otherInfo)
-	{
-		otherInfo->itemKey			= itemKey;
-		otherInfo->itemName			= itemName;
-		otherInfo->isConsumable		= isConsumable;
-		otherInfo->itemType			= itemType;
-		otherInfo->itemGridSize		= itemGridSize;
-	}
+	EItemMainType GetItemType() const { return StaticCast<EItemMainType>(itemType); }
 };
 
 USTRUCT()
@@ -99,6 +92,17 @@ public:
 		otherInfo->recoil			= recoil;
 		otherInfo->magazine			= magazine;
 		otherInfo->reloadingSpeed	= reloadingSpeed;
+	}
+
+	friend FArchive& operator<<(FArchive& archive, FRangedWeaponInfo& info)
+	{
+		archive << info.attackPower;
+		archive << info.weaponType;
+		archive << info.fireRate;
+		archive << info.recoil;
+		archive << info.magazine;
+		archive << info.reloadingSpeed;
+		return archive;
 	}
 
 };

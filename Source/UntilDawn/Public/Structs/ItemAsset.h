@@ -19,6 +19,7 @@ public:
 		staticMesh		= asset->staticMesh;
 		icon			= asset->icon;
 		iconRotated		= asset->iconRotated;
+		socketName		= asset->socketName;
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -32,5 +33,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMaterialInstance* iconRotated;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName socketName;
 
 };

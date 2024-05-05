@@ -11,6 +11,9 @@
 /**
  * 
  */
+
+class UMeleeAttackComponent;
+
 UCLASS()
 class UNTILDAWN_API AItemMeleeWeapon : public AItemWeapon
 {
@@ -24,8 +27,6 @@ public:
 
 	FORCEINLINE FWeaponInfo GetWeaponInfo() const { return weaponInfo; }
 
-	void ActivateAttackTrace(FHitResult& hit);
-
 	virtual void Attack(TWeakObjectPtr<APlayerController> ownerController) override;
 
 	virtual EWeaponType GetWeaponType() const override;
@@ -35,6 +36,8 @@ protected:
 
 
 private:
+
+	UMeleeAttackComponent* meleeAttackComponent;
 
 	FWeaponInfo weaponInfo;
 

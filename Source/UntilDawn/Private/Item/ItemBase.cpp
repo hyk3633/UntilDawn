@@ -36,7 +36,7 @@ void AItemBase::DeactivateActor()
 {
 	skeletalMesh->SetVisibility(false);
 	skeletalMesh->SetCollisionProfileName(FName("DeactivatedItem"));
-	itemObj.Reset();
+	//itemObj.Reset();
 	isActive = false;
 }
 
@@ -51,15 +51,15 @@ void AItemBase::ActivateEquipMode()
 	isActive = true;
 }
 
-void AItemBase::Picked()
-{
-	itemObj->DItemPicked.ExecuteIfBound(itemObj->GetItemID());
-}
-
 void AItemBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+FName AItemBase::GetSocketName() const
+{
+	return itemObj->GetSocketName();
 }
 
 int AItemBase::GetItemID() const

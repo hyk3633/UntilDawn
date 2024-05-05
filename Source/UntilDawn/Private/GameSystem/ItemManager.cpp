@@ -13,6 +13,7 @@
 #include "Engine/DataTable.h"
 #include "../UntilDawn.h"
 
+
 UItemManager::UItemManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -29,10 +30,44 @@ void UItemManager::BeginPlay()
 	
 	InitializeJson();
 
-	//for (int i = 0; i < 4; i++)
-	//{
-	//	SpawnItem(i, i, FVector::ZeroVector);
-	//}
+	for (int i = 0; i < 4; i++)
+	{
+		SpawnItem(i, i, FVector::ZeroVector);
+	}
+
+	for (auto& kv : tempMap2)
+	{
+		switch (kv.Key)
+		{
+			case 0:
+			{
+				//FMemoryReader FromBinary = FMemoryReader(kv.Value.buff);
+				//FWeaponInfo weaponInfo;
+				//FromBinary << weaponInfo.attackPower;
+				//FromBinary << weaponInfo.weaponType;
+				//PLOG(TEXT("melee %f %d"), weaponInfo.attackPower, weaponInfo.weaponType);
+				//break;
+			}
+			case 1:
+			{
+				//FMemoryReader FromBinary = FMemoryReader(kv.Value.get)
+				break;
+			}
+			case 2:
+			{
+				//FMemoryReader FromBinary = FMemoryReader(kv.Value.buff);
+				//FRecoveryItemInfo rinfo;
+				//FromBinary << rinfo.recoveryAmount;
+				//FromBinary << rinfo.usingSpeed;
+				//PLOG(TEXT("recovery %d %f"), rinfo.recoveryAmount, rinfo.usingSpeed);
+				//break;
+			}
+			case 3:
+			{
+				break;
+			}
+		}
+	}
 }
 
 UClass* UItemManager::GetItemClass(EItemMainType type)
@@ -166,20 +201,13 @@ void UItemManager::GetData(const int itemKey, FItemInfo* newInfo)
 	}
 	else
 	{
-		itemInfoMap[itemKey]->CopyTo(newInfo);
+		//itemInfoMap[itemKey]->CopyTo(newInfo);
 	}
-}
-
-void UItemManager::ItemPicked(const int itemID)
-{
-	itemInFieldMap[itemID]->DeactivateActor();
-	itemInFieldMap.Remove(itemID);
 }
 
 void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector location)
 {
 	UItemObject* itemObj = NewObject<UItemObject>(GetWorld());
-	itemObj->DItemPicked.BindUFunction(this, FName("ItemPicked"));
 	itemObjectMap.Add(itemID, itemObj);
 	if (itemAssetMap.Find(itemKey) == nullptr)
 	{
@@ -201,22 +229,25 @@ void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector 
 	else
 	{
 		AItemBase* itemBase = GetWorld()->SpawnActor<AItemBase>(GetItemClass(static_cast<EItemMainType>(itemObj->GetItemType())), FVector(0, 0, -3500), FRotator::ZeroRotator);
-		nonConsItemMap.Add(itemID, itemBase);
+		//nonConsItemMap.Add(itemID, itemBase);
 		itemActor = itemBase;
 	}
+
 	if (itemActor.IsValid())
 	{
-		itemInFieldMap.Add(itemID, itemActor);
+		//itemInFieldMap.Add(itemID, itemActor);
 		itemActor->SetItemObject(itemObj);
 		InitializeItemSpecificInfo(itemActor, itemKey);
 		itemActor->ActivateActor();
 		itemActor->SetActorLocation(location);
 	}
 
-	FItemInfo info = itemActor->GetItemObject()->GetItemInfo();
-	PLOG(TEXT("item : %d %s %d , grid : %d %d"), info.itemKey, *info.itemName, info.itemType, info.itemGridSize.X, info.itemGridSize.Y);
+	itemActorMap.Add(itemID, itemActor.Get());
 
-	switch (info.itemType)
+	//FItemInfo info = itemActor->GetItemObject()->GetItemInfo();
+	//PLOG(TEXT("item : %d %s %d , grid : %d %d"), info.itemKey, *info.itemName, info.itemType, info.itemGridSize.X, info.itemGridSize.Y);
+
+	/*switch (info.itemType)
 	{
 		case EItemMainType::MeleeWeapon:
 		{
@@ -244,7 +275,7 @@ void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector 
 			PLOG(TEXT("ammo %d %d"), ammoItem->GetAmmoInfo().ammoType, ammoItem->GetAmmoInfo().amount);
 			break;
 		}
-	}
+	}*/
 }
 
 void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, const int itemKey)
@@ -261,6 +292,13 @@ void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, co
 				FWeaponInfo weaponInfo;
 				SaveItemSpecificInfo(itemJson, weaponInfo);
 				meleeWeapon->InitializeWeaponInfo(weaponInfo);
+
+				FBufferArchive buf;
+				buf << weaponInfo.attackPower;
+				buf << weaponInfo.weaponType;
+
+				tempMap.Add(itemKey, FTemp(buf));
+
 				break;
 			}
 			case EItemMainType::RangedWeapon:
@@ -269,6 +307,12 @@ void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, co
 				FRangedWeaponInfo rangedWeaponInfo;
 				SaveItemSpecificInfo(itemJson, rangedWeaponInfo);
 				rangedWeapon->InitializeRangedWeaponInfo(rangedWeaponInfo);
+
+				FBufferArchive buf;
+				buf << rangedWeaponInfo;
+
+				tempMap.Add(itemKey, FTemp(buf));
+
 				break;
 			}
 			case EItemMainType::RecoveryItem:
@@ -277,6 +321,13 @@ void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, co
 				FRecoveryItemInfo recoveryItemInfo;
 				SaveItemSpecificInfo(itemJson, recoveryItemInfo);
 				recoveryItem->InitializeRecoveryInfo(recoveryItemInfo);
+
+				FBufferArchive buf;
+				buf << recoveryItemInfo.recoveryAmount;
+				buf << recoveryItemInfo.usingSpeed;
+
+				tempMap.Add(itemKey, FTemp(buf));
+
 				break;
 			}
 			case EItemMainType::AmmoItem:
@@ -285,6 +336,13 @@ void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, co
 				FAmmoItemInfo ammoItemInfo;
 				SaveItemSpecificInfo(itemJson, ammoItemInfo);
 				ammoItem->InitializeAmmoInfo(ammoItemInfo);
+
+				FBufferArchive buf;
+				buf << ammoItemInfo.ammoType;
+				buf << ammoItemInfo.amount;
+
+				tempMap.Add(itemKey, FTemp(buf));
+
 				break;
 			}
 		}
@@ -299,7 +357,7 @@ TWeakObjectPtr<AItemBase> UItemManager::FindItemActor(TWeakObjectPtr<UItemObject
 	}
 	else
 	{
-		return nonConsItemMap[itemObj->GetItemID()];
+		//return nonConsItemMap[itemObj->GetItemID()];
 	}
 	return nullptr;
 }
@@ -318,7 +376,7 @@ TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const int itemID)
 
 TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(TWeakObjectPtr<UItemObject> itemObj)
 {
-	TWeakObjectPtr<AItemBase> itemActor = FindItemActor(itemObj);
+	TWeakObjectPtr<AItemBase> itemActor = GetItemActor(itemObj->GetItemID());
 
 	if (itemActor.IsValid())
 	{
@@ -330,21 +388,45 @@ TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(TWeakObjectPtr<UItemObject>
 	return nullptr;
 }
 
-void UItemManager::ItemPickUpOtherPlayer(const int itemID)
+TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(const int itemID)
 {
-	itemObjectPickedMap.Add(itemID, itemInFieldMap[itemID]->GetItemObject());
-	itemInFieldMap[itemID]->DeactivateActor();
-	itemInFieldMap.Remove(itemID);
+	if (itemActorMap.Find(itemID))
+	{
+		return itemActorMap[itemID];
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+void UItemManager::ItemPickedUp(const int itemID)
+{
+	if (itemActorMap.Find(itemID))
+	{
+		itemActorMap[itemID]->DeactivateActor();
+		//itemInFieldMap.Remove(itemID);
+	}
+}
+
+void UItemManager::ItemPickedUpOtherPlayer(const int itemID)
+{
+	if (itemActorMap.Find(itemID))
+	{
+		//itemObjectPickedMap.Add(itemID, itemInFieldMap[itemID]->GetItemObject());
+		itemActorMap[itemID]->DeactivateActor();
+		//itemInFieldMap.Remove(itemID);
+	}
 }
 
 TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> droppedItemObj)
 {
-	TWeakObjectPtr<AItemBase> itemActor = FindItemActor(droppedItemObj);
+	TWeakObjectPtr<AItemBase> itemActor = GetItemActor(droppedItemObj->GetItemID());
 	if (itemActor.IsValid()) 
 	{
 		itemActor->SetItemObject(droppedItemObj);
-		itemInFieldMap.Add(droppedItemObj->GetItemID(), itemActor);
-		itemObjectPickedMap.Remove(droppedItemObj->GetItemID());
+		//itemInFieldMap.Add(droppedItemObj->GetItemID(), itemActor);
+		//itemObjectPickedMap.Remove(droppedItemObj->GetItemID());
 		return itemActor;
 	}
 	return nullptr;
@@ -354,6 +436,6 @@ void UItemManager::DestroyItem(const int itemID)
 {
 	// tweakobject로 파괴되었는지 체크
 	itemObjectMap.Remove(itemID);
-	itemObjectPickedMap.Remove(itemID);
+	//itemObjectPickedMap.Remove(itemID);
 }
 

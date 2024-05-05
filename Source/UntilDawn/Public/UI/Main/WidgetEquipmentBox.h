@@ -31,7 +31,7 @@ class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
 public:
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeWidget(UInventoryComponent* invComp, const EItemMainType type, const float size);
+	void InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType newItemYype, const EEquipmentBox newBoxType, const float size);
 	
 	UFUNCTION(BlueprintCallable)
 	void OnDropCalled(UDragDropOperation* operation);
@@ -45,6 +45,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnDragDetectedCall();
 
+	void Equip(TWeakObjectPtr<UItemObject> newItemObj);
+
 	DelegateOnEquipmentRemoved DOnEquipmentRemoved;
 
 	FORCEINLINE void SetItem(TWeakObjectPtr<UItemObject> newItemObj) { itemObj = newItemObj; }
@@ -57,12 +59,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FSlateBrush GetOriginIconImage();
-
-	void SetEquipmentAndBoxType(const EEquipmentBox newBoxType);
-
-	void SetNumber(const int num);
-	
-	void SetDragVisualClass(TSubclassOf<UWidgetDragVisual> dragVisClass);
 
 private:
 
@@ -78,7 +74,7 @@ private:
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	UWidgetDragVisual* dragVisual;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY()
 	TSubclassOf<UWidgetDragVisual> dragVisualClass;
 
 	UPROPERTY()

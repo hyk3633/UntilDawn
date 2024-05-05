@@ -11,6 +11,9 @@
  */
 
 class UWidgetItemInventory;
+class UProgressBar;
+class UUniformGridPanel;
+class APlayerCharacter;
 
 UCLASS()
 class UNTILDAWN_API UWidgetMainInterface : public UUserWidget
@@ -23,9 +26,23 @@ public:
 
 	void ToggleInventoryUI();
 
+protected:
+
+	UFUNCTION()
+	void OnCharacterHealthChanged(const float percentage);
+
 private:
 	
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	UWidgetItemInventory* ItemInventory;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UProgressBar* HealthBar;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UUniformGridPanel* EquipmentPanel;
+
+	UPROPERTY()
+	TWeakObjectPtr<APlayerCharacter> playerCharacter;
 
 };

@@ -4,24 +4,25 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "MeleeAttackComponent.generated.h"
+#include "InstantRecoveryComponent.generated.h"
 
+class APlayerCharacter;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class UNTILDAWN_API UMeleeAttackComponent : public UActorComponent
+class UNTILDAWN_API UInstantRecoveryComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
 
-	UMeleeAttackComponent();
+	UInstantRecoveryComponent();
 
 protected:
-
+	
 	virtual void BeginPlay() override;
 
-public:
+public:	
 
-	void Smash(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh);
-
+	void InstantHealthRecovery(TWeakObjectPtr<APlayerCharacter> playerCharacter, const float recoveryAmount);
+		
 };

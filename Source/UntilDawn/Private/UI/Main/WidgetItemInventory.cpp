@@ -5,6 +5,7 @@
 #include "UI/Main/WidgetEquipmentWindow.h"
 #include "UI/Main/WidgetInventoryGrid.h"
 #include "Player/PlayerCharacter.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/InventoryComponent.h"
 #include "Item/ItemObject.h"
@@ -21,7 +22,9 @@ void UWidgetItemInventory::ItemDrop(UDragDropOperation* operation)
 {
 	if (InventoryGrid->GetIsCursorInArea() == false && EquipmentWindow->GetIsCursorInArea() == false)
 	{
-		TWeakObjectPtr<UItemObject> payload = Cast<UItemObject>(operation->Payload);
-		GetWorld()->GetAuthGameMode<AGameModeMainMap>()->DropItem(payload);
+		TWeakObjectPtr<UItemObject> itemObj = Cast<UItemObject>(operation->Payload);
+		APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
+		check(playerController);
+		playerController->SendItemInfoToDrop(itemObj->GetItemID());
 	}
 }

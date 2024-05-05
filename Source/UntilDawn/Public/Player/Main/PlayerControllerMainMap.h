@@ -12,16 +12,18 @@
  * 
  */
 
-DECLARE_DELEGATE(DelegatePlayerDead);
-DECLARE_DELEGATE(DelegateWrestlingStart);
-DECLARE_DELEGATE(DelegateEKeyPressed);
-DECLARE_DELEGATE(DelegateIKeyPressed);
-
 class ClientSocket;
 class APlayerCharacter;
 class UInputMappingContext;
 class UInputAction;
+class UItemObject;
 class AItemBase;
+
+DECLARE_DELEGATE(DelegatePlayerDead);
+DECLARE_DELEGATE(DelegateWrestlingStart);
+DECLARE_DELEGATE(DelegateEKeyPressed);
+DECLARE_DELEGATE(DelegateIKeyPressed);
+DECLARE_DELEGATE_TwoParams(DelegateItemEquip, UItemObject* itemObj, const int boxNumber);
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
@@ -36,6 +38,7 @@ public:
 	DelegateWrestlingStart DWrestlingStart;
 	DelegateEKeyPressed DEKeyPressed;
 	DelegateIKeyPressed DIKeyPressed;
+	DelegateItemEquip DItemEquip;
 
 protected:
 
@@ -69,6 +72,8 @@ protected:
 
 	void IKeyPressed();
 
+	void HKeyPressed();
+
 public:
 
 	void WrestlingStart();
@@ -94,17 +99,21 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
-	void SendPickedItemInfo(const int itemNumber);
+	void SendPickedItemInfo(const int itemID);
 
-	UFUNCTION()
-	void SendHitPlayerInfo(const int playerNumber);
+	void UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated);
 
-	UFUNCTION()
-	void SendHitZombieInfo(const int zombieNumber);
+	void SendItemInfoToEquip(const int itemID, const int boxNumber);
+
+	void ProcessItemEquipInUI(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
+
+	void RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj);
+
+	void SendItemInfoToDrop(const int itemID);
+
+	void SendHittedCharacterInfo(TArray<FHitResult>& hits);
 
 	void PlayerDead();
-
-	void SendDropItem(const int itemID);
 
 protected:
 
@@ -146,6 +155,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* iKeyAction;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* hKeyAction;
 
 	FHitResult itemHit;
 

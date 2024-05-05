@@ -8,6 +8,9 @@
 #include "../Enums/WeaponType.h"
 #include "../Structs/ItemInfo.h"
 #include "../Structs/ItemAsset.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/BufferArchive.h"
 #include "ItemManager.generated.h"
 
 class UDataTable;
@@ -16,6 +19,20 @@ class UActorPooler;
 class AItemBase;
 class AItemWeapon;
 class UItemObject;
+
+USTRUCT()
+struct FTemp
+{
+	GENERATED_BODY()
+public:
+	FTemp() {}
+	FTemp(FBufferArchive& buf)
+	{
+		buff.Append(buf.GetData(), buf.Num());
+	}
+
+	TArray<uint8> buff;
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UItemManager : public UActorComponent
@@ -52,9 +69,6 @@ protected:
 
 	void GetData(const int itemKey, FItemInfo* newInfo);
 
-	UFUNCTION()
-	void ItemPicked(const int itemID);
-
 public:
 
 	void SpawnItem(const int itemID, const int itemKey, const FVector location);
@@ -71,8 +85,12 @@ public:
 
 	TWeakObjectPtr<AItemBase> GetItemActor(TWeakObjectPtr<UItemObject> itemObj);
 
+	TWeakObjectPtr<AItemBase> GetItemActor(const int itemID);
+
+	void ItemPickedUp(const int itemID);
+
 	// 다른 플레이어가 획득한 경우 아이템 오브젝트를 따로 맵에 저장하고 액터는 풀링
-	void ItemPickUpOtherPlayer(const int itemID);
+	void ItemPickedUpOtherPlayer(const int itemID);
 
 	// 플레이어나 다른 플레이어가 아이템을 버린 경우 아이템 오브젝트를 풀링된 액터에 저장하여 스폰
 	TWeakObjectPtr<AItemBase> DropItem(TWeakObjectPtr<UItemObject> droppedItemObj);
@@ -90,18 +108,25 @@ private:
 	UPROPERTY()
 	UActorPooler* itemPooler;
 
-	UPROPERTY()
-	TMap<int, AItemBase*> nonConsItemMap;
+	//UPROPERTY()
+	//TMap<int, AItemBase*> nonConsItemMap;
 
 	TMap<int, FItemInfo*> itemInfoMap;
 
 	TMap<int, FItemAsset> itemAssetMap;
 
-	TMap<int, TWeakObjectPtr<AItemBase>> itemInFieldMap;
+	//TMap<int, TWeakObjectPtr<AItemBase>> itemInFieldMap;
 
 	UPROPERTY()
 	TMap<int, UItemObject*> itemObjectMap;
 
-	TMap<int, TWeakObjectPtr<UItemObject>> itemObjectPickedMap;
+	UPROPERTY()
+	TMap<int, AItemBase*> itemActorMap;
+
+	//TMap<int, TWeakObjectPtr<UItemObject>> itemObjectPickedMap;
+
+	TMap<int, FTemp> tempMap;
+
+	TMap<int, FMemoryWriter> tempMap2;
 
 };

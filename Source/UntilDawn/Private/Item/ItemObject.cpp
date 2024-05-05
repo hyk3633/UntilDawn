@@ -5,6 +5,7 @@
 
 UItemObject::UItemObject()
 {
+	
 }
 
 void UItemObject::Init(const int id, FItemInfo newInfo, FItemAsset newAsset)

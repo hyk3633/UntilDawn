@@ -43,11 +43,15 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
-	void SendPickedItemInfo(const int itemNumber);
+	void SendPickedItemInfo(const int itemID);
 
-	void SendHitPlayerInfo(const int playerNumber);
+	void UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated);
 
-	void SendHitZombieInfo(const int zombieNumber);
+	void SendItemInfoToEquip(const int itemID, const int boxNumber);
+
+	void SendItemInfoToDrop(const int itemID);
+
+	void SendHittedCharactersInfo(TArray<TPair<int, bool>>& hittedCharacters);
 
 	void SendRespawnRequest();
 

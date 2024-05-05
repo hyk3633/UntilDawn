@@ -5,6 +5,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Player/Main/PlayerControllerMainMap.h"
+#include "../../UntilDawn/UntilDawn.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -12,37 +14,55 @@ AProjectileBase::AProjectileBase()
 
 	collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision Component"));
 	SetRootComponent(collision);
+	collision->SetCollisionObjectType(ECC_Projectile);
+	collision->SetCollisionProfileName(FName("ProjectileCollision"));
 	collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	collision->SetSphereRadius(5.f);
+	collision->SetSimulatePhysics(false);
+	collision->SetNotifyRigidBodyCollision(true);
 
-	GetSkeletalMesh()->SetupAttachment(RootComponent);
+	skeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
+	skeletalMesh->SetupAttachment(RootComponent);
+	skeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	skeletalMesh->SetRelativeLocation(FVector(-96.f, 0.f, 0.f));
+	skeletalMesh->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	skeletalMesh->SetWorldScale3D(FVector(2, 1, 2));
 
 	movementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Projectile Movement Component"));
 	movementComponent->bRotationFollowsVelocity = true;
-	movementComponent->ProjectileGravityScale = 0.f;
+	movementComponent->ProjectileGravityScale = 0.1f;
 	movementComponent->SetAutoActivate(false);
+	movementComponent->MaxSpeed = 3000.f;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Weapons/SK_Arrow.SK_Arrow'"));
-	if (skeletalMeshAsset.Succeeded()) { GetSkeletalMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
+	if (skeletalMeshAsset.Succeeded()) { skeletalMesh->SetSkeletalMesh(skeletalMeshAsset.Object); }
 }
 
 void AProjectileBase::ActivateActor()
 {
-	Super::ActivateActor();
-
-	GetSkeletalMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	collision->SetCollisionProfileName(FName("ProjectileCollision"));
+	skeletalMesh->SetVisibility(true);
 
 	movementComponent->SetUpdatedComponent(RootComponent);
-	movementComponent->SetVelocityInLocalSpace(FVector(50, 0, 0));
-	movementComponent->Activate();
+	movementComponent->SetVelocityInLocalSpace(FVector(-1000, 0, 0));
+	movementComponent->bRotationFollowsVelocity = true;
+	movementComponent->bInterpMovement = true;
+	movementComponent->Activate(true);
+
+	collision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	isActive = true;
 }
 
 void AProjectileBase::DeactivateActor()
 {
-	Super::DeactivateActor();
+	//skeletalMesh->SetVisibility(false);
 
+	collision->SetSimulatePhysics(false);
 	collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	movementComponent->Deactivate();
+
+	isActive = false;
 }
 
 bool AProjectileBase::IsActorActivated()
@@ -54,16 +74,24 @@ void AProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	movementComponent->OnProjectileStop.AddDynamic(this, &AProjectileBase::OnImpact);
+	collision->OnComponentHit.AddDynamic(this, &AProjectileBase::OnProjectileHit);
 }
 
-void AProjectileBase::OnImpact(const FHitResult& HitResult)
+void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (HitResult.bBlockingHit)
-	{
-		movementComponent->Deactivate();
-		collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TWeakObjectPtr<APlayerControllerMainMap> owner = Cast<APlayerControllerMainMap>(GetOwner());
+	if (owner.IsValid())
+	{		
+		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
+		TArray<FHitResult> hits;
+		hits.Add(Hit);
+		owner->SendHittedCharacterInfo(hits);
 	}
+}
+
+void AProjectileBase::DeactivateAfterDelay()
+{
+	DeactivateActor();
 }
 
 void AProjectileBase::Tick(float DeltaTime)

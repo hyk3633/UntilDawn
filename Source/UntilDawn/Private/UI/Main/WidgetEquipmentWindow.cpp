@@ -3,6 +3,8 @@
 
 #include "UI/Main/WidgetEquipmentWindow.h"
 #include "UI/Main/WidgetEquipmentBox.h"
+#include "Item/ItemObject.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "GameSystem/InventoryComponent.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
@@ -14,6 +16,9 @@ void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, cons
 	inventoryComponent = invComp;
 	inventoryComponent->InitializeEquippedWeaponArr(arrSize);
 
+	APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
+	playerController->DItemEquip.BindUFunction(this, FName("ItemEquipToBox"));
+
 	for (int i = 0; i < arrSize; i++)
 	{
 		UWidgetEquipmentBox* equipmentBox = CreateWidget<UWidgetEquipmentBox>(GetOwningPlayer(), equipmentBoxClass);
@@ -21,20 +26,25 @@ void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, cons
 		gridSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
 		gridSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
 		
-		equipmentBox->SetEquipmentAndBoxType(EEquipmentBox::Weapon);
 		equipmentBox->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
-		equipmentBox->InitializeWidget(invComp, equipmentTypeArr[i], size);
-		equipmentBox->SetNumber(i);
-		equipmentBox->SetDragVisualClass(dragVisualClass);
+		equipmentBox->InitializeWidget(i, invComp, dragVisualClass, equipmentTypeArr[i], EEquipmentBox::Weapon, size);
 		equipmentBox->Padding = FMargin(5, 5);
 
-		equipmentBoxMap.Add(equipmentBox);
+		equipmentBoxArr.Add(equipmentBox);
 	}
 }
 
 void UWidgetEquipmentWindow::SetCursorInArea(const bool bIn)
 {
 	isCursorInArea = bIn;
+}
+
+void UWidgetEquipmentWindow::ItemEquipToBox(UItemObject* itemObj, const int boxNumber)
+{
+	if (equipmentBoxArr.IsValidIndex(boxNumber))
+	{
+		equipmentBoxArr[boxNumber]->Equip(itemObj);
+	}
 }
 
 void UWidgetEquipmentWindow::OnItemRemoved(const int slotNumber, EEquipmentBox boxType)

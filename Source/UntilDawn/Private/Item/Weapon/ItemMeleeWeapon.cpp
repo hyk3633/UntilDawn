@@ -2,12 +2,13 @@
 
 
 #include "Item/Weapon/ItemMeleeWeapon.h"
+#include "Item/Component/MeleeAttackComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UntilDawn/UntilDawn.h"
 
 AItemMeleeWeapon::AItemMeleeWeapon()
 {
-
+	meleeAttackComponent = CreateDefaultSubobject<UMeleeAttackComponent>(TEXT("Melee Attack Component"));
 }
 
 void AItemMeleeWeapon::InitializeWeaponInfo(const FWeaponInfo& newInfo)
@@ -15,29 +16,9 @@ void AItemMeleeWeapon::InitializeWeaponInfo(const FWeaponInfo& newInfo)
 	weaponInfo = newInfo;
 }
 
-void AItemMeleeWeapon::ActivateAttackTrace(FHitResult& hit)
-{
-	const FVector socketLocation = GetSkeletalMesh()->GetSocketLocation(FName("CollisionSocket"));
-	UKismetSystemLibrary::SphereTraceSingle
-	(
-		this,
-		socketLocation,
-		socketLocation,
-		16,
-		UEngineTypes::ConvertToTraceType(ECC_PlayerAttack),
-		false,
-		TArray<AActor*>(),
-		EDrawDebugTrace::ForDuration,
-		hit,
-		true,
-		FLinearColor::Red,
-		FLinearColor::Green,
-		2.f
-	);
-}
-
 void AItemMeleeWeapon::Attack(TWeakObjectPtr<APlayerController> ownerController)
 {
+	meleeAttackComponent->Smash(ownerController, GetSkeletalMesh());
 }
 
 EWeaponType AItemMeleeWeapon::GetWeaponType() const

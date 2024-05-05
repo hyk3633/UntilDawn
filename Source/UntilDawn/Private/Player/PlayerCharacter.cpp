@@ -21,7 +21,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "KismetAnimationLibrary.h"
 #include "UntilDawn/UntilDawn.h"
-#include "Item/Weapon/ItemMeleeWeapon.h"
+#include "Item/ItemObject.h"
 #include "Engine/SkeletalMeshSocket.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -51,7 +51,9 @@ APlayerCharacter::APlayerCharacter()
 
 	cameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	cameraBoom->SetupAttachment(RootComponent);
-	cameraBoom->TargetArmLength = 400.0f;
+	cameraBoom->SetRelativeLocation(FVector(0.f, 20.f, 50.f));
+	cameraBoom->SetRelativeRotation(FRotator(10.f, 0.f, 0.f));
+	cameraBoom->TargetArmLength = 250.0f;
 	cameraBoom->bUsePawnControlRotation = true;
 
 	followCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -220,8 +222,8 @@ bool APlayerCharacter::LeftClick()
 	else
 	{
 		animInst->PlayLeftClickMontage(weaponType);
+		return true;
 	}
-	return true;
 }
 
 bool APlayerCharacter::LeftClickHold()
@@ -350,6 +352,14 @@ bool APlayerCharacter::RKeyHold()
 
 		return true;
 	}
+}
+
+bool APlayerCharacter::HKeyPressed()
+{
+	if (CheckAbleInput() == false)
+		return false;
+
+	return inventoryComponent->UsingRecoveryItem();
 }
 
 void APlayerCharacter::SuccessToBlocking()
@@ -502,54 +512,31 @@ void APlayerCharacter::StartAttack()
 	inventoryComponent->Attack(Cast<APlayerController>(GetController()));
 }
 
-void APlayerCharacter::ActivateAttackTrace()
-{
-	if (isAttackActivated == false)
-		return;
-
-	FHitResult hit;
-	//equippedWeapon->ActivateAttackTrace(hit);
-
-	if (hit.bBlockingHit)
-	{
-		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
-		if (IsValid(player))
-		{
-			DHitPlayer.ExecuteIfBound(player->GetPlayerNumber());
-			EndAttack();
-		}
-		else
-		{
-			AZombieCharacter* zombie = Cast<AZombieCharacter>(hit.GetActor());
-			if (IsValid(zombie))
-			{
-				DHitZombie.ExecuteIfBound(zombie->GetNumber());
-				EndAttack();
-			}
-		}
-	}
-}
-
 void APlayerCharacter::EndAttack()
 {
 	isAttackActivated = false;
 }
 
-bool APlayerCharacter::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj)
+void APlayerCharacter::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint)
 {
-	if (inventoryComponent->TryAddItem(itemObj))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	const int index = inventoryComponent->TileToIndex(addedPoint);
+	inventoryComponent->AddItemAt(itemObj, index);
+}
 
-	//items.Add(itemNumber);
-	//equippedWeapon = Cast<AItemMeleeWeapon>(itemNumber);
-	//const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(FName("MeleeWeaponSocket"));
-	//socket->AttachActor(itemNumber, GetMesh());
+void APlayerCharacter::UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex)
+{
+	const int index = inventoryComponent->TileToIndex({ xIndex, yIndex });
+	inventoryComponent->AddItemAt(itemObj, index);
+}
+
+void APlayerCharacter::RestoreInventory(TWeakObjectPtr<UItemObject> itemObj)
+{
+	inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeftIndex());
+}
+
+void APlayerCharacter::ItemEquip(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
+{
+	inventoryComponent->EquipItem(boxNumber, itemActor);
 }
 
 void APlayerCharacter::PlayerDead()
@@ -593,4 +580,20 @@ void APlayerCharacter::DeadReckoningMovement(const FVector& lastLocation, const 
 {
 	nextLocation = lastLocation + ratency * lastVelocity;
 	bset = true;
+}
+
+float APlayerCharacter::GetHealthPercentage()
+{
+	return health / maxHealth;
+}
+
+void APlayerCharacter::RecoverHealth(const float recoveryAmount)
+{
+	health = FMath::Clamp(health + recoveryAmount, 0.f, maxHealth);
+}
+
+void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
+{
+	//const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
+	//socket->AttachActor(item.Get(), GetMesh());
 }
