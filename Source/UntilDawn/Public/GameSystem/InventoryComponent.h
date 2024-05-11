@@ -61,6 +61,8 @@ public:
 
 	void EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
 
+	void UnequipItem(TWeakObjectPtr<AItemBase> itemActor);
+
 	void Attack(TWeakObjectPtr<APlayerController> ownerController);
 
 	EWeaponType ArmRecentWeapon();
@@ -71,7 +73,7 @@ public:
 
 	void InitializeEquippedWeaponArr(const int size);
 
-	bool UsingRecoveryItem();
+	int GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj);
 
 	FORCEINLINE int GetColumns() const { return columns; }
 	FORCEINLINE void SetColumns(int col) { columns = col; }
@@ -93,9 +95,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	bool isDirty;
 
-	TArray<TWeakObjectPtr<AItemWeapon>> equippedWeaponArr;
+	TArray<TWeakObjectPtr<AItemBase>> equippedItems;
 
-	TWeakObjectPtr<AItemWeapon> armedWeapon;
+	TWeakObjectPtr<AItemBase> armedWeapon;
 	
 	int recentWeaponSlot = -1;
 

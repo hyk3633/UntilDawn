@@ -19,6 +19,7 @@ UItemManager::UItemManager()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	itemPooler = CreateDefaultSubobject<UActorPooler>(TEXT("Item Pooler"));
+	itemPooler->SetActorClass(AItemBase::StaticClass());
 
 	static ConstructorHelpers::FObjectFinder<UDataTable> Obj_ItemAssetDataTable(TEXT("/Game/_Assets/DataTable/DT_ItemAsset.DT_ItemAsset"));
 	if (Obj_ItemAssetDataTable.Succeeded()) itemAssetDataTable = Obj_ItemAssetDataTable.Object;
@@ -29,11 +30,6 @@ void UItemManager::BeginPlay()
 	Super::BeginPlay();
 	
 	InitializeJson();
-
-	for (int i = 0; i < 4; i++)
-	{
-		SpawnItem(i, i, FVector::ZeroVector);
-	}
 
 	for (auto& kv : tempMap2)
 	{
@@ -70,34 +66,6 @@ void UItemManager::BeginPlay()
 	}
 }
 
-UClass* UItemManager::GetItemClass(EItemMainType type)
-{
-	switch (type)
-	{
-	case EItemMainType::MeleeWeapon:
-		return AItemMeleeWeapon::StaticClass();
-	case EItemMainType::RangedWeapon:
-		return AItemRangedWeapon::StaticClass();
-	case EItemMainType::RecoveryItem:
-		return AItemRecovery::StaticClass();
-	case EItemMainType::AmmoItem:
-		return AItemAmmo::StaticClass();
-	}
-	return nullptr;
-}
-
-UClass* UItemManager::GetWeaponClass(EWeaponType type)
-{
-	switch (type)
-	{
-	case EWeaponType::AXE:
-		return AItemMeleeWeapon::StaticClass();
-	case EWeaponType::BOW:
-		return AItemRangedWeapon::StaticClass();
-	}
-	return nullptr;
-}
-
 void UItemManager::InitializeJson()
 {
 	FString fileStr;
@@ -130,6 +98,7 @@ void UItemManager::SaveItemCommonInfo(const TSharedPtr<FJsonObject>* jsonItem, F
 	jsonItem->Get()->TryGetNumberField(TEXT("ItemKey"), itemInfo.itemKey);
 	jsonItem->Get()->TryGetStringField(TEXT("ItemName"), itemInfo.itemName);
 	jsonItem->Get()->TryGetNumberField(TEXT("ItemType"), itemType);
+	jsonItem->Get()->TryGetNumberField(TEXT("Quantity"), itemInfo.quantity);
 	jsonItem->Get()->TryGetBoolField(TEXT("IsConsumable"), itemInfo.isConsumable);
 	itemInfo.itemType = static_cast<EItemMainType>(itemType);
 
@@ -185,12 +154,11 @@ void UItemManager::SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem,
 	//PLOG(TEXT("ammo : %d %d"), itemInfo.ammoType, itemInfo.amount);
 }
 
-bool UItemManager::GetItemAssetMap(const int itemKey)
+FItemAsset UItemManager::GetItemAssetMap(const int itemKey)
 {
 	FItemAsset* itemAsset = itemAssetDataTable->FindRow<FItemAsset>(*FString::FromInt(itemKey), TEXT(""));
-	if (itemAsset == nullptr) return false;
-	itemAssetMap.Add(itemKey, *itemAsset);
-	return true;
+	check(itemAsset);
+	return *itemAsset;
 }
 
 void UItemManager::GetData(const int itemKey, FItemInfo* newInfo)
@@ -205,42 +173,42 @@ void UItemManager::GetData(const int itemKey, FItemInfo* newInfo)
 	}
 }
 
-void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector location)
+TWeakObjectPtr<UItemObject> UItemManager::CreatePlayersPossessedItem(const PossessedItem& possessed)
+{
+	auto itemObj = CreateItemObject(FString(UTF8_TO_TCHAR(possessed.itemID.c_str())) , possessed.itemKey);
+	itemObj->SetItemQuantity(possessed.quantity);
+	if (possessed.isRotated) itemObj->Rotate();
+	return itemObj;
+}
+
+TWeakObjectPtr<AItemBase> UItemManager::CreatePlayersEquippedItem(const EquippedItem& equipped)
+{
+	auto itemObj = CreateItemObject(FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), equipped.itemKey);
+	TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPooler->GetPooledActor());
+	itemActor->SetItemObject(itemObj);
+	return itemActor;
+}
+
+void UItemManager::SpawnItem(const FString& itemID, const int itemKey, const FVector location)
 {
 	UItemObject* itemObj = NewObject<UItemObject>(GetWorld());
 	itemObjectMap.Add(itemID, itemObj);
-	if (itemAssetMap.Find(itemKey) == nullptr)
-	{
-		const bool assetResult = GetItemAssetMap(itemKey);
-		check(assetResult);
-	}
-	itemObj->Init(itemID, GetItemCommonInfo(itemKey), itemAssetMap[itemKey]);
+	
+	itemObj->Init(itemID, GetItemCommonInfo(itemKey), GetItemAssetMap(itemKey));
 
-	TWeakObjectPtr<AItemBase> itemActor;
-	if (itemObj->GetIsConsumable())
+	auto actor = itemPooler->GetPooledActor();
+	if (actor.IsValid() == false)
 	{
-		const int type = itemObj->GetItemType();
-		if (itemPooler->IsActorTypeExist(type) == false)
-		{
-			itemPooler->SpawnPoolableActor(type, GetItemClass(static_cast<EItemMainType>(type)), 10);
-		}
-		itemActor = Cast<AItemBase>(itemPooler->GetPooledActor(type));
-	}
-	else
-	{
-		AItemBase* itemBase = GetWorld()->SpawnActor<AItemBase>(GetItemClass(static_cast<EItemMainType>(itemObj->GetItemType())), FVector(0, 0, -3500), FRotator::ZeroRotator);
-		//nonConsItemMap.Add(itemID, itemBase);
-		itemActor = itemBase;
+		itemPooler->SpawnPoolableActor(10);
+		actor = itemPooler->GetPooledActor();
 	}
 
-	if (itemActor.IsValid())
-	{
-		//itemInFieldMap.Add(itemID, itemActor);
-		itemActor->SetItemObject(itemObj);
-		InitializeItemSpecificInfo(itemActor, itemKey);
-		itemActor->ActivateActor();
-		itemActor->SetActorLocation(location);
-	}
+	TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(actor);
+	check(itemActor.IsValid());
+	itemActor->SetItemObject(itemObj);
+	//InitializeItemSpecificInfo(itemActor, itemKey);
+	itemActor->ActivateActor();
+	itemActor->SetActorLocation(location);
 
 	itemActorMap.Add(itemID, itemActor.Get());
 
@@ -276,6 +244,14 @@ void UItemManager::SpawnItem(const int itemID, const int itemKey, const FVector 
 			break;
 		}
 	}*/
+}
+
+TWeakObjectPtr<UItemObject> UItemManager::CreateItemObject(const FString& itemID, const int itemKey)
+{
+	UItemObject* itemObj = NewObject<UItemObject>(GetWorld());
+	itemObjectMap.Add(itemID, itemObj);
+	itemObj->Init(itemID, GetItemCommonInfo(itemKey), GetItemAssetMap(itemKey));
+	return itemObj;
 }
 
 void UItemManager::InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, const int itemKey)
@@ -353,7 +329,7 @@ TWeakObjectPtr<AItemBase> UItemManager::FindItemActor(TWeakObjectPtr<UItemObject
 {
 	if (itemObj->GetIsConsumable())
 	{
-		return Cast<AItemBase>(itemPooler->GetPooledActor(itemObj->GetItemType()));
+		return Cast<AItemBase>(itemPooler->GetPooledActor());
 	}
 	else
 	{
@@ -362,7 +338,7 @@ TWeakObjectPtr<AItemBase> UItemManager::FindItemActor(TWeakObjectPtr<UItemObject
 	return nullptr;
 }
 
-TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const int itemID)
+TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const FString& itemID)
 {
 	if (itemObjectMap.Find(itemID))
 	{
@@ -374,21 +350,28 @@ TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const int itemID)
 	}
 }
 
+TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(const FString& itemID)
+{
+	auto itemObj = GetItemObject(itemID);
+	return GetItemActor(itemObj);
+}
+
 TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(TWeakObjectPtr<UItemObject> itemObj)
 {
-	TWeakObjectPtr<AItemBase> itemActor = GetItemActor(itemObj->GetItemID());
+	TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPooler->GetPooledActor());
 
 	if (itemActor.IsValid())
 	{
 		itemActor->SetItemObject(itemObj);
 		itemActor->ActivateEquipMode();
+		itemActorMap.Add(itemObj->GetItemID(), itemActor);
 		return itemActor;
 	}
 
 	return nullptr;
 }
 
-TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(const int itemID)
+TWeakObjectPtr<AItemBase> UItemManager::GetItemActorInField(const FString& itemID)
 {
 	if (itemActorMap.Find(itemID))
 	{
@@ -400,22 +383,27 @@ TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(const int itemID)
 	}
 }
 
-void UItemManager::ItemPickedUp(const int itemID)
+void UItemManager::ItemEquipped(const FString& itemID, TWeakObjectPtr<AItemBase> itemActor)
+{
+	itemActorMap.Add(itemID, itemActor);
+	itemActor->ActivateEquipMode();
+}
+
+void UItemManager::ItemPickedUp(const FString& itemID)
 {
 	if (itemActorMap.Find(itemID))
 	{
 		itemActorMap[itemID]->DeactivateActor();
-		//itemInFieldMap.Remove(itemID);
+		itemActorMap.Remove(itemID);
 	}
 }
 
-void UItemManager::ItemPickedUpOtherPlayer(const int itemID)
+void UItemManager::ItemPickedUpOtherPlayer(const FString& itemID)
 {
 	if (itemActorMap.Find(itemID))
 	{
-		//itemObjectPickedMap.Add(itemID, itemInFieldMap[itemID]->GetItemObject());
 		itemActorMap[itemID]->DeactivateActor();
-		//itemInFieldMap.Remove(itemID);
+		itemActorMap.Remove(itemID);
 	}
 }
 
@@ -425,17 +413,15 @@ TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> dro
 	if (itemActor.IsValid()) 
 	{
 		itemActor->SetItemObject(droppedItemObj);
-		//itemInFieldMap.Add(droppedItemObj->GetItemID(), itemActor);
-		//itemObjectPickedMap.Remove(droppedItemObj->GetItemID());
+		itemActorMap.Add(droppedItemObj->GetItemID(), itemActor.Get());
 		return itemActor;
 	}
 	return nullptr;
 }
 
-void UItemManager::DestroyItem(const int itemID)
+void UItemManager::DestroyItem(const FString& itemID)
 {
 	// tweakobject로 파괴되었는지 체크
 	itemObjectMap.Remove(itemID);
-	//itemObjectPickedMap.Remove(itemID);
 }
 

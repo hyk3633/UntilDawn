@@ -160,9 +160,9 @@ void UInventoryComponent::RemoveEquipmentItem(const int slotNumber, const EEquip
 	switch (boxType)
 	{
 	case EEquipmentBox::Weapon:
-		if (equippedWeaponArr.IsValidIndex(slotNumber))
+		if (equippedItems.IsValidIndex(slotNumber))
 		{
-			equippedWeaponArr[slotNumber] = nullptr;
+			equippedItems[slotNumber] = nullptr;
 		}
 		break;
 	}
@@ -181,24 +181,25 @@ void UInventoryComponent::GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& 
 
 void UInventoryComponent::EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
 {
-	const EItemMainType itemType = StaticCast<EItemMainType>(itemActor->GetItemObject()->GetItemType());
-	switch (itemType)
+	check(equippedItems.IsValidIndex(boxNumber));
+	equippedItems[boxNumber] = itemActor;
+}
+
+void UInventoryComponent::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
+{
+	for (int i=0; i< equippedItems.Num(); i++)
 	{
-		case EItemMainType::MeleeWeapon:
-		case EItemMainType::RangedWeapon:
+		if (equippedItems[i] == itemActor)
 		{
-			if (equippedWeaponArr.IsValidIndex(boxNumber))
-			{
-				equippedWeaponArr[boxNumber] = Cast<AItemWeapon>(itemActor);
-			}
-			break;
+			equippedItems[i] = nullptr;
+			return;
 		}
 	}
 }
 
 void UInventoryComponent::Attack(TWeakObjectPtr<APlayerController> ownerController)
 {
-	armedWeapon->Attack(ownerController);
+	//armedWeapon->Attack(ownerController);
 }
 
 EWeaponType UInventoryComponent::ArmRecentWeapon()
@@ -210,16 +211,16 @@ EWeaponType UInventoryComponent::ArmRecentWeapon()
 
 	if (recentWeaponSlot != -1)
 	{
-		armedWeapon = equippedWeaponArr[recentWeaponSlot];
+		armedWeapon = equippedItems[recentWeaponSlot];
 		armedWeapon->ActivateActor();
 		return GetCurrentWeaponType();
 	}
 
-	for (int i = 0; i < equippedWeaponArr.Num(); i++)
+	for (int i = 0; i < equippedItems.Num(); i++)
 	{
-		if (equippedWeaponArr[i].IsValid())
+		if (equippedItems[i].IsValid())
 		{
-			armedWeapon = equippedWeaponArr[i];
+			armedWeapon = equippedItems[i];
 			recentWeaponSlot = i;
 
 			APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
@@ -235,7 +236,7 @@ EWeaponType UInventoryComponent::GetCurrentWeaponType() const
 {
 	if (armedWeapon.IsValid())
 	{
-		return armedWeapon->GetWeaponType();
+		//return armedWeapon->GetWeaponType();
 	}
 	return EWeaponType::NONE;
 }
@@ -247,10 +248,20 @@ void UInventoryComponent::DisarmWeapon()
 
 void UInventoryComponent::InitializeEquippedWeaponArr(const int size)
 {
-	equippedWeaponArr.Init(nullptr, size);
+	equippedItems.Init(nullptr, size);
 }
 
-bool UInventoryComponent::UsingRecoveryItem()
+int UInventoryComponent::GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj)
+{
+	for (int i=0; i< equippedItems.Num(); i++)
+	{
+		if (equippedItems[i].IsValid() && equippedItems[i]->GetItemObject() == itemObj)
+			return i;
+	}
+	return -1;
+}
+
+/*bool UInventoryComponent::UsingRecoveryItem()
 {
 	for (int i = 0; i < items.Num(); i++)
 	{
@@ -262,5 +273,5 @@ bool UInventoryComponent::UsingRecoveryItem()
 		}
 	}
 	return false;
-}
+}*/
 

@@ -4,6 +4,7 @@
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
+#include "GameSystem/InventoryComponent.h"
 #include "UI/Main/HUDMainMap.h"
 #include "Player/PlayerCharacter.h"
 #include "Zombie/ZombieCharacter.h"
@@ -16,6 +17,11 @@
 
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
+	inventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory Component"));
+	inventoryComponent->SetColumns(6);
+	inventoryComponent->SetRows(15);
+	// 서버로부터 전달받기
+
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsController.IMC_DefaultsController"));
 	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
 
@@ -111,64 +117,69 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 void APlayerControllerMainMap::LeftClick()
 {
-	check(myCharacter);
-	if (myCharacter->LeftClick())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (myCharacter->LeftClick(weaponType))
 	{
-		SendPlayerInputAction(EPlayerInputs::LeftClick);
+		SendPlayerInputAction(EPlayerInputs::LeftClick, weaponType);
 	}
 }
 
 void APlayerControllerMainMap::LeftClickHold()
 {
-	check(myCharacter);
-	if (myCharacter->LeftClickHold())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (myCharacter->LeftClickHold(weaponType))
 	{
-		SendPlayerInputAction(EPlayerInputs::LeftClickHold);
+		SendPlayerInputAction(EPlayerInputs::LeftClickHold, weaponType);
 	}
 }
 
 void APlayerControllerMainMap::LeftClickEnd()
 {
-	check(myCharacter);
-	if (myCharacter->LeftClickEnd())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (myCharacter->LeftClickEnd(weaponType))
 	{
-		SendPlayerInputAction(EPlayerInputs::LeftClickEnd);
+		SendPlayerInputAction(EPlayerInputs::LeftClickEnd, weaponType);
 	}
 }
 
 void APlayerControllerMainMap::RightClick()
 {
-	check(myCharacter);
-	if (myCharacter->RightClick())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (myCharacter->RightClick(weaponType))
 	{
-		SendPlayerInputAction(EPlayerInputs::RightClick);
+		SendPlayerInputAction(EPlayerInputs::RightClick, weaponType);
 	}
 }
 
 void APlayerControllerMainMap::RightClickEnd()
 {
-	check(myCharacter);
-	if (myCharacter->RightClickEnd())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (myCharacter->RightClickEnd(weaponType))
 	{
-		SendPlayerInputAction(EPlayerInputs::RightClickEnd);
+		SendPlayerInputAction(EPlayerInputs::RightClickEnd, weaponType);
 	}
 }
 
 void APlayerControllerMainMap::RKeyPressed()
 {
-	check(myCharacter);
-	if (myCharacter->RKeyPressed())
+	const EWeaponType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
+	if (currentWeaponType == EWeaponType::NONE)
 	{
-		SendPlayerInputAction(EPlayerInputs::RKeyPressed);
+		const EWeaponType recentWeaponType = inventoryComponent->ArmRecentWeapon();
+		if (myCharacter->RKeyPressed(recentWeaponType))
+		{
+			SendPlayerInputAction(EPlayerInputs::RKeyPressed, recentWeaponType);
+		}
 	}
 }
 
 void APlayerControllerMainMap::RKeyHold()
 {
-	check(myCharacter);
-	if (myCharacter->RKeyHold())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (weaponType != EWeaponType::NONE && myCharacter->RKeyHold(weaponType))
 	{
-		SendPlayerInputAction(EPlayerInputs::RKeyHold);
+		inventoryComponent->DisarmWeapon();
+		SendPlayerInputAction(EPlayerInputs::RKeyHold, weaponType);
 	}
 }
 
@@ -250,72 +261,106 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	GetHUD<AHUDMainMap>()->StartHUD();
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
-	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo().characterInfo);
+	check(clientSocket);
+	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo());
 	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
 }
 
-void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType)
+void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType)
 {
-	check(clientSocket);
-	clientSocket->SendPlayerInputAction(static_cast<int>(inputType));
+	clientSocket->SendPlayerInputAction(static_cast<int>(inputType), static_cast<int>(weaponType));
 }
 
 void APlayerControllerMainMap::SendInRangeZombie(int zombieNumber)
 {
-	check(clientSocket);
 	clientSocket->SendInRangeZombie(zombieNumber);
 }
 
 void APlayerControllerMainMap::SendOutRangeZombie(int zombieNumber)
 {
-	check(clientSocket);
 	clientSocket->SendOutRangeZombie(zombieNumber);
 }
 
 void APlayerControllerMainMap::SendZombieHitsMe(int zombieNumber, bool bResult)
 {
-	check(clientSocket);
 	clientSocket->SendZombieHitsMe(zombieNumber, bResult);
 }
 
 void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 {
-	check(clientSocket);
 	clientSocket->SendPlayerBlockingResult(isSuccessToBlocking);
 }
 
-void APlayerControllerMainMap::SendPickedItemInfo(const int itemID)
+void APlayerControllerMainMap::SendPickedItemInfo(const FString itemID)
 {
-	check(clientSocket);
 	clientSocket->SendPickedItemInfo(itemID);
 }
 
-void APlayerControllerMainMap::UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated)
+void APlayerControllerMainMap::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint)
 {
-	check(clientSocket);
+	const int index = inventoryComponent->TileToIndex(addedPoint);
+	inventoryComponent->AddItemAt(itemObj, index);
+}
+
+void APlayerControllerMainMap::NotifyToServerUpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated)
+{
 	clientSocket->UpdateItemGridPoint(itemID, xPoint, yPoint, isRotated);
 }
 
-void APlayerControllerMainMap::SendItemInfoToEquip(const int itemID, const int boxNumber)
+void APlayerControllerMainMap::UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex)
 {
-	check(clientSocket);
+	const int index = inventoryComponent->TileToIndex({ xIndex, yIndex });
+	inventoryComponent->AddItemAt(itemObj, index);
+}
+
+void APlayerControllerMainMap::SendItemInfoToEquip(const FString itemID, const int boxNumber)
+{
 	clientSocket->SendItemInfoToEquip(itemID, boxNumber);
 }
 
-void APlayerControllerMainMap::ProcessItemEquipInUI(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
+void APlayerControllerMainMap::EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
 {
-	DItemEquip.ExecuteIfBound(itemActor->GetItemObject().Get(), boxNumber);
-	check(myCharacter);
-	myCharacter->ItemEquip(boxNumber, itemActor);
+	DEquipItem.ExecuteIfBound(itemActor->GetItemObject().Get(), boxNumber);
+	inventoryComponent->EquipItem(boxNumber, itemActor);
+	myCharacter->AttachItemActor(itemActor);
+}
+
+void APlayerControllerMainMap::NotifyToServerUnequipItem(const FString itemID, const FTile& addedPoint)
+{
+	clientSocket->UnequipItem(itemID, addedPoint.X, addedPoint.Y);
+}
+
+void APlayerControllerMainMap::UnequipItemAndAddToInventory(TWeakObjectPtr<AItemBase> itemActor, const FTile& addedPoint)
+{
+	inventoryComponent->UnequipItem(itemActor);
+	AddItemToInventory(itemActor->GetItemObject(), addedPoint);
+	myCharacter->DettachItemActor(itemActor);
+}
+
+void APlayerControllerMainMap::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
+{
+	inventoryComponent->UnequipItem(itemActor);
+	myCharacter->DettachItemActor(itemActor);
 }
 
 void APlayerControllerMainMap::RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj)
 {
-	check(myCharacter);
-	myCharacter->RestoreInventory(itemObj);
+	inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeftIndex());
 }
 
-void APlayerControllerMainMap::SendItemInfoToDrop(const int itemID)
+void APlayerControllerMainMap::RestoreEquipmentUI(TWeakObjectPtr<UItemObject> itemObj)
+{
+	const int slotNumber = inventoryComponent->GetSlotNumber(itemObj);
+	DEquipItem.ExecuteIfBound(itemObj.Get(), slotNumber);
+}
+
+void APlayerControllerMainMap::DropEquippedItem(const FString itemID)
+{
+	check(clientSocket);
+	clientSocket->DropEquippedItem(itemID);
+}
+
+void APlayerControllerMainMap::SendItemInfoToDrop(const FString itemID)
 {
 	check(clientSocket);
 	clientSocket->SendItemInfoToDrop(itemID);

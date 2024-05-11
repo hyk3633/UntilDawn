@@ -8,30 +8,27 @@ UActorPooler::UActorPooler()
 
 }
 
-bool UActorPooler::IsActorTypeExist(const int itemType)
+void UActorPooler::SetActorClass(UClass* newClass)
 {
-	return actorPoolMap.Find(itemType) != nullptr;
+	actorClass = newClass;
 }
 
-void UActorPooler::SpawnPoolableActor(const int itemType, UClass* actorClass, const int spawnCount)
+void UActorPooler::SpawnPoolableActor(const int spawnCount)
 {
-	if (actorPoolMap.Find(itemType) == nullptr)
-	{
-		actorPoolMap.Emplace(itemType);
-	}
+	check(actorClass);
 
 	AActor* actor = nullptr;
 	for (int i = 0; i < spawnCount; i++)
 	{
 		actor = GetWorld()->SpawnActor<AActor>(actorClass, FVector(0, 0, -3500), FRotator::ZeroRotator);
-		actorPoolMap[itemType].actorPool.Add(actor);
+		actorPool.Add(actor);
 	}
 }
 
-TWeakObjectPtr<AActor> UActorPooler::GetPooledActor(const int itemType)
+TWeakObjectPtr<AActor> UActorPooler::GetPooledActor()
 {
 	IPoolableActor* poolableActor = nullptr;
-	for (auto actor : actorPoolMap[itemType].actorPool)
+	for (auto actor : actorPool)
 	{
 		poolableActor = Cast<IPoolableActor>(actor);
 		if (poolableActor->IsActorActivated() == false)
@@ -40,6 +37,8 @@ TWeakObjectPtr<AActor> UActorPooler::GetPooledActor(const int itemType)
 			return MakeWeakObjectPtr<AActor>(actor);
 		}
 	}
+	SpawnPoolableActor(3);
+	
 	return nullptr;
 }
 

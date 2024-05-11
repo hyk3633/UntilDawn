@@ -17,7 +17,7 @@ void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, cons
 	inventoryComponent->InitializeEquippedWeaponArr(arrSize);
 
 	APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
-	playerController->DItemEquip.BindUFunction(this, FName("ItemEquipToBox"));
+	playerController->DEquipItem.BindUFunction(this, FName("EquipItemToBox"));
 
 	for (int i = 0; i < arrSize; i++)
 	{
@@ -39,7 +39,7 @@ void UWidgetEquipmentWindow::SetCursorInArea(const bool bIn)
 	isCursorInArea = bIn;
 }
 
-void UWidgetEquipmentWindow::ItemEquipToBox(UItemObject* itemObj, const int boxNumber)
+void UWidgetEquipmentWindow::EquipItemToBox(UItemObject* itemObj, const int boxNumber)
 {
 	if (equipmentBoxArr.IsValidIndex(boxNumber))
 	{

@@ -13,13 +13,10 @@ public:
 	FItemInfo() {}
 
 	int itemKey;
-
 	FString itemName;
-
 	EItemMainType itemType;
-
+	uint8 quantity;
 	FIntPoint itemGridSize;
-
 	bool isConsumable;
 
 	EItemMainType GetItemType() const { return StaticCast<EItemMainType>(itemType); }

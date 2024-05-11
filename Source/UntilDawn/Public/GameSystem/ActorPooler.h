@@ -8,19 +8,6 @@
 #include "../Interface/PoolableActor.h"
 #include "ActorPooler.generated.h"
 
-USTRUCT()
-struct FActorPool
-{
-	GENERATED_BODY()
-
-public:
-
-	FActorPool() {}
-
-	UPROPERTY()
-	TArray<AActor*> actorPool;
-};
-
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UActorPooler : public UActorComponent
@@ -31,20 +18,23 @@ public:
 
 	UActorPooler();
 
-	bool IsActorTypeExist(const int itemType);
+	void SetActorClass(UClass* newClass);
 
-	void SpawnPoolableActor(const int itemType, UClass* actorClass, const int spawnCount);
+	void SpawnPoolableActor(const int spawnCount);
 
 	FORCEINLINE void SetPoolSize(const int size) { poolSize = size; } // 액터 추가되면 값 변하게
 
 	FORCEINLINE const int8 GetPoolSize() const { return poolSize; }
 
-	TWeakObjectPtr<AActor> GetPooledActor(const int itemType);
+	TWeakObjectPtr<AActor> GetPooledActor();
 
 private:
 
 	UPROPERTY()
-	TMap<int, FActorPool> actorPoolMap;
+	UClass* actorClass;
+
+	UPROPERTY()
+	TArray<AActor*> actorPool;
 
 	int8 poolSize;
 

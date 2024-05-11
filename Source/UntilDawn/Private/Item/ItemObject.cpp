@@ -8,9 +8,9 @@ UItemObject::UItemObject()
 	
 }
 
-void UItemObject::Init(const int id, FItemInfo newInfo, FItemAsset newAsset)
+void UItemObject::Init(const FString& itemId, FItemInfo newInfo, FItemAsset newAsset)
 {
-	itemID = id;
+	itemID = itemId;
 	itemInfo = newInfo;
 	itemAsset = newAsset;
 }
@@ -63,4 +63,9 @@ void UItemObject::Rotate()
 void UItemObject::SetTopLeftIndex(const int index)
 {
 	topLeftIndex = index;
+}
+
+void UItemObject::SetItemQuantity(const uint8 quantity)
+{
+	itemInfo.quantity = quantity;
 }

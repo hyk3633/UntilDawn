@@ -4,7 +4,6 @@
 #include "UI/Main/WidgetItemInventory.h"
 #include "UI/Main/WidgetEquipmentWindow.h"
 #include "UI/Main/WidgetInventoryGrid.h"
-#include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/InventoryComponent.h"
@@ -13,7 +12,7 @@
 
 void UWidgetItemInventory::InitializeWidget()
 {
-	inventoryComponent = Cast<APlayerCharacter>(GetOwningPlayerPawn())->GetInventoryComponent();
+	inventoryComponent = Cast<APlayerControllerMainMap>(GetOwningPlayer())->GetInventoryComponent();
 	InventoryGrid->InitializeWidget(inventoryComponent, tileSize);
 	EquipmentWindow->InitializeWidget(inventoryComponent, tileSize);
 }
@@ -25,6 +24,14 @@ void UWidgetItemInventory::ItemDrop(UDragDropOperation* operation)
 		TWeakObjectPtr<UItemObject> itemObj = Cast<UItemObject>(operation->Payload);
 		APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
 		check(playerController);
-		playerController->SendItemInfoToDrop(itemObj->GetItemID());
+		const int slotNumber = inventoryComponent->GetSlotNumber(itemObj);
+		if (slotNumber != -1)
+		{
+			playerController->DropEquippedItem(itemObj->GetItemID());
+		}
+		else
+		{
+			playerController->SendItemInfoToDrop(itemObj->GetItemID());
+		}
 	}
 }

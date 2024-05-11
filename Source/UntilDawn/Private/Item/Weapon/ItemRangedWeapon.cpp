@@ -13,6 +13,7 @@ AItemRangedWeapon::AItemRangedWeapon()
 	shootingComponent = CreateDefaultSubobject<UShootingComponent>(TEXT("Shooting Component"));
 
 	projectilePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Projectile Pooler"));
+	projectilePooler->SetActorClass(AProjectileBase::StaticClass());
 }
 
 void AItemRangedWeapon::InitializeRangedWeaponInfo(const FRangedWeaponInfo& newInfo)
@@ -23,7 +24,7 @@ void AItemRangedWeapon::InitializeRangedWeaponInfo(const FRangedWeaponInfo& newI
 void AItemRangedWeapon::Attack(TWeakObjectPtr<APlayerController> ownerController)
 {
 	//탄약 아이템이 있는지 검사
-	TWeakObjectPtr<AProjectileBase> projectile = Cast<AProjectileBase>(projectilePooler->GetPooledActor(0));
+	TWeakObjectPtr<AProjectileBase> projectile = Cast<AProjectileBase>(projectilePooler->GetPooledActor());
 	projectile->SetOwner(ownerController.Get());
 	check(projectile.Get());
 	shootingComponent->Shooting(ownerController, GetSkeletalMesh(), projectile);
@@ -38,7 +39,7 @@ void AItemRangedWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
-	projectilePooler->SpawnPoolableActor(0, AProjectileBase::StaticClass(), 15);
+	projectilePooler->SpawnPoolableActor(15);
 }
 
 

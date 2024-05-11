@@ -31,9 +31,9 @@ public:
 
 	void NotifyAccessingGame(const CharacterInfo& info);
 
-	void SynchronizeMyCharacterInfo(const PlayerInfo& info);
+	void SynchronizeMyCharacterInfo(const CharacterInfo& info);
 
-	void SendPlayerInputAction(const int inputType);
+	void SendPlayerInputAction(const int inputType, const int weaponType);
 
 	void SendInRangeZombie(int zombieNumber);
 
@@ -43,13 +43,17 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
-	void SendPickedItemInfo(const int itemID);
+	void SendPickedItemInfo(const FString itemID);
 
-	void UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated);
+	void UpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated);
 
-	void SendItemInfoToEquip(const int itemID, const int boxNumber);
+	void SendItemInfoToEquip(const FString itemID, const int boxNumber);
 
-	void SendItemInfoToDrop(const int itemID);
+	void DropEquippedItem(const FString itemID);
+
+	void UnequipItem(const FString itemID, const int xPoint, const int yPoint);
+
+	void SendItemInfoToDrop(const FString itemID);
 
 	void SendHittedCharactersInfo(TArray<TPair<int, bool>>& hittedCharacters);
 
@@ -80,14 +84,6 @@ private:
 	FRunnableThread* thread;
 
 	char recvBuf[PACKET_SIZE];
-
-	PlayerInfoSetEx newPlayerInfoSetEx;
-
-	PlayerInfoSet synchPlayerInfoSet;
-
-	ZombieInfoSet synchZombieInfoSet;
-
-	ItemInfoSet synchItemInfoSet;
 
 public:
 

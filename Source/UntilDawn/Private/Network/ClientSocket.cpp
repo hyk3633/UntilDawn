@@ -94,7 +94,7 @@ void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
+void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";
@@ -102,11 +102,12 @@ void ClientSocket::SynchronizeMyCharacterInfo(const PlayerInfo& info)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendPlayerInputAction(const int inputType)
+void ClientSocket::SendPlayerInputAction(const int inputType, const int weaponType)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::PLAYERINPUTACTION) << "\n";
 	sendStream << inputType << "\n";
+	sendStream << weaponType << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -143,39 +144,57 @@ void ClientSocket::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendPickedItemInfo(const int itemID)
+void ClientSocket::SendPickedItemInfo(const FString itemID)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ITEMTOPICKUP) << "\n";
-	sendStream << itemID << "\n";
+	sendStream << static_cast<int>(EPacketType::PICKUP_ITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated)
+void ClientSocket::UpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::ITEMGRIDPOINTUPDATE) << "\n";
-	sendStream << itemID << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << xPoint << "\n";
 	sendStream << yPoint << "\n";
 	sendStream << isRotated << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendItemInfoToEquip(const int itemID, const int boxNumber)
+void ClientSocket::SendItemInfoToEquip(const FString itemID, const int boxNumber)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ITEMTOEQUIP) << "\n";
-	sendStream << itemID << "\n";
+	sendStream << static_cast<int>(EPacketType::EQUIP_ITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << boxNumber << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendItemInfoToDrop(const int itemID)
+void ClientSocket::DropEquippedItem(const FString itemID)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ITEMTODROP) << "\n";
-	sendStream << itemID << "\n";
+	sendStream << static_cast<int>(EPacketType::DROP_EQUIPPED_ITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::UnequipItem(const FString itemID, const int xPoint, const int yPoint)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::UNEQUIP_ITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
+	sendStream << xPoint << "\n";
+	sendStream << yPoint << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendItemInfoToDrop(const FString itemID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::DROP_ITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 

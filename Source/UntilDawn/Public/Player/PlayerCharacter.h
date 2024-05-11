@@ -23,7 +23,6 @@ class AZombieCharacter;
 class UItemObject;
 class AItemBase;
 class AItemMeleeWeapon;
-class UInventoryComponent;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -52,8 +51,6 @@ protected:
 
 	virtual void SetupPlayerInputComponent(UInputComponent* playerInputComponent) override;
 
-	bool CheckAbleInput();
-
 	void Jump();
 
 	void Move(const FInputActionValue& value);
@@ -66,19 +63,21 @@ protected:
 
 public:
 
-	bool LeftClick();
+	bool CheckAbleInput();
 
-	bool LeftClickHold();
+	bool LeftClick(const EWeaponType weaponType);
 
-	bool LeftClickEnd();
+	bool LeftClickHold(const EWeaponType weaponType);
 
-	bool RightClick();
+	bool LeftClickEnd(const EWeaponType weaponType);
 
-	bool RightClickEnd();
+	bool RightClick(const EWeaponType weaponType);
 
-	bool RKeyPressed();
+	bool RightClickEnd(const EWeaponType weaponType);
 
-	bool RKeyHold();
+	bool RKeyPressed(const EWeaponType recentWeaponType);
+
+	bool RKeyHold(const EWeaponType weaponType);
 
 	bool HKeyPressed();
 
@@ -119,11 +118,11 @@ public:
 
 	EWeaponType GetCurrentWeaponType() const;
 
-	FORCEINLINE PlayerInfo& GetPlayerInfo() { return myInfo; }
+	void SetCurrentWeaponType(const EWeaponType weaponType);
 
-	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return inventoryComponent; }
+	FORCEINLINE CharacterInfo& GetPlayerInfo() { return myInfo; }
 
-	void DoPlayerInputAction(const int inputType);
+	void DoPlayerInputAction(const int inputType, const int weaponType);
 
 	void SetAttackResult(const bool result, const int zombieNumber);
 
@@ -145,14 +144,6 @@ public:
 
 	FORCEINLINE bool GetAttackActivated() const { return isAttackActivated; }
 
-	void AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint);
-
-	void UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex);
-
-	void RestoreInventory(TWeakObjectPtr<UItemObject> itemObj);
-
-	void ItemEquip(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
-
 	void PlayerDead();
 
 	void InitializePlayerInfo();
@@ -167,6 +158,8 @@ public:
 
 	void AttachItemActor(TWeakObjectPtr<AItemBase> item);
 
+	void DettachItemActor(TWeakObjectPtr<AItemBase> item);
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -174,9 +167,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* followCamera;
-
-	UPROPERTY()
-	UInventoryComponent* inventoryComponent;
 
 	UPROPERTY()
 	USphereComponent* playerRange;
@@ -213,7 +203,7 @@ private:
 
 	float shootPower;
 
-	PlayerInfo myInfo;
+	CharacterInfo myInfo;
 
 	bool bWrestling;
 
@@ -226,5 +216,7 @@ private:
 	float health = 50.f;
 
 	float maxHealth = 100.f;
+
+	EWeaponType currentWeaponType = EWeaponType::NONE;
 
 };

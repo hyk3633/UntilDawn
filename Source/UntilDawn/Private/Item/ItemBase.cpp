@@ -62,7 +62,7 @@ FName AItemBase::GetSocketName() const
 	return itemObj->GetSocketName();
 }
 
-int AItemBase::GetItemID() const
+FString AItemBase::GetItemID() const
 {
 	return itemObj->GetItemID();
 }

@@ -21,7 +21,7 @@ public:
 
 	UItemObject();
 
-	void Init(const int id, FItemInfo newInfo, FItemAsset newAsset);
+	void Init(const FString& itemId, FItemInfo newInfo, FItemAsset newAsset);
 
 	virtual void BeginDestroy() override;
 
@@ -43,7 +43,7 @@ public:
 
 	FORCEINLINE bool IsRotated() const { return rotated; }
 
-	FORCEINLINE int GetItemID() const { return itemID; }
+	FORCEINLINE FString GetItemID() const { return itemID; }
 
 	FORCEINLINE int GetItemType() const { return static_cast<int>(itemInfo.itemType); }
 
@@ -55,9 +55,11 @@ public:
 
 	FORCEINLINE FItemInfo GetItemInfo() const { return itemInfo; }
 
+	void SetItemQuantity(const uint8 quantity);
+
 private:
 
-	int itemID;
+	FString itemID;
 
 	FItemAsset itemAsset;
 

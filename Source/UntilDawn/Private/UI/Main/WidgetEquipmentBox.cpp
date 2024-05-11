@@ -65,7 +65,7 @@ void UWidgetEquipmentBox::Refresh()
 
 void UWidgetEquipmentBox::OnDragDetectedCall()
 {
-	OnRemoved();
+	//OnRemoved();
 	ItemImage->SetBrush(FSlateBrush());
 	BackGroundSizeBox->SetWidthOverride(0);
 	BackGroundSizeBox->SetHeightOverride(0);

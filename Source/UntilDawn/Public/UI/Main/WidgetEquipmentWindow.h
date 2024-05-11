@@ -35,7 +35,7 @@ public:
 protected:
 
 	UFUNCTION()
-	void ItemEquipToBox(UItemObject* itemObj, const int boxNumber);
+	void EquipItemToBox(UItemObject* itemObj, const int boxNumber);
 
 	UFUNCTION()
 	void OnItemRemoved(const int slotNumber, EEquipmentBox boxType);

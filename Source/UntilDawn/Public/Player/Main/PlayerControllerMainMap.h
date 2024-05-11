@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "Structs/CharacterInfo.h"
+#include "Structs/Tile.h"
 #include "Enums/PlayerInputs.h"
+#include "Enums/WeaponType.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -18,12 +20,13 @@ class UInputMappingContext;
 class UInputAction;
 class UItemObject;
 class AItemBase;
+class UInventoryComponent;
 
 DECLARE_DELEGATE(DelegatePlayerDead);
 DECLARE_DELEGATE(DelegateWrestlingStart);
 DECLARE_DELEGATE(DelegateEKeyPressed);
 DECLARE_DELEGATE(DelegateIKeyPressed);
-DECLARE_DELEGATE_TwoParams(DelegateItemEquip, UItemObject* itemObj, const int boxNumber);
+DECLARE_DELEGATE_TwoParams(DelegateEquipItem, UItemObject* itemObj, const int boxNumber);
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
@@ -38,7 +41,7 @@ public:
 	DelegateWrestlingStart DWrestlingStart;
 	DelegateEKeyPressed DEKeyPressed;
 	DelegateIKeyPressed DIKeyPressed;
-	DelegateItemEquip DItemEquip;
+	DelegateEquipItem DEquipItem;
 
 protected:
 
@@ -76,6 +79,8 @@ protected:
 
 public:
 
+	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return inventoryComponent; }
+
 	void WrestlingStart();
 
 	void WrestlingEnd(const bool wrestlingResult);
@@ -86,7 +91,7 @@ public:
 
 	virtual void OnPossess(APawn* pawn) override;
 
-	void SendPlayerInputAction(const EPlayerInputs inputType);
+	void SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType);
 
 	UFUNCTION()
 	void SendInRangeZombie(int zombieNumber);
@@ -99,17 +104,31 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
-	void SendPickedItemInfo(const int itemID);
+	void SendPickedItemInfo(const FString itemID);
 
-	void UpdateItemGridPoint(const int itemID, const int xPoint, const int yPoint, const bool isRotated);
+	void AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint);
 
-	void SendItemInfoToEquip(const int itemID, const int boxNumber);
+	void NotifyToServerUpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated);
 
-	void ProcessItemEquipInUI(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
+	void UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex);
+
+	void SendItemInfoToEquip(const FString itemID, const int boxNumber);
+
+	void EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
+
+	void NotifyToServerUnequipItem(const FString itemID, const FTile& addedPoint);
+
+	void UnequipItemAndAddToInventory(TWeakObjectPtr<AItemBase> itemActor, const FTile& addedPoint);
+
+	void UnequipItem(TWeakObjectPtr<AItemBase> itemActor);
 
 	void RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj);
 
-	void SendItemInfoToDrop(const int itemID);
+	void RestoreEquipmentUI(TWeakObjectPtr<UItemObject> itemObj);
+
+	void DropEquippedItem(const FString itemID);
+
+	void SendItemInfoToDrop(const FString itemID);
 
 	void SendHittedCharacterInfo(TArray<FHitResult>& hits);
 
@@ -124,6 +143,9 @@ protected:
 protected:
 
 	ClientSocket* clientSocket;
+
+	UPROPERTY()
+	UInventoryComponent* inventoryComponent;
 
 	UPROPERTY()
 	APlayerCharacter* myCharacter;
@@ -162,5 +184,7 @@ protected:
 	FHitResult itemHit;
 
 	TWeakObjectPtr<AItemBase> lookingItem;
+
+	
 
 };

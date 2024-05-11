@@ -26,7 +26,7 @@ public:
 
 	FName GetSocketName() const;
 
-	int GetItemID() const;
+	FString GetItemID() const;
 
 	void SetItemObject(TWeakObjectPtr<UItemObject> newItemCore);
 

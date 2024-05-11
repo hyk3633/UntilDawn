@@ -6,9 +6,12 @@
 #include "GameFramework/GameModeBase.h"
 #include "Structs/CharacterInfo.h"
 #include "Structs/Tile.h"
+#include "Structs/PossessedItem.h"
+#include "Structs/EquippedItem.h"
 #include "Enums/PacketType.h"
 #include <unordered_map>
 #include <sstream>
+#include <string>
 #include "GameModeMainMap.generated.h"
 
 /**
@@ -20,6 +23,7 @@ class ClientSocket;
 class UItemManager;
 class UItemObject;
 class AItemBase;
+class APlayerControllerMainMap;
 class APlayerCharacter;
 class AZombieCharacter;
 class PlayerInfoSetEx;
@@ -51,7 +55,11 @@ protected:
 
 	void PlayerItemEquip(std::stringstream& recvStream);
 
+	void PlayerUnequipItem(std::stringstream& recvStream);
+
 	void PlayerItemDrop(std::stringstream& recvStream);
+
+	void PlayerDropEquippedItem(std::stringstream& recvStream);
 
 	void InitializeWorld(std::stringstream& recvStream);
 
@@ -73,13 +81,15 @@ protected:
 
 	void SpawnItems(std::stringstream& recvStream);
 
+	void InitializePlayerPossessedItems(std::stringstream& recvStream);
+
+	void InitializePlayerEquippedItems(std::stringstream& recvStream);
+
 	void PlayerSpawnAfterDelay();
 
 public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);
-
-	TWeakObjectPtr<AItemBase> GetItemActor(const int itemID);
 
 	virtual void Tick(float deltaTime) override;
 
@@ -92,7 +102,7 @@ private:
 	UItemManager* itemManager;
 	
 	ClientSocket* clientSocket;
-
+	
 	TMap<int, APlayerCharacter*> playerCharacterMap;
 
 	TMap<int, TWeakObjectPtr<AZombieCharacter>> zombieCharacterMap;
@@ -102,5 +112,7 @@ private:
 	FTimerHandle playerSpawnDelayTimer;
 
 	std::unordered_map<EPacketType, void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
+
+	TWeakObjectPtr<APlayerControllerMainMap> myController;
 
 };

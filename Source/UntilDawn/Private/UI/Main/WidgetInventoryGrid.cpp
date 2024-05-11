@@ -138,20 +138,15 @@ void UWidgetInventoryGrid::OnDropCalled(UDragDropOperation* operation)
 
 	TWeakObjectPtr<UItemObject> itemObj = GetPayload(operation);
 
-	playerController->UpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
-
-	//if (IsRoomAvailableForPayload(itemObj.Get()))
-	//{
-	//	playerController->UpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
-	//}
-	//else
-	//{
-	//	inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeftIndex());
-	//}
-	//else if (inventoryComponent->TryAddItem(itemObj) == false)
-	//{
-	//	playerController->SendItemInfoToDrop(itemObj->GetItemID());
-	//}
+	const int slotNumber = inventoryComponent->GetSlotNumber(itemObj);
+	if (slotNumber != -1)
+	{
+		playerController->NotifyToServerUnequipItem(itemObj->GetItemID(), { draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y });
+	}
+	else
+	{
+		playerController->NotifyToServerUpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
+	}
 }
 
 bool UWidgetInventoryGrid::OnDragOverCalled(FPointerEvent pointEvent, FGeometry geometry, UDragDropOperation* operation)

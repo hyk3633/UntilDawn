@@ -17,6 +17,8 @@
 #include "Enums/PoolableActorType.h"
 #include "Interface/PoolableActor.h"
 
+using std::string;
+
 AGameModeMainMap::AGameModeMainMap()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -24,6 +26,7 @@ AGameModeMainMap::AGameModeMainMap()
 	itemManager = CreateDefaultSubobject<UItemManager>(TEXT("Item Manager"));
 
 	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
+	zombiePooler->SetActorClass(AZombieCharacter::StaticClass());
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
@@ -37,10 +40,12 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::SPAWNPLAYER]			= &AGameModeMainMap::SpawnNewPlayerCharacter;
 	packetCallbacks[EPacketType::SYNCHPLAYER]			= &AGameModeMainMap::SynchronizePlayers;
 	packetCallbacks[EPacketType::SYNCHZOMBIE]			= &AGameModeMainMap::SynchronizeZombies;
-	packetCallbacks[EPacketType::ITEMTOPICKUP]			= &AGameModeMainMap::PlayerItemPickUp;
+	packetCallbacks[EPacketType::PICKUP_ITEM]			= &AGameModeMainMap::PlayerItemPickUp;
 	packetCallbacks[EPacketType::ITEMGRIDPOINTUPDATE]	= &AGameModeMainMap::PlayerItemGridPointUpdate;
-	packetCallbacks[EPacketType::ITEMTOEQUIP]			= &AGameModeMainMap::PlayerItemEquip;
-	packetCallbacks[EPacketType::ITEMTODROP]			= &AGameModeMainMap::PlayerItemDrop;
+	packetCallbacks[EPacketType::EQUIP_ITEM]			= &AGameModeMainMap::PlayerItemEquip;
+	packetCallbacks[EPacketType::UNEQUIP_ITEM]			= &AGameModeMainMap::PlayerUnequipItem;
+	packetCallbacks[EPacketType::DROP_ITEM]				= &AGameModeMainMap::PlayerItemDrop;
+	packetCallbacks[EPacketType::DROP_EQUIPPED_ITEM]	= &AGameModeMainMap::PlayerDropEquippedItem;
 	packetCallbacks[EPacketType::INITIALINFO]			= &AGameModeMainMap::InitializeWorld;
 	packetCallbacks[EPacketType::PLAYERINPUTACTION]		= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
 	packetCallbacks[EPacketType::WRESTLINGRESULT]		= &AGameModeMainMap::PlayWrestlingResultAction;
@@ -51,6 +56,8 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::PLAYERRESPAWN]			= &AGameModeMainMap::RespawnPlayer;
 	packetCallbacks[EPacketType::ZOMBIEDEAD]			= &AGameModeMainMap::ProcessZombieDead;
 	packetCallbacks[EPacketType::SPAWNITEM]				= &AGameModeMainMap::SpawnItems;
+	packetCallbacks[EPacketType::PLAYERINVENTORY]		= &AGameModeMainMap::InitializePlayerPossessedItems;
+	packetCallbacks[EPacketType::PLAYEREQUIPMENT]		= &AGameModeMainMap::InitializePlayerEquippedItems;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -60,7 +67,7 @@ void AGameModeMainMap::BeginPlay()
 
 	// 좀비 캐릭터 스폰 및 풀링
 
-	zombiePooler->SpawnPoolableActor(0, AZombieCharacter::StaticClass(), 2);
+	zombiePooler->SpawnPoolableActor(2);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -86,22 +93,31 @@ void AGameModeMainMap::ProcessPacket()
 
 void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 {
-	PlayerInfoSetEx playerInfoSetEx;
-	playerInfoSetEx.InputStreamWithID(recvStream);
+	PlayerInitialInfoSet playerInitialInfoSet;
+	playerInitialInfoSet.Deserialize(recvStream);
 	
-	for (auto& kv : playerInfoSetEx.characterInfoMap)
+	for (auto& initialInfo : playerInitialInfoSet.playerInitialInfoMap)
 	{
-		int number = kv.first;
+		int number = initialInfo.first;
 		if (number == myNumber) continue;
-		CharacterInfo& info = kv.second.characterInfo;
+		PlayerInitialInfo& info = initialInfo.second;
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
 				APlayerCharacter::StaticClass(),
-				FVector(info.vectorX, info.vectorY, info.vectorZ),
-				FRotator(info.pitch, info.yaw, info.roll)
+				FVector(info.characterInfo.vectorX, info.characterInfo.vectorY, info.characterInfo.vectorZ),
+				FRotator(info.characterInfo.pitch, info.characterInfo.yaw, info.characterInfo.roll)
 			);
 		newPlayerCharacter->SetPlayerNumber(number);
-		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(playerInfoSetEx.playerIDMap[number].c_str())));
+		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(info.playerID.c_str())));
+
+		for (auto& equipped : info.equippedItems)
+		{
+			auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
+			itemManager->ItemEquipped(FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
+			newPlayerCharacter->AttachItemActor(itemActor);
+			itemActor->ActivateEquipMode();
+		}
+
 		playerCharacterMap.Add(number, newPlayerCharacter);
 	}
 }
@@ -118,7 +134,7 @@ void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
 		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
-			CharacterInfo& info = playerInfo.second.characterInfo;
+			CharacterInfo& info = playerInfo.second;
 			if (IsValid(character))
 			{
 				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
@@ -142,12 +158,9 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 
 		if (zombieCharacterMap.Find(info.first) == nullptr)
 		{
-			zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor(0));
-			if (zombie == nullptr)
-			{
-				zombiePooler->SpawnPoolableActor(0, AZombieCharacter::StaticClass(), 1);
-				zombie = Cast<AZombieCharacter>(zombiePooler->GetPooledActor(0));
-			}
+			auto actor = zombiePooler->GetPooledActor();
+			check(actor.IsValid());
+			zombie = Cast<AZombieCharacter>(actor);
 			zombie->SetNumber(info.first);
 			zombie->ActivateActor();
 			zombieCharacterMap.Add(info.first, zombie);
@@ -171,8 +184,10 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 
 void AGameModeMainMap::PlayerItemPickUp(std::stringstream& recvStream)
 {
-	int playerID = -1, itemID = -1;
+	int playerID = -1;
+	string itemID;
 	recvStream >> playerID >> itemID;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 	
 	if (playerID == myNumber)
 	{
@@ -182,74 +197,135 @@ void AGameModeMainMap::PlayerItemPickUp(std::stringstream& recvStream)
 		recvStream >> rotated;
 		recvStream >> addedPoint.X >> addedPoint.Y;
 
-		TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(itemID);
+		TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(fItemID);
 		if (itemObj.IsValid())
 		{
 			if (rotated) itemObj->Rotate();
-			itemManager->ItemPickedUp(itemID);
-			playerCharacterMap[myNumber]->AddItemToInventory(itemObj, addedPoint);
+			itemManager->ItemPickedUp(fItemID);
+			myController->AddItemToInventory(itemObj, addedPoint);
 		}
 	}
 	else
 	{
 		// 어느 플레이어가 획득했는지도 추가할지
-		itemManager->ItemPickedUpOtherPlayer(itemID);
+		itemManager->ItemPickedUpOtherPlayer(fItemID);
 	}
 }
 
 void AGameModeMainMap::PlayerItemGridPointUpdate(std::stringstream& recvStream)
 {
-	int itemID, xPoint, yPoint;
+	string itemID;
+	int xPoint, yPoint;
 	bool isRotated;
 	recvStream >> itemID >> xPoint >> yPoint >> isRotated;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 
-	TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(itemID);
+	TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(fItemID);
 	if (itemObj->IsRotated() != isRotated) itemObj->Rotate();
 	if (itemObj.IsValid())
 	{
-		playerCharacterMap[myNumber]->UpdateItemInventoryGrid(itemObj, xPoint, yPoint);
+		myController->UpdateItemInventoryGrid(itemObj, xPoint, yPoint);
 	}
 }
 
 void AGameModeMainMap::PlayerItemEquip(std::stringstream& recvStream)
 {
-	int playerID = -1, itemID = -1, boxNumber;
+	string itemID;
+	int playerID = -1, boxNumber;
 	bool result = false;
 	recvStream >> playerID >> itemID >> boxNumber >> result;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 
-	TWeakObjectPtr<AItemBase> item = itemManager->GetItemActor(itemID);
-	check(item.IsValid());
+	TWeakObjectPtr<AItemBase> itemActor = itemManager->GetItemActor(fItemID);
+	check(itemActor.IsValid());
 
 	if (playerID == myNumber)
 	{
 		APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 		if (result)
 		{
-			myPlayerController->ProcessItemEquipInUI(boxNumber, item);
+			myPlayerController->EquipItem(boxNumber, itemActor);
 		}
 		else
 		{
-			myPlayerController->RestoreInventoryUI(item->GetItemObject());
+			myPlayerController->RestoreInventoryUI(itemActor->GetItemObject());
 		}
+	}
+	else
+	{
+		playerCharacterMap[playerID]->AttachItemActor(itemActor);
 	}
 	if (result)
 	{
-		// ui창에 장착하는 것이므로 액터를 장비 장착용으로 활성화(콜리전X)
-		playerCharacterMap[playerID]->AttachItemActor(item);
-		item->ActivateEquipMode();
+		itemManager->ItemEquipped(fItemID, itemActor);
+	}
+}
+
+void AGameModeMainMap::PlayerUnequipItem(std::stringstream& recvStream)
+{
+	string itemID;
+	int playerNumber;
+	bool result;
+	recvStream >> playerNumber >> itemID >> result;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
+
+	if (result)
+	{
+		bool isRotated;
+		int topLeftX, topLeftY;
+		recvStream >> isRotated >> topLeftX >> topLeftY;
+
+		auto itemActor = itemManager->GetItemActorInField(fItemID);
+		itemManager->ItemPickedUp(fItemID);
+
+		if (playerNumber == myNumber)
+		{
+			myController->UnequipItemAndAddToInventory(itemActor, { topLeftX,topLeftY });
+		}
+		else
+		{
+			playerCharacterMap[playerNumber]->DettachItemActor(itemActor);
+		}
+	}
+	else
+	{
+		auto itemObj = itemManager->GetItemObject(fItemID);
+		myController->RestoreEquipmentUI(itemObj);
 	}
 }
 
 void AGameModeMainMap::PlayerItemDrop(std::stringstream& recvStream)
 {
-	int playerID = -1, itemID = -1;
-	recvStream >> playerID >> itemID;
+	string itemID;
+	int playerNumber = -1;
+	recvStream >> playerNumber >> itemID;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 
-	TWeakObjectPtr<AItemBase> droppedItem = itemManager->GetItemActor(itemID);
-	if (droppedItem.IsValid() && playerCharacterMap.Find(playerID))
+	TWeakObjectPtr<AItemBase> droppedItem = itemManager->GetItemActor(fItemID);
+	if (droppedItem.IsValid() && playerCharacterMap.Find(playerNumber))
 	{
-		DropItem(playerCharacterMap[playerID], droppedItem);
+		DropItem(playerCharacterMap[playerNumber], droppedItem);
 	}
+}
+
+void AGameModeMainMap::PlayerDropEquippedItem(std::stringstream& recvStream)
+{
+	string itemID;
+	int playerNumber = -1;
+	recvStream >> playerNumber >> itemID;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
+
+	TWeakObjectPtr<AItemBase> droppedItem = itemManager->GetItemActorInField(fItemID);
+	check(droppedItem.IsValid());
+	if (playerNumber == myNumber)
+	{
+		myController->UnequipItem(droppedItem);
+	}
+	else
+	{
+		playerCharacterMap[playerNumber]->DettachItemActor(droppedItem);
+	}
+	DropItem(playerCharacterMap[playerNumber], droppedItem);
 }
 
 void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
@@ -272,11 +348,11 @@ void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
 
 void AGameModeMainMap::SynchronizeOtherPlayerInputAction(std::stringstream& recvStream)
 {
-	int playerNumber = -1, inputType = -1;
+	int playerNumber = -1, inputType = -1, weaponType = -1;
 	recvStream >> playerNumber >> inputType;
 	if (playerCharacterMap.Find(playerNumber))
 	{
-		playerCharacterMap[playerNumber]->DoPlayerInputAction(inputType);
+		playerCharacterMap[playerNumber]->DoPlayerInputAction(inputType, weaponType);
 	}
 }
 
@@ -328,10 +404,13 @@ void AGameModeMainMap::StartPlayerWrestling(std::stringstream& recvStream)
 
 void AGameModeMainMap::ItemPickUpOtherPlayer(std::stringstream& recvStream)
 {
-	int itemID, xIndex, yIndex;
+	string itemID;
+	int xIndex, yIndex;
 	recvStream >> itemID >> xIndex >> yIndex;
-	TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(itemID);
-	playerCharacterMap[myNumber]->UpdateItemInventoryGrid(itemObj, xIndex, yIndex);
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
+
+	TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(fItemID);
+	myController->UpdateItemInventoryGrid(itemObj, xIndex, yIndex);
 }
 
 void AGameModeMainMap::ProcessDisconnectedPlayer(std::stringstream& recvStream)
@@ -397,12 +476,70 @@ void AGameModeMainMap::SpawnItems(std::stringstream& recvStream)
 	recvStream >> size;
 	for (int i = 0; i < size; i++)
 	{
-		int id = -1, key = -1;
-		recvStream >> id >> key;
+		string itemID;
+		int itemKey = -1;
+		recvStream >> itemID >> itemKey;
+		FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
+
 		FVector location;
 		recvStream >> location.X >> location.Y >> location.Z;
 
-		itemManager->SpawnItem(id, key, location);
+		itemManager->SpawnItem(fItemID, itemKey, location);
+	}
+}
+/*
+void AGameModeMainMap::ProcessPlayerInfo(std::stringstream& recvStream)
+{
+	int size;
+	recvStream >> size;
+
+	FPlayerItems playerItem;
+	for (int i = 0; i < size; i++)
+	{
+		recvStream >> playerItem;
+		auto itemObj = itemManager->GetItemObject(playerItem.itemID);
+		itemManager->ItemPickedUp(playerItem.itemID);
+		// 아이템 액터는 풀링 방식으로 쓰기 (각 타입에 대한 구체 데이터들은 필요시 마다 액터를 받아 삽입해서 사용하기)
+
+		if (playerItem.isEquipped)
+		{
+			// equipp item
+		}
+		else
+		{
+			if (playerItem.isRotated) itemObj->Rotate();
+			playerCharacterMap[myNumber]->AddItemToInventory(itemObj, { playerItem.topLeftX, playerItem.topLeftY });
+		}
+	}
+	
+}*/
+
+void AGameModeMainMap::InitializePlayerPossessedItems(std::stringstream& recvStream)
+{
+	int size;
+	recvStream >> size;
+	PossessedItem possessed;
+	for (int i = 0; i < size; i++)
+	{
+		recvStream >> possessed;
+		auto itemObj = itemManager->CreatePlayersPossessedItem(possessed);
+		myController->AddItemToInventory(itemObj, { possessed.topLeftX, possessed.topLeftY });
+	}
+}
+
+void AGameModeMainMap::InitializePlayerEquippedItems(std::stringstream& recvStream)
+{
+	int size;
+	recvStream >> size;
+	EquippedItem equipped;
+	for (int i = 0; i < size; i++)
+	{
+		recvStream >> equipped;
+		auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
+		itemManager->ItemEquipped(FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
+		APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+		myPlayerController->EquipItem(equipped.slotNumber, itemActor);
+		itemActor->ActivateEquipMode();
 	}
 }
 
@@ -410,8 +547,9 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 {
 	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
 	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
-	APlayerController* myPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	myPlayerController->Possess(myPlayerCharacter);
+	myController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	check(myController.Get());
+	myController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
 }
 
@@ -430,11 +568,6 @@ void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakO
 	);
 	droppedItem->SetActorLocation(hit.ImpactPoint);
 	droppedItem->ActivateActor();
-}
-
-TWeakObjectPtr<AItemBase> AGameModeMainMap::GetItemActor(const int itemID)
-{
-	return itemManager->GetItemActor(itemID);
 }
 
 void AGameModeMainMap::Tick(float deltaTime)

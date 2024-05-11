@@ -2,10 +2,12 @@
 
 #include <sstream>
 #include <vector>
+#include <string>
 #include "UntilDawn/UntilDawn.h"
 #include "Enums/ZombieState.h"
 #include "Structs/Pos.h"
 #include "Structs/ItemInfo.h"
+#include "Structs/EquippedItem.h"
 
 enum class EZombieInfoBitType
 {
@@ -128,24 +130,6 @@ struct CharacterInfo
 	}
 };
 
-struct PlayerInfo
-{
-	// 필수 데이터
-	CharacterInfo characterInfo;
-
-	friend std::ostream& operator<<(std::ostream& stream, const PlayerInfo& info)
-	{
-		stream << info.characterInfo;
-		return stream;
-	}
-
-	friend std::istream& operator>>(std::istream& stream, PlayerInfo& info)
-	{
-		stream >> info.characterInfo;
-		return stream;
-	}
-};
-
 class PlayerInfoSet
 {
 public:
@@ -153,7 +137,7 @@ public:
 	PlayerInfoSet() = default;
 	~PlayerInfoSet() = default;
 
-	std::unordered_map<int, PlayerInfo> characterInfoMap;
+	std::unordered_map<int, CharacterInfo> characterInfoMap;
 
 	friend std::istream& operator>>(std::istream& stream, PlayerInfoSet& info)
 	{
@@ -182,56 +166,46 @@ public:
 	}
 };
 
-class PlayerInfoSetEx : public PlayerInfoSet
+struct PlayerInitialInfo
 {
-public:
+	std::string playerID;
+	CharacterInfo characterInfo;
+	std::vector<EquippedItem> equippedItems;
 
-	PlayerInfoSetEx() = default;
-	~PlayerInfoSetEx() = default;
-
-	std::unordered_map<int, std::string> playerIDMap;
-
-	void InputStreamWithID(std::istream& stream)
+	friend std::istream& operator>>(std::istream& stream, PlayerInitialInfo& info)
 	{
-		int playerCount = 0, playerNumber = 0;
-		std::string playerID = "";
-		PlayerInfo playerInfo{};
-
-		playerIDMap.clear();
-		characterInfoMap.clear();
-
-		stream >> playerCount;
-		for (int i = 0; i < playerCount; i++)
+		stream >> info.playerID;
+		stream >> info.characterInfo;
+		int size = 0;
+		stream >> size;
+		info.equippedItems.reserve(size);
+		for (int i = 0; i < size; i++)
 		{
-			stream >> playerID;
-			stream >> playerNumber;
-			stream >> playerInfo.characterInfo;
-			playerIDMap[playerNumber] = playerID;
-			characterInfoMap[playerNumber].characterInfo = playerInfo.characterInfo;
+			EquippedItem equipped;
+			stream >> equipped;
+			info.equippedItems.push_back(equipped);
 		}
+		return stream;
 	}
 };
 
-class ItemInfoSet
+class PlayerInitialInfoSet
 {
 public:
 
-	ItemInfoSet() = default;
-	~ItemInfoSet() = default;
+	PlayerInitialInfoSet() = default;
+	~PlayerInitialInfoSet() = default;
 
-	std::unordered_map<int, FItemInfo> itemInfoMap;
+	std::unordered_map<int, PlayerInitialInfo> playerInitialInfoMap;
 
-	friend std::istream& operator>>(std::istream& stream, ItemInfoSet& info)
+	void Deserialize(std::istream& stream)
 	{
-		info.itemInfoMap.clear();
-		int size = 0, number = 0;
-		stream >> size;
-		FItemInfo itemInfo;
-		while (size--)
+		int playerCount, playerNumber;
+		stream >> playerCount;
+		for (int i = 0; i < playerCount; i++)
 		{
-			stream >> number;
-			//stream >> info.itemInfoMap[number];
+			stream >> playerNumber;
+			stream >> playerInitialInfoMap[playerNumber];
 		}
-		return stream;
 	}
 };

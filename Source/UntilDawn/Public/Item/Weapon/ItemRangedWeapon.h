@@ -14,6 +14,7 @@
 
 class UActorPooler;
 class UShootingComponent;
+class AProjectileBase;
 
 UCLASS()
 class UNTILDAWN_API AItemRangedWeapon : public AItemWeapon

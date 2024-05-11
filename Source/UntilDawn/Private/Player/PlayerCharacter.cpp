@@ -3,7 +3,6 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerAnimInst.h"
-#include "GameSystem/InventoryComponent.h"
 #include "UI/Main/HUDMainMap.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Camera/CameraComponent.h"
@@ -22,6 +21,7 @@
 #include "KismetAnimationLibrary.h"
 #include "UntilDawn/UntilDawn.h"
 #include "Item/ItemObject.h"
+#include "Item/ItemBase.h"
 #include "Engine/SkeletalMeshSocket.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -59,10 +59,6 @@ APlayerCharacter::APlayerCharacter()
 	followCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	followCamera->SetupAttachment(cameraBoom, USpringArmComponent::SocketName);
 	followCamera->bUsePawnControlRotation = false;
-
-	inventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory Component"));
-	inventoryComponent->SetColumns(6);
-	inventoryComponent->SetRows(15);
 
 	playerRange = CreateDefaultSubobject<USphereComponent>(TEXT("PlayerRange"));
 	playerRange->SetupAttachment(RootComponent);
@@ -208,30 +204,25 @@ void APlayerCharacter::SprintEnd()
 	GetCharacterMovement()->MaxWalkSpeed = 300;
 }
 
-bool APlayerCharacter::LeftClick()
+bool APlayerCharacter::LeftClick(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
-
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-
-	if (weaponType == EWeaponType::NONE)
-	{
-		return false;
-	}
-	else
+	if (weaponType != EWeaponType::NONE)
 	{
 		animInst->PlayLeftClickMontage(weaponType);
 		return true;
 	}
+	else
+	{
+		return false;
+	}
 }
 
-bool APlayerCharacter::LeftClickHold()
+bool APlayerCharacter::LeftClickHold(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
-
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
 	if (weaponType == EWeaponType::BOW)
 	{
@@ -245,12 +236,10 @@ bool APlayerCharacter::LeftClickHold()
 	}
 }
 
-bool APlayerCharacter::LeftClickEnd()
+bool APlayerCharacter::LeftClickEnd(const EWeaponType weaponType)
 {
 	if (isAbleShoot == false)
 		return false;
-
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
 	if (weaponType == EWeaponType::BOW)
 	{
@@ -265,12 +254,10 @@ bool APlayerCharacter::LeftClickEnd()
 	}
 }
 
-bool APlayerCharacter::RightClick()
+bool APlayerCharacter::RightClick(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
-
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
 	if (weaponType == EWeaponType::AXE)
 	{
@@ -283,12 +270,10 @@ bool APlayerCharacter::RightClick()
 	}
 }
 
-bool APlayerCharacter::RightClickEnd()
+bool APlayerCharacter::RightClickEnd(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
-
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
 	if (weaponType == EWeaponType::AXE)
 	{
@@ -301,42 +286,28 @@ bool APlayerCharacter::RightClickEnd()
 	}
 }
 
-bool APlayerCharacter::RKeyPressed()
+bool APlayerCharacter::RKeyPressed(const EWeaponType recentWeaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-
-	if (weaponType == EWeaponType::NONE) // 장착중인 무기 있는지 확인
+	if (recentWeaponType != EWeaponType::NONE)
 	{
-		// 비무장 상태에 장착중인 무기가 있으면 최근 장착했던 무기 꺼내고 최근 장착이 없으면 1번 슬롯 없으면 2번...
-		weaponType = inventoryComponent->ArmRecentWeapon();
-		if (weaponType != EWeaponType::NONE)
-		{
-			animInst->PlayWeaponArmMontage(weaponType);
+		animInst->PlayWeaponArmMontage(recentWeaponType);
 
-			bUseControllerRotationYaw = true;
-			GetCharacterMovement()->bOrientRotationToMovement = false;
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
 
-			return true;
-		}
-	}
-	else if (weaponType == EWeaponType::BOW)
-	{
-		// 재장전
 		return true;
 	}
 	
 	return false;
 }
 
-bool APlayerCharacter::RKeyHold()
+bool APlayerCharacter::RKeyHold(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
-
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 
 	if (weaponType == EWeaponType::NONE)
 	{
@@ -344,7 +315,6 @@ bool APlayerCharacter::RKeyHold()
 	}
 	else
 	{
-		inventoryComponent->DisarmWeapon();
 		animInst->PlayWeaponDisarmMontage(weaponType);
 
 		bUseControllerRotationYaw = false;
@@ -359,7 +329,8 @@ bool APlayerCharacter::HKeyPressed()
 	if (CheckAbleInput() == false)
 		return false;
 
-	return inventoryComponent->UsingRecoveryItem();
+	//return inventoryComponent->UsingRecoveryItem();
+	return true;
 }
 
 void APlayerCharacter::SuccessToBlocking()
@@ -418,15 +389,15 @@ void APlayerCharacter::UpdatePlayerInfo()
 	FVector location = GetActorLocation();
 	FRotator rotation = GetActorRotation();
 
-	myInfo.characterInfo.vectorX = location.X;
-	myInfo.characterInfo.vectorY = location.Y;
-	myInfo.characterInfo.vectorZ = location.Z;
-	myInfo.characterInfo.velocityX = velocity.X;
-	myInfo.characterInfo.velocityY = velocity.Y;
-	myInfo.characterInfo.velocityZ = velocity.Z;
-	myInfo.characterInfo.pitch = rotation.Pitch;
-	myInfo.characterInfo.yaw = rotation.Yaw;
-	myInfo.characterInfo.roll = rotation.Roll;
+	myInfo.vectorX = location.X;
+	myInfo.vectorY = location.Y;
+	myInfo.vectorZ = location.Z;
+	myInfo.velocityX = velocity.X;
+	myInfo.velocityY = velocity.Y;
+	myInfo.velocityZ = velocity.Z;
+	myInfo.pitch = rotation.Pitch;
+	myInfo.yaw = rotation.Yaw;
+	myInfo.roll = rotation.Roll;
 }
 
 const bool APlayerCharacter::GetIsFalling() const
@@ -436,41 +407,41 @@ const bool APlayerCharacter::GetIsFalling() const
 
 EWeaponType APlayerCharacter::GetCurrentWeaponType() const
 {
-	return inventoryComponent->GetCurrentWeaponType();
+	return currentWeaponType;
 }
 
-void APlayerCharacter::DoPlayerInputAction(const int inputType)
+void APlayerCharacter::SetCurrentWeaponType(const EWeaponType weaponType)
+{
+	currentWeaponType = weaponType;
+}
+
+void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weaponType)
 {
 	if (inputType == 0) 
 		return;
+	const EWeaponType eWeaponType = static_cast<EWeaponType>(weaponType);
 	switch (static_cast<EPlayerInputs>(inputType))
 	{
-	//case EPlayerInputs::Sprint:
-	//	Sprint();
-	//	break;
-	//case EPlayerInputs::SprintEnd:
-	//	SprintEnd();
-	//	break;
 	case EPlayerInputs::LeftClick:
-		LeftClick();
+		LeftClick(eWeaponType);
 		break;
 	case EPlayerInputs::LeftClickHold:
-		LeftClickHold();
+		LeftClickHold(eWeaponType);
 		break;
 	case EPlayerInputs::LeftClickEnd:
-		LeftClickEnd();
+		LeftClickEnd(eWeaponType);
 		break;
 	case EPlayerInputs::RightClick:
-		RightClick();
+		RightClick(eWeaponType);
 		break;
 	case EPlayerInputs::RightClickEnd:
-		RightClickEnd();
+		RightClickEnd(eWeaponType);
 		break;
 	case EPlayerInputs::RKeyPressed:
-		RKeyPressed();
+		RKeyPressed(eWeaponType);
 		break;
 	case EPlayerInputs::RKeyHold:
-		RKeyHold();
+		RKeyHold(eWeaponType);
 		break;
 	}
 }
@@ -509,34 +480,12 @@ void APlayerCharacter::WrestlingEnd()
 void APlayerCharacter::StartAttack()
 {
 	isAttackActivated = true;
-	inventoryComponent->Attack(Cast<APlayerController>(GetController()));
+	//inventoryComponent->Attack(Cast<APlayerController>(GetController()));
 }
 
 void APlayerCharacter::EndAttack()
 {
 	isAttackActivated = false;
-}
-
-void APlayerCharacter::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint)
-{
-	const int index = inventoryComponent->TileToIndex(addedPoint);
-	inventoryComponent->AddItemAt(itemObj, index);
-}
-
-void APlayerCharacter::UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex)
-{
-	const int index = inventoryComponent->TileToIndex({ xIndex, yIndex });
-	inventoryComponent->AddItemAt(itemObj, index);
-}
-
-void APlayerCharacter::RestoreInventory(TWeakObjectPtr<UItemObject> itemObj)
-{
-	inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeftIndex());
-}
-
-void APlayerCharacter::ItemEquip(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
-{
-	inventoryComponent->EquipItem(boxNumber, itemActor);
 }
 
 void APlayerCharacter::PlayerDead()
@@ -594,6 +543,11 @@ void APlayerCharacter::RecoverHealth(const float recoveryAmount)
 
 void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
 {
-	//const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
-	//socket->AttachActor(item.Get(), GetMesh());
+	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
+	socket->AttachActor(item.Get(), GetMesh());
+}
+
+void APlayerCharacter::DettachItemActor(TWeakObjectPtr<AItemBase> item)
+{
+	item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
