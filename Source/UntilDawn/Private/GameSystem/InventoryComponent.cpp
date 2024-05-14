@@ -5,8 +5,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Item/ItemObject.h"
 #include "Item/ItemBase.h"
-#include "Item/Weapon/ItemWeapon.h"
-#include "Item/Consumable/ItemRecovery.h"
+#include "Item/ItemObject/ItemProjectileWeapon.h"
 #include "GameMode/GameModeMainMap.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -199,7 +198,7 @@ void UInventoryComponent::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 
 void UInventoryComponent::Attack(TWeakObjectPtr<APlayerController> ownerController)
 {
-	//armedWeapon->Attack(ownerController);
+	armedWeapon->GetItemObject()->Using(ownerController, armedWeapon->GetSkeletalMesh());
 }
 
 EWeaponType UInventoryComponent::ArmRecentWeapon()
@@ -223,7 +222,7 @@ EWeaponType UInventoryComponent::ArmRecentWeapon()
 			armedWeapon = equippedItems[i];
 			recentWeaponSlot = i;
 
-			APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+			APlayerCharacter* player = Cast<APlayerCharacter>(ownerCharacter);
 			const USkeletalMeshSocket* socket = player->GetMesh()->GetSocketByName(armedWeapon->GetSocketName());
 			socket->AttachActor(armedWeapon.Get(), player->GetMesh());
 			return GetCurrentWeaponType();
@@ -236,7 +235,16 @@ EWeaponType UInventoryComponent::GetCurrentWeaponType() const
 {
 	if (armedWeapon.IsValid())
 	{
-		//return armedWeapon->GetWeaponType();
+		const EItemMainType itemType = StaticCast<EItemMainType>(armedWeapon->GetItemObject()->GetItemType());
+		if (itemType == EItemMainType::RangedWeapon)
+		{
+			TWeakObjectPtr<UItemProjectileWeapon> rangedWeaponObj = Cast<UItemProjectileWeapon>(armedWeapon->GetItemObject());
+			return rangedWeaponObj->GetWeaponType();
+		}
+		else if (itemType == EItemMainType::MeleeWeapon)
+		{
+
+		}
 	}
 	return EWeaponType::NONE;
 }
@@ -259,6 +267,11 @@ int UInventoryComponent::GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj)
 			return i;
 	}
 	return -1;
+}
+
+void UInventoryComponent::SetCharacter(TWeakObjectPtr<APlayerCharacter> character)
+{
+	ownerCharacter = character;
 }
 
 /*bool UInventoryComponent::UsingRecoveryItem()

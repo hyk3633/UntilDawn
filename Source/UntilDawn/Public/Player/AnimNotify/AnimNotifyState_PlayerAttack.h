@@ -9,6 +9,9 @@
 /**
  * 
  */
+
+class APlayerControllerMainMap;
+
 UCLASS()
 class UNTILDAWN_API UAnimNotifyState_PlayerAttack : public UAnimNotifyState
 {
@@ -28,5 +31,7 @@ private:
 	float tickInterval = 0.03f;
 
 	float elapsedTime = 0.f;
+
+	TWeakObjectPtr<APlayerControllerMainMap> playerController;
 
 };

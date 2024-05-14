@@ -198,7 +198,7 @@ void ClientSocket::SendItemInfoToDrop(const FString itemID)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendHittedCharactersInfo(TArray<TPair<int, bool>>& hittedCharacters)
+void ClientSocket::SendHittedCharacters(TArray<TPair<int, bool>>& hittedCharacters)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";

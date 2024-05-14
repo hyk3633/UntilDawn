@@ -10,9 +10,6 @@
 #include "../Structs/ItemAsset.h"
 #include "../Structs/PossessedItem.h"
 #include "../Structs/EquippedItem.h"
-#include "Serialization/MemoryWriter.h"
-#include "Serialization/MemoryReader.h"
-#include "Serialization/BufferArchive.h"
 #include "ItemManager.generated.h"
 
 class UDataTable;
@@ -21,20 +18,7 @@ class UActorPooler;
 class AItemBase;
 class AItemWeapon;
 class UItemObject;
-
-USTRUCT()
-struct FTemp
-{
-	GENERATED_BODY()
-public:
-	FTemp() {}
-	FTemp(FBufferArchive& buf)
-	{
-		buff.Append(buf.GetData(), buf.Num());
-	}
-
-	TArray<uint8> buff;
-};
+class JsonParser;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNTILDAWN_API UItemManager : public UActorComponent
@@ -49,23 +33,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	void InitializeJson();
-
-	FItemInfo GetItemCommonInfo(const int itemKey);
-
-	void SaveItemCommonInfo(const TSharedPtr<FJsonObject>* jsonItem, FItemInfo& itemInfo);
-
-	void SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FWeaponInfo& itemInfo);
-
-	void SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FRangedWeaponInfo& itemInfo);
-
-	void SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FRecoveryItemInfo& itemInfo);
-
-	void SaveItemSpecificInfo(const TSharedPtr<FJsonObject>* jsonItem, FAmmoItemInfo& itemInfo);
-
 	FItemAsset GetItemAssetMap(const int itemKey);
-
-	void GetData(const int itemKey, FItemInfo* newInfo);
 
 public:
 
@@ -79,7 +47,7 @@ protected:
 
 	TWeakObjectPtr<UItemObject> CreateItemObject(const FString& itemID, const int itemKey);
 
-	void InitializeItemSpecificInfo(TWeakObjectPtr<AItemBase> item, const int itemKey);
+	UItemObject* NewItemObject(const EItemMainType itemType);
 
 	TWeakObjectPtr<AItemBase> FindItemActor(TWeakObjectPtr<UItemObject> itemObj);
 
@@ -111,30 +79,17 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Item Info", meta = (AllowPrivateAccess = "true"))
 	UDataTable* itemAssetDataTable;
 
-	TSharedPtr<FJsonObject> jsonObj;
+	TSharedPtr<JsonParser> jsonParser;
 
 	UPROPERTY()
 	UActorPooler* itemPooler;
 
-	//UPROPERTY()
-	//TMap<int, AItemBase*> nonConsItemMap;
-
-	TMap<int, FItemInfo*> itemInfoMap;
-
 	TMap<int, FItemAsset> itemAssetMap;
-
-	//TMap<int, TWeakObjectPtr<AItemBase>> itemInFieldMap;
 
 	UPROPERTY()
 	TMap<FString, UItemObject*> itemObjectMap;
 
 	UPROPERTY()
 	TMap<FString, TWeakObjectPtr<AItemBase>> itemActorMap;
-
-	//TMap<int, TWeakObjectPtr<UItemObject>> itemObjectPickedMap;
-
-	TMap<int, FTemp> tempMap;
-
-	TMap<int, FMemoryWriter> tempMap2;
 
 };

@@ -1,0 +1,25 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Item/ItemObject/ItemMeleeWeapon.h"
+#include "Item/ItemFunction/FunctionMeleeAttack.h"
+
+void UItemMeleeWeapon::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
+{
+	concreteInfo.Parsing(concreteInfoMap);
+}
+
+void UItemMeleeWeapon::MakeItemFunction()
+{
+	meleeAttackFunction = MakeShared<FunctionMeleeAttack>();
+}
+
+void UItemMeleeWeapon::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
+{
+	meleeAttackFunction->MeleeAttack(playerController, itemMesh);
+}
+
+EWeaponType UItemMeleeWeapon::GetWeaponType()
+{
+	return StaticCast<EWeaponType>(concreteInfo.weaponType);
+}

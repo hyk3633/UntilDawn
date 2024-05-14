@@ -27,6 +27,7 @@ class APlayerControllerMainMap;
 class APlayerCharacter;
 class AZombieCharacter;
 class PlayerInfoSetEx;
+class AProjectileBase;
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -91,12 +92,17 @@ public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);
 
+	TWeakObjectPtr<AProjectileBase> GetProjectile() const;
+
 	virtual void Tick(float deltaTime) override;
 
 private:
 
 	UPROPERTY()
 	UActorPooler* zombiePooler;
+
+	UPROPERTY()
+	UActorPooler* projectilePooler;
 
 	UPROPERTY()
 	UItemManager* itemManager;

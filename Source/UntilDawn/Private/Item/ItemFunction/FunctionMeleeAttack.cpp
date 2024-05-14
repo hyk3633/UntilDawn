@@ -1,24 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/Component/MeleeAttackComponent.h"
+#include "Item/ItemFunction/FunctionMeleeAttack.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UntilDawn/UntilDawn.h"
 
-UMeleeAttackComponent::UMeleeAttackComponent()
+FunctionMeleeAttack::FunctionMeleeAttack()
 {
-	PrimaryComponentTick.bCanEverTick = false;
-
 }
 
-void UMeleeAttackComponent::BeginPlay()
+FunctionMeleeAttack::~FunctionMeleeAttack()
 {
-	Super::BeginPlay();
-	
 }
 
-void UMeleeAttackComponent::Smash(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh)
+void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh)
 {
 	FHitResult hit;
 	FVector collisionLocation = weaponMesh->GetSocketLocation(FName("CollisionSocket"));
@@ -27,7 +23,7 @@ void UMeleeAttackComponent::Smash(TWeakObjectPtr<APlayerController> attackerCont
 	TArray<FHitResult> hits;
 	UKismetSystemLibrary::SphereTraceMulti
 	(
-		this,
+		attackerController.Get(),
 		collisionLocation,
 		collisionLocation,
 		12,
@@ -38,6 +34,10 @@ void UMeleeAttackComponent::Smash(TWeakObjectPtr<APlayerController> attackerCont
 		hits,
 		true
 	);
-	
-}
 
+	TWeakObjectPtr<APlayerControllerMainMap> mainMapController = Cast<APlayerControllerMainMap>(attackerController);
+	if (mainMapController.IsValid() && hits.Num())
+	{
+		mainMapController->SendHittedCharacters(hits);
+	}
+}

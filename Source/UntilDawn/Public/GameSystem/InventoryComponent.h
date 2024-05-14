@@ -10,6 +10,7 @@
 #include "../Enums/WeaponType.h"
 #include "InventoryComponent.generated.h"
 
+class APlayerCharacter;
 class UItemObject;
 class AItemBase;
 class AItemWeapon;
@@ -75,12 +76,16 @@ public:
 
 	int GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj);
 
+	void SetCharacter(TWeakObjectPtr<APlayerCharacter> character);
+
 	FORCEINLINE int GetColumns() const { return columns; }
 	FORCEINLINE void SetColumns(int col) { columns = col; }
 	FORCEINLINE int GetRows() const { return rows; }
 	FORCEINLINE void SetRows(int row) { rows = row; }
 
 private:
+
+	TWeakObjectPtr<APlayerCharacter> ownerCharacter;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	int columns;

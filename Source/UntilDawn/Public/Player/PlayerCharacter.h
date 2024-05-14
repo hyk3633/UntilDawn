@@ -138,12 +138,6 @@ public:
 	UFUNCTION()
 	void WrestlingEnd();
 
-	void StartAttack();
-
-	void EndAttack();
-
-	FORCEINLINE bool GetAttackActivated() const { return isAttackActivated; }
-
 	void PlayerDead();
 
 	void InitializePlayerInfo();
@@ -206,8 +200,6 @@ private:
 	CharacterInfo myInfo;
 
 	bool bWrestling;
-
-	bool isAttackActivated;
 
 	FVector nextLocation;
 

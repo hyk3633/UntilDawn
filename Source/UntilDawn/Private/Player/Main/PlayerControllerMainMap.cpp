@@ -253,6 +253,8 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	myCharacter->DZombieHitsMe.BindUFunction(this, FName("SendZombieHitsMe"));
 	myCharacter->UpdatePlayerInfo();
 
+	inventoryComponent->SetCharacter(myCharacter);
+
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(this->GetLocalPlayer()))
 	{
 		Subsystem->AddMappingContext(defaultMappingContext, 1);
@@ -366,7 +368,7 @@ void APlayerControllerMainMap::SendItemInfoToDrop(const FString itemID)
 	clientSocket->SendItemInfoToDrop(itemID);
 }
 
-void APlayerControllerMainMap::SendHittedCharacterInfo(TArray<FHitResult>& hits)
+void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits)
 {
 	check(clientSocket);
 	TArray<TPair<int, bool>> hittedCharacters;
@@ -392,7 +394,7 @@ void APlayerControllerMainMap::SendHittedCharacterInfo(TArray<FHitResult>& hits)
 	}
 	if (hittedCharacters.Num())
 	{
-		clientSocket->SendHittedCharactersInfo(hittedCharacters);
+		clientSocket->SendHittedCharacters(hittedCharacters);
 	}
 }
 
@@ -402,6 +404,11 @@ void APlayerControllerMainMap::PlayerDead()
 	myCharacter->PlayerDead();
 	GetWorldTimerManager().SetTimer(respawnRequestTimer, this, &APlayerControllerMainMap::respawnRequestAfterDelay, 3.f);
 	DPlayerDead.ExecuteIfBound();
+}
+
+void APlayerControllerMainMap::StartAttack()
+{
+	inventoryComponent->Attack(this);
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

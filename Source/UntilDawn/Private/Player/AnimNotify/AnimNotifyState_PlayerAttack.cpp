@@ -2,6 +2,7 @@
 
 #include "Player/AnimNotify/AnimNotifyState_PlayerAttack.h"
 #include "Player/PlayerCharacter.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 
 UAnimNotifyState_PlayerAttack::UAnimNotifyState_PlayerAttack()
 {
@@ -10,10 +11,11 @@ UAnimNotifyState_PlayerAttack::UAnimNotifyState_PlayerAttack()
 void UAnimNotifyState_PlayerAttack::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-	APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner());
-	if (IsValid(player))
+	auto player = Cast<APlayerCharacter>(MeshComp->GetOwner());
+	playerController = Cast<APlayerControllerMainMap>(player->GetController());
+	if (playerController.IsValid())
 	{
-		player->StartAttack();
+		playerController->StartAttack();
 	}
 }
 
@@ -23,10 +25,14 @@ void UAnimNotifyState_PlayerAttack::NotifyTick(USkeletalMeshComponent* MeshComp,
 	elapsedTime += FrameDeltaTime;
 	if (elapsedTime >= tickInterval)
 	{
-		APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner());
-		if (IsValid(player) && player->GetAttackActivated())
+		//APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner());
+		//if (IsValid(player) && player->GetAttackActivated())
+		//{
+		//	player->StartAttack();
+		//}
+		if (playerController.IsValid())
 		{
-			player->StartAttack();
+			playerController->StartAttack();
 		}
 		elapsedTime = 0.f;
 	}
@@ -35,10 +41,10 @@ void UAnimNotifyState_PlayerAttack::NotifyTick(USkeletalMeshComponent* MeshComp,
 void UAnimNotifyState_PlayerAttack::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
-	APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner());
-	if (IsValid(player))
+	if (playerController.IsValid())
 	{
-		player->EndAttack();
+		//playerController->EndAttack();
 	}
+	playerController.Reset();
 	elapsedTime = 0.f;
 }

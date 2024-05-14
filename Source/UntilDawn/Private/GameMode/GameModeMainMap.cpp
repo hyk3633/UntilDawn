@@ -10,6 +10,7 @@
 #include "Zombie/ZombieCharacter.h"
 #include "Item/ItemBase.h"
 #include "Item/ItemObject.h"
+#include "Item/Projectile/ProjectileBase.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -27,6 +28,9 @@ AGameModeMainMap::AGameModeMainMap()
 
 	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
 	zombiePooler->SetActorClass(AZombieCharacter::StaticClass());
+
+	projectilePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Projectile Pooler"));
+	projectilePooler->SetActorClass(AProjectileBase::StaticClass());
 
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
@@ -68,6 +72,8 @@ void AGameModeMainMap::BeginPlay()
 	// 좀비 캐릭터 스폰 및 풀링
 
 	zombiePooler->SpawnPoolableActor(2);
+
+	projectilePooler->SpawnPoolableActor(10);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -568,6 +574,11 @@ void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakO
 	);
 	droppedItem->SetActorLocation(hit.ImpactPoint);
 	droppedItem->ActivateActor();
+}
+
+TWeakObjectPtr<AProjectileBase> AGameModeMainMap::GetProjectile() const
+{
+	return Cast<AProjectileBase>(projectilePooler->GetPooledActor());
 }
 
 void AGameModeMainMap::Tick(float deltaTime)

@@ -8,17 +8,19 @@ UItemObject::UItemObject()
 	
 }
 
-void UItemObject::Init(const FString& itemId, FItemInfo newInfo, FItemAsset newAsset)
+void UItemObject::Init(const FString& itemId, FItemInfo newInfo, TMap<FString, TSharedPtr<FJsonValue>> concreteInfoMap, FItemAsset newAsset)
 {
 	itemID = itemId;
 	itemInfo = newInfo;
 	itemAsset = newAsset;
+	ParseItemConcreteInfo(concreteInfoMap);
+	MakeItemFunction();
 }
 
 void UItemObject::BeginDestroy()
 {
 	Super::BeginDestroy();
-
+	
 }
 
 FIntPoint UItemObject::GetDimensions() const
@@ -68,4 +70,16 @@ void UItemObject::SetTopLeftIndex(const int index)
 void UItemObject::SetItemQuantity(const uint8 quantity)
 {
 	itemInfo.quantity = quantity;
+}
+
+void UItemObject::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
+{
+}
+
+void UItemObject::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
+{
+}
+
+void UItemObject::MakeItemFunction()
+{
 }

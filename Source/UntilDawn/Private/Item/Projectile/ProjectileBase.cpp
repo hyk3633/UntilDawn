@@ -85,7 +85,7 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
 		TArray<FHitResult> hits;
 		hits.Add(Hit);
-		owner->SendHittedCharacterInfo(hits);
+		owner->SendHittedCharacters(hits);
 	}
 }
 

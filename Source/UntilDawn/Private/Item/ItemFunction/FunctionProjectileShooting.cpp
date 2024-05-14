@@ -1,25 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/Component/ShootingComponent.h"
+#include "Item/ItemFunction/FunctionProjectileShooting.h"
 #include "Item/Projectile/ProjectileBase.h"
+#include "GameMode/GameModeMainMap.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "../UntilDawn.h"
 
-UShootingComponent::UShootingComponent()
+FunctionProjectileShooting::FunctionProjectileShooting()
 {
-	PrimaryComponentTick.bCanEverTick = false;
-
 }
 
-void UShootingComponent::BeginPlay()
+FunctionProjectileShooting::~FunctionProjectileShooting()
 {
-	Super::BeginPlay();
-	
 }
 
-FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> attackerController)
+FVector FunctionProjectileShooting::GetAimLocaion(TWeakObjectPtr<APlayerController> attackerController)
 {
 	check(GEngine);
 	check(GEngine->GameViewport);
@@ -30,7 +27,7 @@ FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> atta
 	FVector startLoc, dir;
 	UGameplayStatics::DeprojectScreenToWorld(attackerController.Get(), CrosshairLocation, startLoc, dir);
 	FHitResult hit;
-	GetWorld()->LineTraceSingleByChannel
+	attackerController->GetWorld()->LineTraceSingleByChannel
 	(
 		hit,
 		startLoc,
@@ -48,7 +45,7 @@ FVector UShootingComponent::GetAimLocaion(TWeakObjectPtr<APlayerController> atta
 	}
 }
 
-void UShootingComponent::Shooting(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh, TWeakObjectPtr<AProjectileBase> projectile)
+void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh)
 {
 	check(attackerController.IsValid());
 
@@ -56,8 +53,10 @@ void UShootingComponent::Shooting(TWeakObjectPtr<APlayerController> attackerCont
 	FVector muzzleLocation = weaponMesh->GetSocketLocation(FName("MuzzleSocket"));
 	const FVector direction = (aimLocation - muzzleLocation).GetSafeNormal();
 
+	auto projectile = attackerController->GetWorld()->GetAuthGameMode<AGameModeMainMap>()->GetProjectile();
+
+	projectile->SetOwner(attackerController.Get());
 	projectile->SetActorLocation(muzzleLocation + direction * -50.f);
 	projectile->SetActorRotation(direction.Rotation());
 	projectile->ActivateActor();
 }
-

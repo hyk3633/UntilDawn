@@ -20,6 +20,7 @@ public:
 	bool isConsumable;
 
 	EItemMainType GetItemType() const { return StaticCast<EItemMainType>(itemType); }
+
 };
 
 USTRUCT()
@@ -35,35 +36,13 @@ public:
 
 	float attackPower;
 
-	void CopyTo(FWeaponInfo* otherInfo)
+	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
-		otherInfo->weaponType = weaponType;
-		otherInfo->attackPower = attackPower;
+		attackPower = concreteInfoMap["AttackPower"]->AsNumber();
+		weaponType = concreteInfoMap["WeaponType"]->AsNumber();
 	}
 
 };
-
-/*USTRUCT()
-struct FMeleeWeaponInfo : public FWeaponInfo
-{
-	GENERATED_BODY()
-
-public:
-
-	FMeleeWeaponInfo() {}
-
-	float attackPower;
-
-	float attackSpeed;
-
-	void CopyTo(FMeleeWeaponInfo* otherInfo)
-	{
-		FItemInfo::CopyTo(otherInfo);
-		otherInfo->attackPower = attackPower;
-		otherInfo->attackSpeed = attackSpeed;
-	}
-
-};*/
 
 USTRUCT()
 struct FRangedWeaponInfo : public FWeaponInfo
@@ -82,24 +61,13 @@ public:
 
 	float reloadingSpeed;
 
-	void CopyTo(FRangedWeaponInfo* otherInfo)
+	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
-		FWeaponInfo::CopyTo(otherInfo);
-		otherInfo->fireRate			= fireRate;
-		otherInfo->recoil			= recoil;
-		otherInfo->magazine			= magazine;
-		otherInfo->reloadingSpeed	= reloadingSpeed;
-	}
-
-	friend FArchive& operator<<(FArchive& archive, FRangedWeaponInfo& info)
-	{
-		archive << info.attackPower;
-		archive << info.weaponType;
-		archive << info.fireRate;
-		archive << info.recoil;
-		archive << info.magazine;
-		archive << info.reloadingSpeed;
-		return archive;
+		FWeaponInfo::Parsing(concreteInfoMap);
+		fireRate		= concreteInfoMap["FireRate"]->AsNumber();
+		recoil			= concreteInfoMap["Recoil"]->AsNumber();
+		magazine		= concreteInfoMap["Magazine"]->AsNumber();
+		reloadingSpeed	= concreteInfoMap["ReloadingSpeed"]->AsNumber();
 	}
 
 };
@@ -117,10 +85,10 @@ public:
 
 	float usingSpeed;
 
-	void CopyTo(FRecoveryItemInfo* otherInfo)
+	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
-		otherInfo->recoveryAmount	= recoveryAmount;
-		otherInfo->usingSpeed		= usingSpeed;
+		recoveryAmount	= concreteInfoMap["RecoveryAmount"]->AsNumber();
+		usingSpeed		= concreteInfoMap["UsingSpeed"]->AsNumber();
 	}
 
 };
@@ -134,14 +102,11 @@ public:
 
 	FAmmoItemInfo() {}
 
-	int amount;
-
 	int ammoType;
 
-	void CopyTo(FAmmoItemInfo* otherInfo)
+	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
-		otherInfo->amount		= amount;
-		otherInfo->ammoType		= ammoType;
+		ammoType = concreteInfoMap["AmmoType"]->AsNumber();
 	}
 
 };

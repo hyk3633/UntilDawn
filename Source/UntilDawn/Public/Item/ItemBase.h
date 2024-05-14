@@ -38,13 +38,13 @@ public:
 
 	void ActivateEquipMode();
 
-protected:
-
-	virtual void BeginPlay() override;
-
 	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
 
 	FORCEINLINE UStaticMeshComponent* GetStaticMesh() const { return staticMesh; }
+
+protected:
+
+	virtual void BeginPlay() override;
 
 private:
 

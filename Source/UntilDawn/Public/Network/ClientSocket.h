@@ -55,7 +55,7 @@ public:
 
 	void SendItemInfoToDrop(const FString itemID);
 
-	void SendHittedCharactersInfo(TArray<TPair<int, bool>>& hittedCharacters);
+	void SendHittedCharacters(TArray<TPair<int, bool>>& hittedCharacters);
 
 	void SendRespawnRequest();
 

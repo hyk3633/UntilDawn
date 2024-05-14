@@ -477,17 +477,6 @@ void APlayerCharacter::WrestlingEnd()
 	
 }
 
-void APlayerCharacter::StartAttack()
-{
-	isAttackActivated = true;
-	//inventoryComponent->Attack(Cast<APlayerController>(GetController()));
-}
-
-void APlayerCharacter::EndAttack()
-{
-	isAttackActivated = false;
-}
-
 void APlayerCharacter::PlayerDead()
 {
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeadPlayer"));
@@ -501,8 +490,6 @@ void APlayerCharacter::InitializePlayerInfo()
 	isAbleShoot = false;
 	shootPower = false;
 	bWrestling = false;
-	isAttackActivated = false;
-	//inventoryComponent
 }
 
 void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)

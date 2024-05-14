@@ -130,9 +130,11 @@ public:
 
 	void SendItemInfoToDrop(const FString itemID);
 
-	void SendHittedCharacterInfo(TArray<FHitResult>& hits);
+	void SendHittedCharacters(TArray<FHitResult>& hits);
 
 	void PlayerDead();
+
+	void StartAttack();
 
 protected:
 

@@ -6,11 +6,14 @@
 #include "UObject/NoExportTypes.h"
 #include "../Structs/ItemAsset.h"
 #include "../Structs/ItemInfo.h"
+#include "Serialization/BufferArchive.h"
 #include "ItemObject.generated.h"
 
 /**
  * 
  */
+
+class AItemBase;
 
 UCLASS()
 class UNTILDAWN_API UItemObject : public UObject
@@ -20,8 +23,9 @@ class UNTILDAWN_API UItemObject : public UObject
 public:
 
 	UItemObject();
+	~UItemObject() = default;
 
-	void Init(const FString& itemId, FItemInfo newInfo, FItemAsset newAsset);
+	void Init(const FString& itemId, FItemInfo newInfo, TMap<FString, TSharedPtr<FJsonValue>> concreteInfoMap, FItemAsset newAsset);
 
 	virtual void BeginDestroy() override;
 
@@ -56,6 +60,14 @@ public:
 	FORCEINLINE FItemInfo GetItemInfo() const { return itemInfo; }
 
 	void SetItemQuantity(const uint8 quantity);
+
+	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr);
+
+protected:
+
+	virtual void ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap);
+
+	virtual void MakeItemFunction();
 
 private:
 
