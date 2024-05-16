@@ -3,8 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../../Enums/WeaponType.h"
-#include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "../../Structs/ItemInfo.h"
 #include "ItemProjectileWeapon.generated.h"
 
@@ -15,7 +14,7 @@
 class FunctionProjectileShooting;
 
 UCLASS()
-class UNTILDAWN_API UItemProjectileWeapon : public UItemObject
+class UNTILDAWN_API UItemProjectileWeapon : public UItemPermanent
 {
 	GENERATED_BODY()
 
@@ -32,14 +31,16 @@ protected:
 
 public:
 
-	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) override;
+	void Reload(TWeakObjectPtr<APlayerController> playerController);
 
-	EWeaponType GetWeaponType();
+	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) override;
 
 private:
 
 	TSharedPtr<FunctionProjectileShooting> shootingFunction;
 
 	FRangedWeaponInfo concreteInfo;
+
+	uint16 loadedAmmoAmount = 0;
 	
 };

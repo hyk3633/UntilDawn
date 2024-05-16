@@ -5,7 +5,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Item/ItemObject.h"
 #include "Item/ItemBase.h"
-#include "Item/ItemObject/ItemProjectileWeapon.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "GameMode/GameModeMainMap.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -13,13 +13,13 @@ UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
+	grids.Init(nullptr, columns * rows);
 }
 
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	items.Init(nullptr, columns * rows);
+
 }
 
 void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -33,59 +33,33 @@ void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	}
 }
 
-bool UInventoryComponent::TryAddItem(TWeakObjectPtr<UItemObject> newItemObj)
+void UInventoryComponent::AddItemAt(TWeakObjectPtr<UItemObject> newItemObj)
 {
-	if (newItemObj.IsValid())
-	{
-		for (int i = 0; i < items.Num(); i++)
-		{
-			if (IsRoomAvailable(newItemObj, i))
-			{
-				AddItemAt(newItemObj, i);
-				return true;
-			}
-		}
-		newItemObj->Rotate();
-		for (int i = 0; i < items.Num(); i++)
-		{
-			if (IsRoomAvailable(newItemObj, i))
-			{
-				AddItemAt(newItemObj, i);
-				return true;
-			}
-		}
-		newItemObj->Rotate();
-		return false;
-	}
-	else
-	{
-		return false;
-	}
+	AddItemAt(newItemObj, newItemObj->GetTopLeft());
 }
 
-void UInventoryComponent::AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, int topLeftIndex)
+void UInventoryComponent::AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft)
 {
-	newItemObj->SetTopLeftIndex(topLeftIndex);
-	FTile tile = IndexToTile(topLeftIndex);
+	newItemObj->SetTopLeft(topLeft);
+
 	FIntPoint dim = newItemObj->GetDimensions();
-	for (int i = tile.Y; i < tile.Y + dim.Y; i++)
+	for (int i = topLeft.Y; i < topLeft.Y + dim.Y; i++)
 	{
-		for (int j = tile.X; j < tile.X + dim.X; j++)
+		for (int j = topLeft.X; j < topLeft.X + dim.X; j++)
 		{
 			const int index = TileToIndex({ j, i });
-			items[index] = newItemObj;
+			grids[index] = newItemObj;
 		}
 	}
 	isDirty = true;
 }
 
-bool UInventoryComponent::IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj, int topLeftIndex)
+bool UInventoryComponent::IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft)
 {
-	FTile tile = IndexToTile(topLeftIndex);
 	FIntPoint dim = newItemObj->GetDimensions();
-	for (int i = tile.Y; i < tile.Y + dim.Y; i++)
+	for (int i = topLeft.Y; i < topLeft.Y + dim.Y; i++)
 	{
-		for (int j = tile.X; j < tile.X + dim.X; j++)
+		for (int j = topLeft.X; j < topLeft.X + dim.X; j++)
 		{
 			FTile curTile{ j, i };
 			if (IsTileValid(curTile))
@@ -114,9 +88,9 @@ bool UInventoryComponent::IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj
 
 TPair<bool, TWeakObjectPtr<UItemObject>> UInventoryComponent::GetItemAtIndex(const int index)
 {
-	if (items.IsValidIndex(index))
+	if (grids.IsValidIndex(index))
 	{
-		return { true, items[index] };
+		return { true, grids[index] };
 	}
 	else
 	{
@@ -141,16 +115,10 @@ int UInventoryComponent::TileToIndex(FTile tile)
 
 void UInventoryComponent::RemoveItem(TWeakObjectPtr<UItemObject> removedItem)
 {
-	if (removedItem.IsValid())
+	if (items.Find(removedItem))
 	{
-		for (int i = 0; i < items.Num(); i++)
-		{
-			if (items[i] == removedItem)
-			{
-				items[i] = nullptr;
-				isDirty = true;
-			}
-		}
+		items.Remove(removedItem);
+		isDirty = true;
 	}
 }
 
@@ -167,15 +135,9 @@ void UInventoryComponent::RemoveEquipmentItem(const int slotNumber, const EEquip
 	}
 }
 
-void UInventoryComponent::GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& itemsAll)
+TMap<TWeakObjectPtr<UItemObject>, FTile> UInventoryComponent::GetAllItems() const
 {
-	for (int i = 0; i < items.Num(); i++)
-	{
-		if (items[i].IsValid() && itemsAll.Contains(items[i]) == false)
-		{
-			itemsAll.Add(items[i], IndexToTile(i));
-		}
-	}
+	return items;
 }
 
 void UInventoryComponent::EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor)
@@ -190,7 +152,7 @@ void UInventoryComponent::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 	{
 		if (equippedItems[i] == itemActor)
 		{
-			equippedItems[i] = nullptr;
+			equippedItems[i].Reset();
 			return;
 		}
 	}
@@ -198,10 +160,14 @@ void UInventoryComponent::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 
 void UInventoryComponent::Attack(TWeakObjectPtr<APlayerController> ownerController)
 {
-	armedWeapon->GetItemObject()->Using(ownerController, armedWeapon->GetSkeletalMesh());
+	if (armedWeapon.IsValid())
+	{
+		auto permanentItem = Cast<UItemPermanent>(armedWeapon->GetItemObject());
+		permanentItem->Using(ownerController, armedWeapon->GetSkeletalMesh());
+	}
 }
 
-EWeaponType UInventoryComponent::ArmRecentWeapon()
+EPermanentItemType UInventoryComponent::ArmRecentWeapon()
 {
 	if (armedWeapon.IsValid())
 	{
@@ -228,25 +194,17 @@ EWeaponType UInventoryComponent::ArmRecentWeapon()
 			return GetCurrentWeaponType();
 		}
 	}
-	return EWeaponType::NONE;
+	return EPermanentItemType::NONE;
 }
 
-EWeaponType UInventoryComponent::GetCurrentWeaponType() const
+EPermanentItemType UInventoryComponent::GetCurrentWeaponType() const
 {
 	if (armedWeapon.IsValid())
 	{
-		const EItemMainType itemType = StaticCast<EItemMainType>(armedWeapon->GetItemObject()->GetItemType());
-		if (itemType == EItemMainType::RangedWeapon)
-		{
-			TWeakObjectPtr<UItemProjectileWeapon> rangedWeaponObj = Cast<UItemProjectileWeapon>(armedWeapon->GetItemObject());
-			return rangedWeaponObj->GetWeaponType();
-		}
-		else if (itemType == EItemMainType::MeleeWeapon)
-		{
-
-		}
+		auto permanentItem = Cast<UItemPermanent>(armedWeapon->GetItemObject());
+		return permanentItem->GetPermanentItemType();
 	}
-	return EWeaponType::NONE;
+	return EPermanentItemType::NONE;
 }
 
 void UInventoryComponent::DisarmWeapon()
@@ -274,17 +232,13 @@ void UInventoryComponent::SetCharacter(TWeakObjectPtr<APlayerCharacter> characte
 	ownerCharacter = character;
 }
 
-/*bool UInventoryComponent::UsingRecoveryItem()
+TWeakObjectPtr<UItemObject> UInventoryComponent::GetItemObjectOfType(const EItemMainType itemType)
 {
-	for (int i = 0; i < items.Num(); i++)
+	for (auto& pair : items)
 	{
-		if (static_cast<EItemMainType>(items[i]->GetItemType()) == EItemMainType::RecoveryItem)
-		{
-			TWeakObjectPtr<AItemRecovery> recoveryItem = Cast<AItemRecovery>(GetWorld()->GetAuthGameMode<AGameModeMainMap>()->GetItemActor(items[i]->GetItemID()));
-			recoveryItem->UsingItem();
-			return true;
-		}
+		if (StaticCast<EItemMainType>(pair.Key->GetItemType()) == itemType)
+			return pair.Key;
 	}
-	return false;
-}*/
+	return nullptr;
+}
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemConsumable.h"
 #include "../../Structs/ItemInfo.h"
 #include "ItemRecovery.generated.h"
 
@@ -11,7 +11,7 @@
  * 
  */
 UCLASS()
-class UNTILDAWN_API UItemRecovery : public UItemObject
+class UNTILDAWN_API UItemRecovery : public UItemConsumable
 {
 	GENERATED_BODY()
 	
@@ -25,7 +25,7 @@ protected:
 
 public:
 
-	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) override;
+	virtual uint16 Using(const uint16 neededAmount) override;
 
 private:
 

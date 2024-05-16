@@ -52,11 +52,15 @@ void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerController> atta
 	FVector aimLocation = GetAimLocaion(attackerController);
 	FVector muzzleLocation = weaponMesh->GetSocketLocation(FName("MuzzleSocket"));
 	const FVector direction = (aimLocation - muzzleLocation).GetSafeNormal();
+	const FVector projectileLocation = muzzleLocation + direction * -50.f;
+
+	//attackerController->ReplicateProjectile(projectileLocation, direction.Rotation());
 
 	auto projectile = attackerController->GetWorld()->GetAuthGameMode<AGameModeMainMap>()->GetProjectile();
+	check(projectile.IsValid());
 
 	projectile->SetOwner(attackerController.Get());
-	projectile->SetActorLocation(muzzleLocation + direction * -50.f);
+	projectile->SetActorLocation(projectileLocation);
 	projectile->SetActorRotation(direction.Rotation());
 	projectile->ActivateActor();
 }

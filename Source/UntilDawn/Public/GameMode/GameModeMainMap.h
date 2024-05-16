@@ -88,6 +88,8 @@ protected:
 
 	void PlayerSpawnAfterDelay();
 
+	void ReceiveReplicatedProjectile(std::stringstream& recvStream);
+
 public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);

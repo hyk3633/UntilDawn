@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "../../Enums/ItemType.h"
-#include "../../Enums/WeaponType.h"
+#include "../../Enums/PermanentItemType.h"
 #include "../../Enums/EquipmentBox.h"
 #include "WidgetEquipmentBox.generated.h"
 
@@ -31,7 +31,7 @@ class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
 public:
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType newItemYype, const EEquipmentBox newBoxType, const float size);
+	void InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EPermanentItemType newEquipmentType, const EEquipmentBox newBoxType, const float size);
 	
 	UFUNCTION(BlueprintCallable)
 	void OnDropCalled(UDragDropOperation* operation);
@@ -93,7 +93,7 @@ private:
 	FVector2D widgetSize;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true", BindWidget))
-	EItemMainType equipmentType;
+	EPermanentItemType equipmentType;
 
 	EEquipmentBox boxType;
 	

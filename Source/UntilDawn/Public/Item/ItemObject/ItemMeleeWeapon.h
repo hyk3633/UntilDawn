@@ -3,9 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "../../Structs/ItemInfo.h"
-#include "../../Enums/WeaponType.h"
 #include "ItemMeleeWeapon.generated.h"
 
 /**
@@ -15,7 +14,7 @@
 class FunctionMeleeAttack;
 
 UCLASS()
-class UNTILDAWN_API UItemMeleeWeapon : public UItemObject
+class UNTILDAWN_API UItemMeleeWeapon : public UItemPermanent
 {
 	GENERATED_BODY()
 
@@ -33,8 +32,6 @@ protected:
 public:
 
 	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) override;
-
-	EWeaponType GetWeaponType();
 
 private:
 

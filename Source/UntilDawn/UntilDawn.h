@@ -28,3 +28,4 @@ FORCEINLINE void VectorTruncate(FVector& vector)
 	vector.Y = trunc(vector.Y * 1000) * 0.001f;
 	vector.Z = trunc(vector.Z * 1000) * 0.001f;
 }
+

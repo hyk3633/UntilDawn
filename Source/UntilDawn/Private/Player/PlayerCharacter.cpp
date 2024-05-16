@@ -204,11 +204,11 @@ void APlayerCharacter::SprintEnd()
 	GetCharacterMovement()->MaxWalkSpeed = 300;
 }
 
-bool APlayerCharacter::LeftClick(const EWeaponType weaponType)
+bool APlayerCharacter::LeftClick(const EPermanentItemType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
-	if (weaponType != EWeaponType::NONE)
+	if (weaponType != EPermanentItemType::NONE)
 	{
 		animInst->PlayLeftClickMontage(weaponType);
 		return true;
@@ -219,12 +219,12 @@ bool APlayerCharacter::LeftClick(const EWeaponType weaponType)
 	}
 }
 
-bool APlayerCharacter::LeftClickHold(const EWeaponType weaponType)
+bool APlayerCharacter::LeftClickHold(const EPermanentItemType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EWeaponType::BOW)
+	if (weaponType == EPermanentItemType::BOW)
 	{
 		isAbleShoot = true;
 		GetCharacterMovement()->MaxWalkSpeed = 300;
@@ -236,12 +236,12 @@ bool APlayerCharacter::LeftClickHold(const EWeaponType weaponType)
 	}
 }
 
-bool APlayerCharacter::LeftClickEnd(const EWeaponType weaponType)
+bool APlayerCharacter::LeftClickEnd(const EPermanentItemType weaponType)
 {
 	if (isAbleShoot == false)
 		return false;
 
-	if (weaponType == EWeaponType::BOW)
+	if (weaponType == EPermanentItemType::BOW)
 	{
 		isAbleShoot = false;
 		animInst->PlayBowShootMontage();
@@ -254,12 +254,12 @@ bool APlayerCharacter::LeftClickEnd(const EWeaponType weaponType)
 	}
 }
 
-bool APlayerCharacter::RightClick(const EWeaponType weaponType)
+bool APlayerCharacter::RightClick(const EPermanentItemType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EWeaponType::AXE)
+	if (weaponType == EPermanentItemType::AXE)
 	{
 		rightClick = true;
 		return true;
@@ -270,12 +270,12 @@ bool APlayerCharacter::RightClick(const EWeaponType weaponType)
 	}
 }
 
-bool APlayerCharacter::RightClickEnd(const EWeaponType weaponType)
+bool APlayerCharacter::RightClickEnd(const EPermanentItemType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EWeaponType::AXE)
+	if (weaponType == EPermanentItemType::AXE)
 	{
 		rightClick = false;
 		return true;
@@ -286,12 +286,12 @@ bool APlayerCharacter::RightClickEnd(const EWeaponType weaponType)
 	}
 }
 
-bool APlayerCharacter::RKeyPressed(const EWeaponType recentWeaponType)
+bool APlayerCharacter::RKeyPressed(const EPermanentItemType recentWeaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (recentWeaponType != EWeaponType::NONE)
+	if (recentWeaponType != EPermanentItemType::NONE)
 	{
 		animInst->PlayWeaponArmMontage(recentWeaponType);
 
@@ -304,12 +304,12 @@ bool APlayerCharacter::RKeyPressed(const EWeaponType recentWeaponType)
 	return false;
 }
 
-bool APlayerCharacter::RKeyHold(const EWeaponType weaponType)
+bool APlayerCharacter::RKeyHold(const EPermanentItemType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EWeaponType::NONE)
+	if (weaponType == EPermanentItemType::NONE)
 	{
 		return false;
 	}
@@ -405,12 +405,12 @@ const bool APlayerCharacter::GetIsFalling() const
 	return GetMovementComponent()->IsFalling();
 }
 
-EWeaponType APlayerCharacter::GetCurrentWeaponType() const
+EPermanentItemType APlayerCharacter::GetCurrentWeaponType() const
 {
 	return currentWeaponType;
 }
 
-void APlayerCharacter::SetCurrentWeaponType(const EWeaponType weaponType)
+void APlayerCharacter::SetCurrentWeaponType(const EPermanentItemType weaponType)
 {
 	currentWeaponType = weaponType;
 }
@@ -419,7 +419,7 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weapon
 {
 	if (inputType == 0) 
 		return;
-	const EWeaponType eWeaponType = static_cast<EWeaponType>(weaponType);
+	const EPermanentItemType eWeaponType = static_cast<EPermanentItemType>(weaponType);
 	switch (static_cast<EPlayerInputs>(inputType))
 	{
 	case EPlayerInputs::LeftClick:

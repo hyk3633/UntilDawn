@@ -218,6 +218,15 @@ void ClientSocket::SendRespawnRequest()
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
+void ClientSocket::ReplicateProjectile(const FVector& location, const FRotator& rotation)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::PROJECTILE) << "\n";
+	sendStream << location.X << "\n" << location.Y << "\n" << location.Z << "\n";
+	sendStream << rotation.Pitch << "\n" << rotation.Yaw << "\n" << rotation.Roll << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
 bool ClientSocket::Init()
 {
 	bRun = true;

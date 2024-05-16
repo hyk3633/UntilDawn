@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "Enums/WeaponType.h"
+#include "Enums/PermanentItemType.h"
 #include "PlayerAnimInst.generated.h"
 
 /**
@@ -28,9 +28,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void UpdateValue();
 
-	void PlayWeaponArmMontage(const EWeaponType type);
+	void PlayWeaponArmMontage(const EPermanentItemType type);
 
-	void PlayWeaponDisarmMontage(const EWeaponType type);
+	void PlayWeaponDisarmMontage(const EPermanentItemType type);
 
 	void PlayAxeAttackMontage();
 
@@ -38,7 +38,7 @@ public:
 
 	void PlayBowShootMontage();
 
-	void PlayLeftClickMontage(const EWeaponType type);
+	void PlayLeftClickMontage(const EPermanentItemType type);
 
 	void PlayWrestlingMontage(const bool isBlocking);
 
@@ -97,7 +97,7 @@ private:
 	UAnimMontage* wrestlingMontage;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	EWeaponType currentWeaponType = EWeaponType::NONE;
+	EPermanentItemType currentWeaponType = EPermanentItemType::NONE;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool isWrestling;

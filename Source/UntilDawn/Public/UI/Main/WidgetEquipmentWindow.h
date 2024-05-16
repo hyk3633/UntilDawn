@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Enums/ItemType.h"
+#include "Enums/PermanentItemType.h"
 #include "Enums/EquipmentBox.h"
 #include "WidgetEquipmentWindow.generated.h"
 
@@ -58,7 +58,7 @@ private:
 	bool isCursorInArea;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true", ClampMin = "1", ClampMax = "5", BindWidget))
-	TArray<EItemMainType> equipmentTypeArr;
+	TArray<EPermanentItemType> equipmentTypeArr;
 
 	UPROPERTY()
 	TArray<UWidgetEquipmentBox*> equipmentBoxArr;

@@ -4,6 +4,7 @@
 #include "UI/Main/WidgetEquipmentBox.h"
 #include "UI/Main/WidgetDragVisual.h"
 #include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "GameMode/GameModeMainMap.h"
 #include "GameSystem/ItemManager.h"
@@ -17,14 +18,14 @@
 #include "Slate/SlateBrushAsset.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
-void UWidgetEquipmentBox::InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType newItemYype, const EEquipmentBox newBoxType, const float size)
+void UWidgetEquipmentBox::InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EPermanentItemType newEquipmentType, const EEquipmentBox newBoxType, const float size)
 {
 	number = num;
 	inventoryComponent = invComp;
 	dragVisualClass = dragVisClass;
 	dragVisual = CreateWidget<UWidgetDragVisual>(GetOwningPlayer(), dragVisualClass);
 	dragVisual->SetVisibility(ESlateVisibility::Hidden);
-	equipmentType = newItemYype;
+	equipmentType = newEquipmentType;
 	boxType = newBoxType;
 	tileSize = size;
 }
@@ -33,7 +34,9 @@ void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 {
 	TWeakObjectPtr<UItemObject> newItemObj = Cast<UItemObject>(operation->Payload);
 	check(newItemObj.IsValid());
-	if (static_cast<EItemMainType>(newItemObj->GetItemType()) == equipmentType)
+
+	auto equipment = Cast<UItemPermanent>(newItemObj);
+	if (equipment->GetPermanentItemType() == equipmentType)
 	{
 		// 플레이어 컨트롤러 호출
 		APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
@@ -42,7 +45,7 @@ void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 	}
 	else
 	{
-		inventoryComponent->AddItemAt(newItemObj, newItemObj->GetTopLeftIndex());
+		inventoryComponent->AddItemAt(newItemObj, newItemObj->GetTopLeft());
 	}
 }
 

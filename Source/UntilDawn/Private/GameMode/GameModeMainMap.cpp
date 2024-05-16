@@ -62,6 +62,7 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::SPAWNITEM]				= &AGameModeMainMap::SpawnItems;
 	packetCallbacks[EPacketType::PLAYERINVENTORY]		= &AGameModeMainMap::InitializePlayerPossessedItems;
 	packetCallbacks[EPacketType::PLAYEREQUIPMENT]		= &AGameModeMainMap::InitializePlayerEquippedItems;
+	packetCallbacks[EPacketType::PROJECTILE]			= &AGameModeMainMap::ReceiveReplicatedProjectile;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -557,6 +558,21 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 	check(myController.Get());
 	myController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
+}
+
+void AGameModeMainMap::ReceiveReplicatedProjectile(std::stringstream& recvStream)
+{
+	FVector location;
+	FRotator rotation;
+	recvStream >> location.X >> location.Y >> location.Z;
+	recvStream >> rotation.Pitch >> rotation.Yaw >> rotation.Roll;
+
+	auto projectile = GetProjectile();
+	check(projectile.IsValid());
+
+	projectile->SetActorLocation(location);
+	projectile->SetActorRotation(rotation);
+	projectile->ActivateActor();
 }
 
 void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem)

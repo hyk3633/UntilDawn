@@ -6,6 +6,7 @@
 
 void UItemMeleeWeapon::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 {
+	Super::ParseItemConcreteInfo(concreteInfoMap);
 	concreteInfo.Parsing(concreteInfoMap);
 }
 
@@ -17,9 +18,4 @@ void UItemMeleeWeapon::MakeItemFunction()
 void UItemMeleeWeapon::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
 {
 	meleeAttackFunction->MeleeAttack(playerController, itemMesh);
-}
-
-EWeaponType UItemMeleeWeapon::GetWeaponType()
-{
-	return StaticCast<EWeaponType>(concreteInfo.weaponType);
 }

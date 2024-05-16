@@ -32,16 +32,12 @@ public:
 
 	FWeaponInfo() {}
 
-	int weaponType;
-
 	float attackPower;
 
 	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
 		attackPower = concreteInfoMap["AttackPower"]->AsNumber();
-		weaponType = concreteInfoMap["WeaponType"]->AsNumber();
 	}
-
 };
 
 USTRUCT()

@@ -12,6 +12,16 @@ void UItemAmmo::MakeItemFunction()
 {
 }
 
-void UItemAmmo::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
+uint16 UItemAmmo::Using(const uint16 neededAmount)
 {
+	const uint16 remainedAmmo = GetItemInfo().quantity;
+	Consumed(neededAmount);
+	if (remainedAmmo >= neededAmount)
+	{
+		return neededAmount;
+	}
+	else
+	{
+		return remainedAmmo;
+	}
 }

@@ -62,24 +62,12 @@ void UItemObject::Rotate()
 	rotated = !rotated;
 }
 
-void UItemObject::SetTopLeftIndex(const int index)
+void UItemObject::SetTopLeft(const FTile& newTopLeft)
 {
-	topLeftIndex = index;
+	topLeft = newTopLeft;
 }
 
 void UItemObject::SetItemQuantity(const uint8 quantity)
 {
 	itemInfo.quantity = quantity;
-}
-
-void UItemObject::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
-{
-}
-
-void UItemObject::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
-{
-}
-
-void UItemObject::MakeItemFunction()
-{
 }

@@ -7,7 +7,7 @@
 #include "Structs/Tile.h"
 #include "../Enums/EquipmentBox.h"
 #include "../Enums/ItemType.h"
-#include "../Enums/WeaponType.h"
+#include "../Enums/PermanentItemType.h"
 #include "InventoryComponent.generated.h"
 
 class APlayerCharacter;
@@ -36,11 +36,11 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	bool TryAddItem(TWeakObjectPtr<UItemObject> newItemObj);
+	void AddItemAt(TWeakObjectPtr<UItemObject> newItemObj);
 
-	void AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, int topLeftIndex);
+	void AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft);
 
-	bool IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj, int topLeftIndex);
+	bool IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft);
 
 protected:
 
@@ -58,7 +58,7 @@ public:
 
 	void RemoveEquipmentItem(const int boxNumber, const EEquipmentBox boxType);
 
-	void GetAllItems(TMap<TWeakObjectPtr<UItemObject>, FTile>& itemsAll);
+	TMap<TWeakObjectPtr<UItemObject>, FTile> GetAllItems() const;
 
 	void EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
 
@@ -66,9 +66,9 @@ public:
 
 	void Attack(TWeakObjectPtr<APlayerController> ownerController);
 
-	EWeaponType ArmRecentWeapon();
+	EPermanentItemType ArmRecentWeapon();
 
-	EWeaponType GetCurrentWeaponType() const;
+	EPermanentItemType GetCurrentWeaponType() const;
 
 	void DisarmWeapon();
 
@@ -77,6 +77,10 @@ public:
 	int GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj);
 
 	void SetCharacter(TWeakObjectPtr<APlayerCharacter> character);
+
+	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
+
+public:
 
 	FORCEINLINE int GetColumns() const { return columns; }
 	FORCEINLINE void SetColumns(int col) { columns = col; }
@@ -93,12 +97,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	int rows;
 
-	// 그리드용 배열은 격자 형태로 저장하므로 단순 숫자 값만을 저장하도록 하고 아이템 오브젝트는 일차원 배열에 저장
-	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
-	TArray<TWeakObjectPtr<UItemObject>> items;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	bool isDirty;
+
+	// 그리드용 배열은 격자 형태로 저장하므로 단순 숫자 값만을 저장하도록 하고 아이템 오브젝트는 일차원 배열에 저장
+	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	TMap<TWeakObjectPtr<UItemObject>, FTile> items;
+
+	TArray<TWeakObjectPtr<UItemObject>> grids;
 
 	TArray<TWeakObjectPtr<AItemBase>> equippedItems;
 

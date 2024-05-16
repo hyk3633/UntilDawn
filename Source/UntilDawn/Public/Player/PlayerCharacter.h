@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
-#include "Enums/WeaponType.h"
+#include "../Enums/PermanentItemType.h"
 #include "Structs/CharacterInfo.h"
 #include "Structs/Tile.h"
 #include "PlayerCharacter.generated.h"
@@ -65,19 +65,19 @@ public:
 
 	bool CheckAbleInput();
 
-	bool LeftClick(const EWeaponType weaponType);
+	bool LeftClick(const EPermanentItemType weaponType);
 
-	bool LeftClickHold(const EWeaponType weaponType);
+	bool LeftClickHold(const EPermanentItemType weaponType);
 
-	bool LeftClickEnd(const EWeaponType weaponType);
+	bool LeftClickEnd(const EPermanentItemType weaponType);
 
-	bool RightClick(const EWeaponType weaponType);
+	bool RightClick(const EPermanentItemType weaponType);
 
-	bool RightClickEnd(const EWeaponType weaponType);
+	bool RightClickEnd(const EPermanentItemType weaponType);
 
-	bool RKeyPressed(const EWeaponType recentWeaponType);
+	bool RKeyPressed(const EPermanentItemType recentWeaponType);
 
-	bool RKeyHold(const EWeaponType weaponType);
+	bool RKeyHold(const EPermanentItemType weaponType);
 
 	bool HKeyPressed();
 
@@ -116,9 +116,9 @@ public:
 	FORCEINLINE const bool GetRightClick() const { return rightClick; }
 	FORCEINLINE const bool GetIsAbleShoot() const { return isAbleShoot; }
 
-	EWeaponType GetCurrentWeaponType() const;
+	EPermanentItemType GetCurrentWeaponType() const;
 
-	void SetCurrentWeaponType(const EWeaponType weaponType);
+	void SetCurrentWeaponType(const EPermanentItemType weaponType);
 
 	FORCEINLINE CharacterInfo& GetPlayerInfo() { return myInfo; }
 
@@ -209,6 +209,6 @@ private:
 
 	float maxHealth = 100.f;
 
-	EWeaponType currentWeaponType = EWeaponType::NONE;
+	EPermanentItemType currentWeaponType = EPermanentItemType::NONE;
 
 };

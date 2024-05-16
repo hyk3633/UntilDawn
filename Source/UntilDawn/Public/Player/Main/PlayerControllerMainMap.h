@@ -7,7 +7,7 @@
 #include "Structs/CharacterInfo.h"
 #include "Structs/Tile.h"
 #include "Enums/PlayerInputs.h"
-#include "Enums/WeaponType.h"
+#include "Enums/PermanentItemType.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -91,7 +91,7 @@ public:
 
 	virtual void OnPossess(APawn* pawn) override;
 
-	void SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType);
+	void SendPlayerInputAction(const EPlayerInputs inputType, const EPermanentItemType weaponType);
 
 	UFUNCTION()
 	void SendInRangeZombie(int zombieNumber);
@@ -135,6 +135,10 @@ public:
 	void PlayerDead();
 
 	void StartAttack();
+
+	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
+
+	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
 
 protected:
 

@@ -56,8 +56,7 @@ void UWidgetInventoryGrid::CreateLineSegments()
 void UWidgetInventoryGrid::Refresh()
 {
 	GridCanvasPanel->ClearChildren();
-	TMap<TWeakObjectPtr<UItemObject>, FTile> itemsAll;
-	inventoryComponent->GetAllItems(itemsAll);
+	TMap<TWeakObjectPtr<UItemObject>, FTile> itemsAll = inventoryComponent->GetAllItems();
 	for (auto& kv : itemsAll)
 	{
 		UWidgetItemGrid* itemWidget = CreateWidget<UWidgetItemGrid>(GetOwningPlayer(), itemWidgetClass);
@@ -81,8 +80,7 @@ bool UWidgetInventoryGrid::IsRoomAvailableForPayload(UItemObject* payloadItem) c
 {
 	if (IsValid(payloadItem))
 	{
-		const int index = inventoryComponent->TileToIndex({ draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y });
-		return inventoryComponent->IsRoomAvailable(payloadItem, index);
+		return inventoryComponent->IsRoomAvailable(payloadItem, { draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y });
 	}
 	return false;
 }
@@ -145,7 +143,14 @@ void UWidgetInventoryGrid::OnDropCalled(UDragDropOperation* operation)
 	}
 	else
 	{
-		playerController->NotifyToServerUpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
+		if (IsRoomAvailableForPayload(itemObj.Get()))
+		{
+			playerController->NotifyToServerUpdateItemGridPoint(itemObj->GetItemID(), draggedItemTopLeftTile.X, draggedItemTopLeftTile.Y, itemObj->IsRotated());
+		}
+		else
+		{
+			inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeft());
+		}
 	}
 }
 

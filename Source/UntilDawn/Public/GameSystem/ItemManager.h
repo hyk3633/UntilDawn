@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "../Enums/ItemType.h"
-#include "../Enums/WeaponType.h"
+#include "../Enums/PermanentItemType.h"
 #include "../Structs/ItemInfo.h"
 #include "../Structs/ItemAsset.h"
 #include "../Structs/PossessedItem.h"

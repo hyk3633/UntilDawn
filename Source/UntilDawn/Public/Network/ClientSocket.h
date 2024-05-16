@@ -59,6 +59,8 @@ public:
 
 	void SendRespawnRequest();
 
+	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
+
 	// FRunnable 가상 함수
 
 	virtual bool Init() override;

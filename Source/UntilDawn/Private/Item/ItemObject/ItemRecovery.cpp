@@ -12,7 +12,7 @@ void UItemRecovery::MakeItemFunction()
 {
 }
 
-void UItemRecovery::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
+uint16 UItemRecovery::Using(const uint16 neededAmount)
 {
-	// 회복 애니메이션, 숫자 차감, 컨트롤러로 서버로 아이템 사용 패킷 전송
+	return uint16();
 }

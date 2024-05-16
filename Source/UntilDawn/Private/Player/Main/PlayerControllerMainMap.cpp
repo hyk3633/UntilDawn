@@ -117,7 +117,7 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 void APlayerControllerMainMap::LeftClick()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->LeftClick(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClick, weaponType);
@@ -126,7 +126,7 @@ void APlayerControllerMainMap::LeftClick()
 
 void APlayerControllerMainMap::LeftClickHold()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->LeftClickHold(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClickHold, weaponType);
@@ -135,7 +135,7 @@ void APlayerControllerMainMap::LeftClickHold()
 
 void APlayerControllerMainMap::LeftClickEnd()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->LeftClickEnd(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClickEnd, weaponType);
@@ -144,7 +144,7 @@ void APlayerControllerMainMap::LeftClickEnd()
 
 void APlayerControllerMainMap::RightClick()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->RightClick(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::RightClick, weaponType);
@@ -153,7 +153,7 @@ void APlayerControllerMainMap::RightClick()
 
 void APlayerControllerMainMap::RightClickEnd()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->RightClickEnd(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::RightClickEnd, weaponType);
@@ -162,10 +162,10 @@ void APlayerControllerMainMap::RightClickEnd()
 
 void APlayerControllerMainMap::RKeyPressed()
 {
-	const EWeaponType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
-	if (currentWeaponType == EWeaponType::NONE)
+	const EPermanentItemType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
+	if (currentWeaponType == EPermanentItemType::NONE)
 	{
-		const EWeaponType recentWeaponType = inventoryComponent->ArmRecentWeapon();
+		const EPermanentItemType recentWeaponType = inventoryComponent->ArmRecentWeapon();
 		if (myCharacter->RKeyPressed(recentWeaponType))
 		{
 			SendPlayerInputAction(EPlayerInputs::RKeyPressed, recentWeaponType);
@@ -175,8 +175,8 @@ void APlayerControllerMainMap::RKeyPressed()
 
 void APlayerControllerMainMap::RKeyHold()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (weaponType != EWeaponType::NONE && myCharacter->RKeyHold(weaponType))
+	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (weaponType != EPermanentItemType::NONE && myCharacter->RKeyHold(weaponType))
 	{
 		inventoryComponent->DisarmWeapon();
 		SendPlayerInputAction(EPlayerInputs::RKeyHold, weaponType);
@@ -268,7 +268,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
 }
 
-void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType)
+void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType, const EPermanentItemType weaponType)
 {
 	clientSocket->SendPlayerInputAction(static_cast<int>(inputType), static_cast<int>(weaponType));
 }
@@ -300,8 +300,7 @@ void APlayerControllerMainMap::SendPickedItemInfo(const FString itemID)
 
 void APlayerControllerMainMap::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint)
 {
-	const int index = inventoryComponent->TileToIndex(addedPoint);
-	inventoryComponent->AddItemAt(itemObj, index);
+	inventoryComponent->AddItemAt(itemObj, addedPoint);
 }
 
 void APlayerControllerMainMap::NotifyToServerUpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated)
@@ -311,8 +310,7 @@ void APlayerControllerMainMap::NotifyToServerUpdateItemGridPoint(const FString i
 
 void APlayerControllerMainMap::UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex)
 {
-	const int index = inventoryComponent->TileToIndex({ xIndex, yIndex });
-	inventoryComponent->AddItemAt(itemObj, index);
+	inventoryComponent->AddItemAt(itemObj, { xIndex, yIndex });
 }
 
 void APlayerControllerMainMap::SendItemInfoToEquip(const FString itemID, const int boxNumber)
@@ -347,7 +345,7 @@ void APlayerControllerMainMap::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 
 void APlayerControllerMainMap::RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj)
 {
-	inventoryComponent->AddItemAt(itemObj, itemObj->GetTopLeftIndex());
+	inventoryComponent->AddItemAt(itemObj);
 }
 
 void APlayerControllerMainMap::RestoreEquipmentUI(TWeakObjectPtr<UItemObject> itemObj)
@@ -409,6 +407,17 @@ void APlayerControllerMainMap::PlayerDead()
 void APlayerControllerMainMap::StartAttack()
 {
 	inventoryComponent->Attack(this);
+}
+
+void APlayerControllerMainMap::ReplicateProjectile(const FVector& location, const FRotator& rotation)
+{
+	check(clientSocket);
+	clientSocket->ReplicateProjectile(location, rotation);
+}
+
+TWeakObjectPtr<UItemObject> APlayerControllerMainMap::GetItemObjectOfType(const EItemMainType itemType)
+{
+	return inventoryComponent->GetItemObjectOfType(itemType);
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

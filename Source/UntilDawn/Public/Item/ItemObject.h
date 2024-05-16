@@ -6,6 +6,7 @@
 #include "UObject/NoExportTypes.h"
 #include "../Structs/ItemAsset.h"
 #include "../Structs/ItemInfo.h"
+#include "../Structs/Tile.h"
 #include "Serialization/BufferArchive.h"
 #include "ItemObject.generated.h"
 
@@ -15,7 +16,7 @@
 
 class AItemBase;
 
-UCLASS()
+UCLASS(Abstract)
 class UNTILDAWN_API UItemObject : public UObject
 {
 	GENERATED_BODY()
@@ -53,21 +54,21 @@ public:
 
 	FORCEINLINE bool GetIsConsumable() const { return itemInfo.isConsumable; }
 
-	void SetTopLeftIndex(const int index);
+	void SetTopLeft(const FTile& newTopLeft);
 
-	FORCEINLINE int GetTopLeftIndex() const { return topLeftIndex; }
+	FORCEINLINE FTile GetTopLeft() const { return topLeft; }
 
 	FORCEINLINE FItemInfo GetItemInfo() const { return itemInfo; }
 
 	void SetItemQuantity(const uint8 quantity);
 
-	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr);
+	FORCEINLINE uint16 GetItemQuantity() const { return itemInfo.quantity; }
 
 protected:
 
-	virtual void ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap);
+	virtual void ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap) PURE_VIRTUAL(UItemObject::ParseItemConcreteInfo, );
 
-	virtual void MakeItemFunction();
+	virtual void MakeItemFunction() PURE_VIRTUAL(UItemObject::MakeItemFunction, );
 
 private:
 
@@ -79,6 +80,6 @@ private:
 
 	bool rotated;
 
-	int topLeftIndex;
+	FTile topLeft;
 	
 };
