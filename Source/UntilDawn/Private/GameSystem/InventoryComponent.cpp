@@ -13,13 +13,13 @@ UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	grids.Init(nullptr, columns * rows);
 }
 
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	grids.Init(nullptr, columns * rows);
 }
 
 void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -51,6 +51,7 @@ void UInventoryComponent::AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, cons
 			grids[index] = newItemObj;
 		}
 	}
+	items.Add(newItemObj, topLeft);
 	isDirty = true;
 }
 
@@ -67,18 +68,21 @@ bool UInventoryComponent::IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj
 				TPair<bool, TWeakObjectPtr<UItemObject>> result = GetItemAtIndex(TileToIndex(curTile));
 				if (result.Key)
 				{
-					if (result.Value.IsValid())
+					if (result.Value.IsValid() && result.Value != newItemObj)
 					{
+						WLOG(TEXT("item obj"));
 						return false;
 					}
 				}
 				else
 				{
+					WLOG(TEXT("invalid index"));
 					return false;
 				}
 			}
 			else
 			{
+				WLOG(TEXT("invalid tile"));
 				return false;
 			}
 		}

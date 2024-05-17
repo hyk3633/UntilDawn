@@ -6,6 +6,9 @@
 #include "Item/ItemBase.h"
 #include "Item/ItemObject.h"
 #include "Item/ItemObject/ItemProjectileWeapon.h"
+#include "Item/ItemObject/ItemMeleeWeapon.h"
+#include "Item/ItemObject/ItemRecovery.h"
+#include "Item/ItemObject/ItemAmmo.h"
 #include "GameSystem/JsonParser.h"
 #include "Engine/DataTable.h"
 #include "../UntilDawn.h"
@@ -87,8 +90,14 @@ UItemObject* UItemManager::NewItemObject(const EItemMainType itemType)
 {
 	switch (itemType)
 	{
+		case EItemMainType::MeleeWeapon:
+			return NewObject<UItemMeleeWeapon>(GetWorld());
 		case EItemMainType::RangedWeapon:
 			return NewObject<UItemProjectileWeapon>(GetWorld());
+		case EItemMainType::RecoveryItem:
+			return NewObject<UItemRecovery>(GetWorld());
+		case EItemMainType::AmmoItem:
+			return NewObject<UItemAmmo>(GetWorld());
 		default:
 			return nullptr;
 	}

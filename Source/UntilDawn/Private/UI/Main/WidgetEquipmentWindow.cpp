@@ -11,7 +11,7 @@
 
 void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, const float size)
 {
-	const int arrSize = equipmentTypeArr.Num();
+	const int arrSize = equipmentTypes.Num();
 
 	inventoryComponent = invComp;
 	inventoryComponent->InitializeEquippedWeaponArr(arrSize);
@@ -27,7 +27,7 @@ void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, cons
 		gridSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
 		
 		equipmentBox->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
-		equipmentBox->InitializeWidget(i, invComp, dragVisualClass, equipmentTypeArr[i], EEquipmentBox::Weapon, size);
+		equipmentBox->InitializeWidget(i, invComp, dragVisualClass, equipmentTypes[i], EEquipmentBox::Weapon, size);
 		equipmentBox->Padding = FMargin(5, 5);
 
 		equipmentBoxArr.Add(equipmentBox);

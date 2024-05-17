@@ -58,7 +58,7 @@ private:
 	bool isCursorInArea;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true", ClampMin = "1", ClampMax = "5", BindWidget))
-	TArray<EPermanentItemType> equipmentTypeArr;
+	TArray<EPermanentItemType> equipmentTypes;
 
 	UPROPERTY()
 	TArray<UWidgetEquipmentBox*> equipmentBoxArr;
