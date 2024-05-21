@@ -14,8 +14,10 @@ FunctionMeleeAttack::~FunctionMeleeAttack()
 {
 }
 
-void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh)
+void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh)
 {
+	check(attackerController.IsValid());
+
 	FHitResult hit;
 	FVector collisionLocation = weaponMesh->GetSocketLocation(FName("CollisionSocket"));
 	TArray<AActor*> actorsToIgnore;
@@ -35,9 +37,8 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerController> attacker
 		true
 	);
 
-	TWeakObjectPtr<APlayerControllerMainMap> mainMapController = Cast<APlayerControllerMainMap>(attackerController);
-	if (mainMapController.IsValid() && hits.Num())
+	if (hits.Num())
 	{
-		mainMapController->SendHittedCharacters(hits);
+		attackerController->SendHittedCharacters(hits);
 	}
 }

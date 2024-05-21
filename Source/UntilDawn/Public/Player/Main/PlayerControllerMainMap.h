@@ -27,6 +27,7 @@ DECLARE_DELEGATE(DelegateWrestlingStart);
 DECLARE_DELEGATE(DelegateEKeyPressed);
 DECLARE_DELEGATE(DelegateIKeyPressed);
 DECLARE_DELEGATE_TwoParams(DelegateEquipItem, UItemObject* itemObj, const int boxNumber);
+DECLARE_DELEGATE_OneParam(DelegateHealthChanged, float healthPercentage);
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
@@ -42,6 +43,7 @@ public:
 	DelegateEKeyPressed DEKeyPressed;
 	DelegateIKeyPressed DIKeyPressed;
 	DelegateEquipItem DEquipItem;
+	DelegateHealthChanged DHealthChanged;
 
 protected:
 
@@ -139,6 +141,12 @@ public:
 	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
 
 	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
+	
+	void SendItemUsing(const FString& itemID, const int usedAmount);
+
+	void ItemExhausted(TWeakObjectPtr<UItemObject> itemObj);
+
+	void UpdateHealth(const float health);
 
 protected:
 
@@ -190,7 +198,5 @@ protected:
 	FHitResult itemHit;
 
 	TWeakObjectPtr<AItemBase> lookingItem;
-
-	
 
 };

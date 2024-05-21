@@ -227,6 +227,15 @@ void ClientSocket::ReplicateProjectile(const FVector& location, const FRotator& 
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
+void ClientSocket::SendItemUsing(const FString& itemID, const int usedAmount)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::USINGITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
+	sendStream << usedAmount << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
 bool ClientSocket::Init()
 {
 	bRun = true;

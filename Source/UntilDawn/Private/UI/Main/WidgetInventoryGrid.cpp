@@ -59,6 +59,7 @@ void UWidgetInventoryGrid::Refresh()
 	TMap<TWeakObjectPtr<UItemObject>, FTile> itemsAll = inventoryComponent->GetAllItems();
 	for (auto& kv : itemsAll)
 	{
+		// Ç®¸µ
 		UWidgetItemGrid* itemWidget = CreateWidget<UWidgetItemGrid>(GetOwningPlayer(), itemWidgetClass);
 		itemWidget->SetItem(kv.Key);
 		itemWidget->SetTileSize(tileSize);

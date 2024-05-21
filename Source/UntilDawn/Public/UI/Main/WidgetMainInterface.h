@@ -13,7 +13,7 @@
 class UWidgetItemInventory;
 class UProgressBar;
 class UUniformGridPanel;
-class APlayerCharacter;
+class APlayerControllerMainMap;
 
 UCLASS()
 class UNTILDAWN_API UWidgetMainInterface : public UUserWidget
@@ -43,6 +43,6 @@ private:
 	UUniformGridPanel* EquipmentPanel;
 
 	UPROPERTY()
-	TWeakObjectPtr<APlayerCharacter> playerCharacter;
+	TWeakObjectPtr<APlayerControllerMainMap> playerController;
 
 };

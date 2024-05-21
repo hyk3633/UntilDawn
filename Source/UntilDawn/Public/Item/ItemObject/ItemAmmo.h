@@ -10,6 +10,9 @@
 /**
  * 
  */
+
+class APlayerCharacter;
+
 UCLASS()
 class UNTILDAWN_API UItemAmmo : public UItemConsumable
 {
@@ -17,7 +20,7 @@ class UNTILDAWN_API UItemAmmo : public UItemConsumable
 
 public:
 
-	virtual uint16 Using(const uint16 neededAmount) override;
+	virtual void Using(const uint16 neededAmount = 1) override;
 
 protected:
 

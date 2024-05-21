@@ -17,7 +17,7 @@ class UNTILDAWN_API UItemPermanent : public UItemObject
 
 public:
 
-	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) PURE_VIRTUAL(UItemPermanant::Using, );
+	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) PURE_VIRTUAL(UItemPermanant::Using, );
 	
 	EPermanentItemType GetPermanentItemType() const;
 

@@ -6,6 +6,7 @@
 #include "Components/ProgressBar.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
 
 void UWidgetMainInterface::InitializeWidget()
@@ -13,10 +14,9 @@ void UWidgetMainInterface::InitializeWidget()
 	ItemInventory->InitializeWidget();
 	ItemInventory->SetVisibility(ESlateVisibility::Hidden);
 
-	playerCharacter = Cast<APlayerCharacter>(GetOwningPlayer()->GetPawn());
-	playerCharacter->DHealthChanged.BindUFunction(this, FName("OnCharacterHealthChanged"));
-	HealthBar->SetPercent(playerCharacter->GetHealthPercentage());
-
+	playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
+	playerController->DHealthChanged.BindUFunction(this, FName("OnCharacterHealthChanged"));
+	HealthBar->SetPercent(1.f);
 }
 
 void UWidgetMainInterface::ToggleInventoryUI()

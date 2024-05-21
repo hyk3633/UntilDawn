@@ -10,6 +10,7 @@
 #include "Zombie/ZombieCharacter.h"
 #include "Item/ItemBase.h"
 #include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemRecovery.h"
 #include "Kismet/GameplayStatics.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -118,9 +119,12 @@ void APlayerControllerMainMap::SetupInputComponent()
 void APlayerControllerMainMap::LeftClick()
 {
 	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (myCharacter->LeftClick(weaponType))
+	if (weaponType != EPermanentItemType::NONE && inventoryComponent->IsWeaponUsable())
 	{
-		SendPlayerInputAction(EPlayerInputs::LeftClick, weaponType);
+		if (myCharacter->LeftClick(weaponType))
+		{
+			SendPlayerInputAction(EPlayerInputs::LeftClick, weaponType);
+		}
 	}
 }
 
@@ -207,7 +211,7 @@ void APlayerControllerMainMap::HKeyPressed()
 	check(myCharacter);
 	if (myCharacter->HKeyPressed())
 	{
-		// send character heal;
+		inventoryComponent->UsingConsumableItemOfType(EItemMainType::RecoveryItem);
 	}
 }
 
@@ -261,6 +265,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	}
 
 	GetHUD<AHUDMainMap>()->StartHUD();
+	DHealthChanged.ExecuteIfBound(myCharacter->GetHealthPercentage());
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	check(clientSocket);
@@ -301,6 +306,9 @@ void APlayerControllerMainMap::SendPickedItemInfo(const FString itemID)
 void APlayerControllerMainMap::AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint)
 {
 	inventoryComponent->AddItemAt(itemObj, addedPoint);
+
+	itemObj->SetOwnerController(this);
+	itemObj->SetOwnerCharacter(myCharacter);
 }
 
 void APlayerControllerMainMap::NotifyToServerUpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated)
@@ -323,6 +331,9 @@ void APlayerControllerMainMap::EquipItem(const int boxNumber, TWeakObjectPtr<AIt
 	DEquipItem.ExecuteIfBound(itemActor->GetItemObject().Get(), boxNumber);
 	inventoryComponent->EquipItem(boxNumber, itemActor);
 	myCharacter->AttachItemActor(itemActor);
+
+	itemActor->GetItemObject()->SetOwnerController(this);
+	itemActor->GetItemObject()->SetOwnerCharacter(myCharacter);
 }
 
 void APlayerControllerMainMap::NotifyToServerUnequipItem(const FString itemID, const FTile& addedPoint)
@@ -406,7 +417,7 @@ void APlayerControllerMainMap::PlayerDead()
 
 void APlayerControllerMainMap::StartAttack()
 {
-	inventoryComponent->Attack(this);
+	inventoryComponent->Attack();
 }
 
 void APlayerControllerMainMap::ReplicateProjectile(const FVector& location, const FRotator& rotation)
@@ -420,9 +431,28 @@ TWeakObjectPtr<UItemObject> APlayerControllerMainMap::GetItemObjectOfType(const 
 	return inventoryComponent->GetItemObjectOfType(itemType);
 }
 
+void APlayerControllerMainMap::SendItemUsing(const FString& itemID, const int usedAmount)
+{
+	check(clientSocket);
+	clientSocket->SendItemUsing(itemID, usedAmount);
+}
+
+void APlayerControllerMainMap::ItemExhausted(TWeakObjectPtr<UItemObject> itemObj)
+{
+	inventoryComponent->RemoveItem(itemObj);
+}
+
+void APlayerControllerMainMap::UpdateHealth(const float health)
+{
+	check(myCharacter);
+	myCharacter->SetHealth(health);
+	DHealthChanged.ExecuteIfBound(myCharacter->GetHealthPercentage());
+}
+
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	check(myCharacter);
+	check(clientSocket);
 	myCharacter->UpdatePlayerInfo();
 	clientSocket->SynchronizeMyCharacterInfo(myCharacter->GetPlayerInfo());
 }

@@ -8,7 +8,7 @@
  * 
  */
 
-class APlayerController;
+class APlayerControllerMainMap;
 class USkeletalMeshComponent;
 
 class UNTILDAWN_API FunctionProjectileShooting
@@ -20,10 +20,10 @@ public:
 
 protected:
 
-	FVector GetAimLocaion(TWeakObjectPtr<APlayerController> attackerController);
+	FVector GetAimLocaion(TWeakObjectPtr<APlayerControllerMainMap> attackerController);
 
 public:
 
-	void Shooting(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh);
+	void Shooting(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh);
 
 };

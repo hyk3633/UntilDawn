@@ -193,7 +193,7 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 
 void APlayerCharacter::Sprint()
 {
-	if (isAbleShoot || CheckAbleInput() == false)
+	if (bowStatus || CheckAbleInput() == false)
 		return;
 
 	GetCharacterMovement()->MaxWalkSpeed = 600;
@@ -208,8 +208,13 @@ bool APlayerCharacter::LeftClick(const EPermanentItemType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
+
 	if (weaponType != EPermanentItemType::NONE)
 	{
+		if (weaponType == EPermanentItemType::BOW)
+		{
+			bowStatus |= (1 << StaticCast<uint8>(EBowStatus::Loaded));
+		}
 		animInst->PlayLeftClickMontage(weaponType);
 		return true;
 	}
@@ -226,7 +231,7 @@ bool APlayerCharacter::LeftClickHold(const EPermanentItemType weaponType)
 
 	if (weaponType == EPermanentItemType::BOW)
 	{
-		isAbleShoot = true;
+		bowStatus |= (1 << StaticCast<uint8>(EBowStatus::Drawed));
 		GetCharacterMovement()->MaxWalkSpeed = 300;
 		return true;
 	}
@@ -238,20 +243,18 @@ bool APlayerCharacter::LeftClickHold(const EPermanentItemType weaponType)
 
 bool APlayerCharacter::LeftClickEnd(const EPermanentItemType weaponType)
 {
-	if (isAbleShoot == false)
-		return false;
-
 	if (weaponType == EPermanentItemType::BOW)
 	{
-		isAbleShoot = false;
-		animInst->PlayBowShootMontage();
-		shootPower = 0;
-		return true;
+		if (bowStatus == StaticCast<uint8>(EBowStatus::Full))
+		{
+			animInst->PlayBowShootMontage();
+			shootPower = 0;
+			return true;
+		}
+		bowStatus = 0;
 	}
-	else
-	{
-		return false;
-	}
+	
+	return false;
 }
 
 bool APlayerCharacter::RightClick(const EPermanentItemType weaponType)
@@ -326,11 +329,7 @@ bool APlayerCharacter::RKeyHold(const EPermanentItemType weaponType)
 
 bool APlayerCharacter::HKeyPressed()
 {
-	if (CheckAbleInput() == false)
-		return false;
-
-	//return inventoryComponent->UsingRecoveryItem();
-	return true;
+	return CheckAbleInput();
 }
 
 void APlayerCharacter::SuccessToBlocking()
@@ -371,9 +370,9 @@ void APlayerCharacter::Tick(float deltaTime)
 		pitch -= 360.f;
 	}
 
-	if (isAbleShoot)
+	if (bowStatus)
 	{
-		shootPower = FMath::Max(shootPower + deltaTime, 10.f);
+		shootPower = FMath::Max(shootPower + deltaTime * 2.f, 10.f);
 	}
 
 	if (bset)
@@ -487,7 +486,6 @@ void APlayerCharacter::PlayerDead()
 
 void APlayerCharacter::InitializePlayerInfo()
 {
-	isAbleShoot = false;
 	shootPower = false;
 	bWrestling = false;
 }
@@ -516,6 +514,11 @@ void APlayerCharacter::DeadReckoningMovement(const FVector& lastLocation, const 
 {
 	nextLocation = lastLocation + ratency * lastVelocity;
 	bset = true;
+}
+
+void APlayerCharacter::SetHealth(const float newHealth)
+{
+	health = FMath::Min(newHealth, maxHealth);
 }
 
 float APlayerCharacter::GetHealthPercentage()

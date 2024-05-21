@@ -14,6 +14,7 @@
 class USizeBox;
 class UBorder;
 class UImage;
+class UTextBlock;
 class UDragDropOperation;
 struct FSlateBrush;
 class UItemObject;
@@ -38,7 +39,7 @@ public:
 
 	DelegateOnRemoved DOnRemoved;
 
-	FORCEINLINE void SetItem(TWeakObjectPtr<UItemObject> newItemObj) { itemObj = newItemObj; }
+	void SetItem(TWeakObjectPtr<UItemObject> newItemObj);
 
 	FORCEINLINE void SetTileSize(const float size) { tileSize = size; }
 
@@ -47,6 +48,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FSlateBrush GetIconImage();
+
+	UFUNCTION()
+	void UpdateItemQuantityText(const uint8 quantity);
 
 private:
 
@@ -58,6 +62,9 @@ private:
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	UImage* ItemImage;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UTextBlock* ItemQuantity;
 
 	TWeakObjectPtr<UItemObject> itemObj;
 

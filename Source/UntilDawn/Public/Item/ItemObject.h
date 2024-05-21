@@ -14,7 +14,11 @@
  * 
  */
 
+DECLARE_DELEGATE_OneParam(DelegateUpdateItemQuantity, uint8 quantity);
+
 class AItemBase;
+class APlayerControllerMainMap;
+class APlayerCharacter;
 
 UCLASS(Abstract)
 class UNTILDAWN_API UItemObject : public UObject
@@ -25,6 +29,8 @@ public:
 
 	UItemObject();
 	~UItemObject() = default;
+
+	DelegateUpdateItemQuantity DUpdateItemQuantity;
 
 	void Init(const FString& itemId, FItemInfo newInfo, TMap<FString, TSharedPtr<FJsonValue>> concreteInfoMap, FItemAsset newAsset);
 
@@ -62,7 +68,17 @@ public:
 
 	void SetItemQuantity(const uint8 quantity);
 
-	FORCEINLINE uint16 GetItemQuantity() const { return itemInfo.quantity; }
+	FORCEINLINE uint8 GetItemQuantity() const { return itemInfo.quantity; }
+
+	void SetOwnerController(TWeakObjectPtr<APlayerControllerMainMap> controller);
+
+	void SetOwnerCharacter(TWeakObjectPtr<APlayerCharacter> character);
+
+	void ResetOwner();
+
+	FORCEINLINE TWeakObjectPtr<APlayerControllerMainMap> GetOwnerController() const { return ownerController; }
+
+	FORCEINLINE TWeakObjectPtr<APlayerCharacter> GetOwnerCharacter() const { return ownerCharacter; }
 
 protected:
 
@@ -71,6 +87,10 @@ protected:
 	virtual void MakeItemFunction() PURE_VIRTUAL(UItemObject::MakeItemFunction, );
 
 private:
+
+	TWeakObjectPtr<APlayerControllerMainMap> ownerController;
+
+	TWeakObjectPtr<APlayerCharacter> ownerCharacter;
 
 	FString itemID;
 

@@ -63,6 +63,8 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::PLAYERINVENTORY]		= &AGameModeMainMap::InitializePlayerPossessedItems;
 	packetCallbacks[EPacketType::PLAYEREQUIPMENT]		= &AGameModeMainMap::InitializePlayerEquippedItems;
 	packetCallbacks[EPacketType::PROJECTILE]			= &AGameModeMainMap::ReceiveReplicatedProjectile;
+	packetCallbacks[EPacketType::USINGITEM]				= &AGameModeMainMap::PlayerUseItem;
+	packetCallbacks[EPacketType::PLAYERSTATUS]			= &AGameModeMainMap::UpdatePlayerStatus;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -214,8 +216,7 @@ void AGameModeMainMap::PlayerItemPickUp(std::stringstream& recvStream)
 	}
 	else
 	{
-		// 어느 플레이어가 획득했는지도 추가할지
-		itemManager->ItemPickedUpOtherPlayer(fItemID);
+		itemManager->ItemPickedUpOtherPlayer(playerCharacterMap[playerID], fItemID);
 	}
 }
 
@@ -311,6 +312,7 @@ void AGameModeMainMap::PlayerItemDrop(std::stringstream& recvStream)
 	TWeakObjectPtr<AItemBase> droppedItem = itemManager->GetItemActor(fItemID);
 	if (droppedItem.IsValid() && playerCharacterMap.Find(playerNumber))
 	{
+		droppedItem->GetItemObject()->ResetOwner();
 		DropItem(playerCharacterMap[playerNumber], droppedItem);
 	}
 }
@@ -332,6 +334,7 @@ void AGameModeMainMap::PlayerDropEquippedItem(std::stringstream& recvStream)
 	{
 		playerCharacterMap[playerNumber]->DettachItemActor(droppedItem);
 	}
+	droppedItem->GetItemObject()->ResetOwner();
 	DropItem(playerCharacterMap[playerNumber], droppedItem);
 }
 
@@ -494,32 +497,6 @@ void AGameModeMainMap::SpawnItems(std::stringstream& recvStream)
 		itemManager->SpawnItem(fItemID, itemKey, location);
 	}
 }
-/*
-void AGameModeMainMap::ProcessPlayerInfo(std::stringstream& recvStream)
-{
-	int size;
-	recvStream >> size;
-
-	FPlayerItems playerItem;
-	for (int i = 0; i < size; i++)
-	{
-		recvStream >> playerItem;
-		auto itemObj = itemManager->GetItemObject(playerItem.itemID);
-		itemManager->ItemPickedUp(playerItem.itemID);
-		// 아이템 액터는 풀링 방식으로 쓰기 (각 타입에 대한 구체 데이터들은 필요시 마다 액터를 받아 삽입해서 사용하기)
-
-		if (playerItem.isEquipped)
-		{
-			// equipp item
-		}
-		else
-		{
-			if (playerItem.isRotated) itemObj->Rotate();
-			playerCharacterMap[myNumber]->AddItemToInventory(itemObj, { playerItem.topLeftX, playerItem.topLeftY });
-		}
-	}
-	
-}*/
 
 void AGameModeMainMap::InitializePlayerPossessedItems(std::stringstream& recvStream)
 {
@@ -573,6 +550,32 @@ void AGameModeMainMap::ReceiveReplicatedProjectile(std::stringstream& recvStream
 	projectile->SetActorLocation(location);
 	projectile->SetActorRotation(rotation);
 	projectile->ActivateActor();
+}
+
+void AGameModeMainMap::PlayerUseItem(std::stringstream& recvStream)
+{
+	int playerNumber = -1;
+	string itemID;
+	recvStream >> playerNumber >> itemID;
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
+
+
+}
+
+void AGameModeMainMap::UpdatePlayerStatus(std::stringstream& recvStream)
+{
+	int playerNumber = -1;
+	PlayerStatus status;
+	recvStream >> playerNumber >> status;
+
+	if (playerNumber == myNumber)
+	{
+		myController->UpdateHealth(status.health);
+	}
+	else
+	{
+
+	}
 }
 
 void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem)

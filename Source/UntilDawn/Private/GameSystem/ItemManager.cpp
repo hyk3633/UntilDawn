@@ -82,6 +82,11 @@ TWeakObjectPtr<UItemObject> UItemManager::CreateItemObject(const FString& itemID
 	UItemObject* itemObj = NewItemObject(itemInfo.itemType);
 	check(itemObj);
 	itemObj->Init(itemID, itemInfo, jsonParser->GetItemConcreteInfoMap(itemKey), GetItemAssetMap(itemKey));
+	if (itemObj->GetItemInfo().isConsumable)
+	{
+		TWeakObjectPtr<UItemConsumable> itemConsumable = Cast<UItemConsumable>(itemObj);
+		itemConsumable->DItemExhaust.BindUFunction(this, FName("ItemExhausted"));
+	}
 	itemObjectMap.Add(itemID, itemObj);
 	return itemObj;
 }
@@ -168,10 +173,11 @@ void UItemManager::ItemPickedUp(const FString& itemID)
 	}
 }
 
-void UItemManager::ItemPickedUpOtherPlayer(const FString& itemID)
+void UItemManager::ItemPickedUpOtherPlayer(TWeakObjectPtr<APlayerCharacter> player, const FString& itemID)
 {
 	if (itemActorMap.Find(itemID))
 	{
+		itemActorMap[itemID]->GetItemObject()->SetOwnerCharacter(player);
 		itemActorMap[itemID]->DeactivateActor();
 		itemActorMap.Remove(itemID);
 	}
@@ -193,5 +199,10 @@ void UItemManager::DestroyItem(const FString& itemID)
 {
 	// tweakobject로 파괴되었는지 체크
 	itemObjectMap.Remove(itemID);
+}
+
+void UItemManager::ItemExhausted(const FString& itemID)
+{
+	DestroyItem(itemID);
 }
 

@@ -31,9 +31,11 @@ protected:
 
 public:
 
-	void Reload(TWeakObjectPtr<APlayerController> playerController);
+	void Reload();
 
-	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) override;
+	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) override;
+
+	bool HasAmmo();
 
 private:
 
@@ -41,6 +43,6 @@ private:
 
 	FRangedWeaponInfo concreteInfo;
 
-	uint16 loadedAmmoAmount = 0;
+	uint8 loadedAmmoAmount = 0;
 	
 };

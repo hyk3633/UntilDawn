@@ -2,6 +2,8 @@
 
 
 #include "Item/ItemObject/ItemRecovery.h"
+#include "Player/Main/PlayerControllerMainMap.h"
+#include "Player/PlayerCharacter.h"
 
 void UItemRecovery::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 {
@@ -12,7 +14,10 @@ void UItemRecovery::MakeItemFunction()
 {
 }
 
-uint16 UItemRecovery::Using(const uint16 neededAmount)
+void UItemRecovery::Using(const uint16 neededAmount)
 {
-	return uint16();
+	Consumed(neededAmount);
+	// animation
+	// particle
+	UE_LOG(LogTemp, Warning, TEXT("%d recovery use"), neededAmount);
 }

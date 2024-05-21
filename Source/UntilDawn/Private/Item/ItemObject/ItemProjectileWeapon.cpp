@@ -18,34 +18,54 @@ void UItemProjectileWeapon::MakeItemFunction()
 	shootingFunction = MakeShared<FunctionProjectileShooting>();
 }
 
-void UItemProjectileWeapon::Reload(TWeakObjectPtr<APlayerController> playerController)
+void UItemProjectileWeapon::Reload()
 {
-	TWeakObjectPtr<APlayerControllerMainMap> playerControllerMainMap = Cast<APlayerControllerMainMap>(playerController);
-	auto itemObj = playerControllerMainMap->GetItemObjectOfType(EItemMainType::AmmoItem);
+	auto itemObj = GetOwnerController()->GetItemObjectOfType(EItemMainType::AmmoItem);
 	TWeakObjectPtr<UItemAmmo> ammoItemObj = Cast<UItemAmmo>(itemObj);
 	check(ammoItemObj.IsValid());
 
-	const uint16 remainedAmmo = ammoItemObj->Using(concreteInfo.magazine - loadedAmmoAmount);
-	if (remainedAmmo)
+	uint8 neededAmmo = StaticCast<uint8>(concreteInfo.magazine) - loadedAmmoAmount;
+	if (neededAmmo)
 	{
+		neededAmmo = FMath::Min(neededAmmo, ammoItemObj->GetItemQuantity());
+		loadedAmmoAmount += neededAmmo;
+		ammoItemObj->Using(neededAmmo);
+		
 		// 재장전 애니메이션
-		loadedAmmoAmount += remainedAmmo;
 	}
 }
 
-void UItemProjectileWeapon::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
+void UItemProjectileWeapon::Using(USkeletalMeshComponent* itemMesh)
 {
-	// 탄약이 없으면 재장전 -> 탄약 아이템을 장전 할 탄약 수 만큼 사용해서 탄약 아이템 개수 차감
-	if (playerController.IsValid())
+	if (GetOwnerController().IsValid())
 	{
 		if (loadedAmmoAmount == 0)
 		{
-			Reload(playerController);
+			Reload();
 		}
 		if (loadedAmmoAmount)
 		{
-			shootingFunction->Shooting(playerController, itemMesh);
+			shootingFunction->Shooting(GetOwnerController(), itemMesh);
 			loadedAmmoAmount--;
 		}
 	}
+}
+
+bool UItemProjectileWeapon::HasAmmo()
+{
+	if (loadedAmmoAmount)
+	{
+		return true;
+	}
+	else
+	{
+		auto itemObj = GetOwnerController()->GetItemObjectOfType(EItemMainType::AmmoItem);
+		TWeakObjectPtr<UItemAmmo> ammoItemObj = Cast<UItemAmmo>(itemObj);
+		if (ammoItemObj.IsValid())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

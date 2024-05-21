@@ -2,6 +2,8 @@
 
 
 #include "Item/ItemObject/ItemAmmo.h"
+#include "Player/Main/PlayerControllerMainMap.h"
+#include "Player/PlayerCharacter.h"
 
 void UItemAmmo::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 {
@@ -12,16 +14,7 @@ void UItemAmmo::MakeItemFunction()
 {
 }
 
-uint16 UItemAmmo::Using(const uint16 neededAmount)
+void UItemAmmo::Using(const uint16 neededAmount)
 {
-	const uint16 remainedAmmo = GetItemInfo().quantity;
 	Consumed(neededAmount);
-	if (remainedAmmo >= neededAmount)
-	{
-		return neededAmount;
-	}
-	else
-	{
-		return remainedAmmo;
-	}
 }

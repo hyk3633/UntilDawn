@@ -61,6 +61,8 @@ public:
 
 	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
 
+	void SendItemUsing(const FString& itemID, const int usedAmount);
+
 	// FRunnable 가상 함수
 
 	virtual bool Init() override;

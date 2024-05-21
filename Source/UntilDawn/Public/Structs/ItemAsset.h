@@ -15,11 +15,13 @@ public:
 
 	void Copy(FItemAsset* asset)
 	{
-		skeletalMesh	= asset->skeletalMesh;
-		staticMesh		= asset->staticMesh;
-		icon			= asset->icon;
-		iconRotated		= asset->iconRotated;
-		socketName		= asset->socketName;
+		skeletalMesh		= asset->skeletalMesh;
+		staticMesh			= asset->staticMesh;
+		icon				= asset->icon;
+		iconRotated			= asset->iconRotated;
+		socketName			= asset->socketName;
+		itemUsingMontage	= asset->itemUsingMontage;
+		itemUsingParticle	= asset->itemUsingParticle;
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -36,5 +38,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName socketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* itemUsingMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UParticleSystem* itemUsingParticle;
 
 };

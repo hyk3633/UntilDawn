@@ -21,6 +21,8 @@ enum class EPacketType : uint8
 	ZOMBIEHITSME,
 	PLAYERRESPAWN,
 	PROJECTILE,
+	USINGITEM,
+	DESTROYITEM,
 	PACKETTYPE_MAX, // MAX
 	INITIALINFO,
 	SYNCHZOMBIE,
@@ -31,6 +33,7 @@ enum class EPacketType : uint8
 	SPAWNITEM,
 	PLAYERINVENTORY,
 	PLAYEREQUIPMENT,
+	PLAYERSTATUS,
 };
 
 // 로그인 맵에서 받는 패킷 타입 최대 값 + 1

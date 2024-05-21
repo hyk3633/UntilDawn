@@ -42,6 +42,8 @@ public:
 
 	FORCEINLINE UStaticMeshComponent* GetStaticMesh() const { return staticMesh; }
 
+	EItemMainType GetItemType();
+
 protected:
 
 	virtual void BeginPlay() override;

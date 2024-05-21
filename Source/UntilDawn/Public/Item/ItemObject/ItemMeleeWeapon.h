@@ -31,7 +31,7 @@ protected:
 
 public:
 
-	virtual void Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh = nullptr) override;
+	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) override;
 
 private:
 

@@ -8,6 +8,7 @@
 #include "Structs/Tile.h"
 #include "Structs/PossessedItem.h"
 #include "Structs/EquippedItem.h"
+#include "Structs/PlayerStatus.h"
 #include "Enums/PacketType.h"
 #include <unordered_map>
 #include <sstream>
@@ -89,6 +90,10 @@ protected:
 	void PlayerSpawnAfterDelay();
 
 	void ReceiveReplicatedProjectile(std::stringstream& recvStream);
+
+	void PlayerUseItem(std::stringstream& recvStream);
+
+	void UpdatePlayerStatus(std::stringstream& recvStream);
 
 public:
 

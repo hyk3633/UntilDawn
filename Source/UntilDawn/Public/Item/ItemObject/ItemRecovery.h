@@ -10,6 +10,9 @@
 /**
  * 
  */
+
+class APlayerCharacter;
+
 UCLASS()
 class UNTILDAWN_API UItemRecovery : public UItemConsumable
 {
@@ -25,7 +28,7 @@ protected:
 
 public:
 
-	virtual uint16 Using(const uint16 neededAmount) override;
+	virtual void Using(const uint16 neededAmount = 1) override;
 
 private:
 

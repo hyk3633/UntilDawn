@@ -56,6 +56,12 @@ public:
 
 	void RemoveItem(TWeakObjectPtr<UItemObject> removedItem);
 
+protected:
+
+	void RemoveItemGrid(TWeakObjectPtr<UItemObject> removedItem, const FTile& topLeft);
+
+public:
+
 	void RemoveEquipmentItem(const int boxNumber, const EEquipmentBox boxType);
 
 	TMap<TWeakObjectPtr<UItemObject>, FTile> GetAllItems() const;
@@ -64,7 +70,9 @@ public:
 
 	void UnequipItem(TWeakObjectPtr<AItemBase> itemActor);
 
-	void Attack(TWeakObjectPtr<APlayerController> ownerController);
+	void Attack();
+
+	bool IsWeaponUsable();
 
 	EPermanentItemType ArmRecentWeapon();
 
@@ -79,6 +87,8 @@ public:
 	void SetCharacter(TWeakObjectPtr<APlayerCharacter> character);
 
 	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
+
+	void UsingConsumableItemOfType(const EItemMainType itemType);
 
 public:
 
@@ -100,7 +110,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	bool isDirty;
 
-	// 그리드용 배열은 격자 형태로 저장하므로 단순 숫자 값만을 저장하도록 하고 아이템 오브젝트는 일차원 배열에 저장
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	TMap<TWeakObjectPtr<UItemObject>, FTile> items;
 

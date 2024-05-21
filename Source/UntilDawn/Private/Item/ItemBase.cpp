@@ -36,7 +36,7 @@ void AItemBase::DeactivateActor()
 {
 	skeletalMesh->SetVisibility(false);
 	skeletalMesh->SetCollisionProfileName(FName("DeactivatedItem"));
-	//itemObj.Reset();
+	itemObj.Reset();
 	isActive = false;
 }
 
@@ -49,6 +49,15 @@ void AItemBase::ActivateEquipMode()
 {
 	skeletalMesh->SetVisibility(true);
 	isActive = true;
+}
+
+EItemMainType AItemBase::GetItemType()
+{
+	if (itemObj.IsValid())
+	{
+		return StaticCast<EItemMainType>(itemObj->GetItemType());
+	}
+	return EItemMainType::MAX;
 }
 
 void AItemBase::BeginPlay()

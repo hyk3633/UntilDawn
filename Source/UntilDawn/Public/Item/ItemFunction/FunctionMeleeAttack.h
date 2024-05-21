@@ -7,6 +7,9 @@
 /**
  * 
  */
+
+class APlayerControllerMainMap;
+
 class UNTILDAWN_API FunctionMeleeAttack
 {
 public:
@@ -17,6 +20,6 @@ protected:
 
 public:
 
-	void MeleeAttack(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh);
+	void MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh);
 
 };

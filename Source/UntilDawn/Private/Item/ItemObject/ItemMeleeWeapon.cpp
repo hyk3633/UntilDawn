@@ -15,7 +15,7 @@ void UItemMeleeWeapon::MakeItemFunction()
 	meleeAttackFunction = MakeShared<FunctionMeleeAttack>();
 }
 
-void UItemMeleeWeapon::Using(TWeakObjectPtr<APlayerController> playerController, USkeletalMeshComponent* itemMesh)
+void UItemMeleeWeapon::Using(USkeletalMeshComponent* itemMesh)
 {
-	meleeAttackFunction->MeleeAttack(playerController, itemMesh);
+	meleeAttackFunction->MeleeAttack(GetOwnerController(), itemMesh);
 }

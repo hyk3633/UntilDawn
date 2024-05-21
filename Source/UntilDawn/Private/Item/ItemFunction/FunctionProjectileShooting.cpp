@@ -3,6 +3,7 @@
 
 #include "Item/ItemFunction/FunctionProjectileShooting.h"
 #include "Item/Projectile/ProjectileBase.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "GameMode/GameModeMainMap.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/SkeletalMeshSocket.h"
@@ -16,7 +17,7 @@ FunctionProjectileShooting::~FunctionProjectileShooting()
 {
 }
 
-FVector FunctionProjectileShooting::GetAimLocaion(TWeakObjectPtr<APlayerController> attackerController)
+FVector FunctionProjectileShooting::GetAimLocaion(TWeakObjectPtr<APlayerControllerMainMap> attackerController)
 {
 	check(GEngine);
 	check(GEngine->GameViewport);
@@ -45,7 +46,7 @@ FVector FunctionProjectileShooting::GetAimLocaion(TWeakObjectPtr<APlayerControll
 	}
 }
 
-void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerController> attackerController, USkeletalMeshComponent* weaponMesh)
+void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh)
 {
 	check(attackerController.IsValid());
 
@@ -54,7 +55,7 @@ void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerController> atta
 	const FVector direction = (aimLocation - muzzleLocation).GetSafeNormal();
 	const FVector projectileLocation = muzzleLocation + direction * -50.f;
 
-	//attackerController->ReplicateProjectile(projectileLocation, direction.Rotation());
+	attackerController->ReplicateProjectile(projectileLocation, direction.Rotation());
 
 	auto projectile = attackerController->GetWorld()->GetAuthGameMode<AGameModeMainMap>()->GetProjectile();
 	check(projectile.IsValid());

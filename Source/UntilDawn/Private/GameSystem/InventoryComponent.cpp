@@ -6,6 +6,8 @@
 #include "Item/ItemObject.h"
 #include "Item/ItemBase.h"
 #include "Item/ItemObject/ItemPermanent.h"
+#include "Item/ItemObject/ItemConsumable.h"
+#include "Item/ItemObject/ItemProjectileWeapon.h"
 #include "GameMode/GameModeMainMap.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -122,7 +124,21 @@ void UInventoryComponent::RemoveItem(TWeakObjectPtr<UItemObject> removedItem)
 	if (items.Find(removedItem))
 	{
 		items.Remove(removedItem);
+		RemoveItemGrid(removedItem, removedItem->GetTopLeft());
 		isDirty = true;
+	}
+}
+
+void UInventoryComponent::RemoveItemGrid(TWeakObjectPtr<UItemObject> removedItem, const FTile& topLeft)
+{
+	FIntPoint dim = removedItem->GetDimensions();
+	for (int i = topLeft.Y; i < topLeft.Y + dim.Y; i++)
+	{
+		for (int j = topLeft.X; j < topLeft.X + dim.X; j++)
+		{
+			const int index = TileToIndex({ j, i });
+			grids[index].Reset();
+		}
 	}
 }
 
@@ -162,13 +178,36 @@ void UInventoryComponent::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 	}
 }
 
-void UInventoryComponent::Attack(TWeakObjectPtr<APlayerController> ownerController)
+void UInventoryComponent::Attack()
 {
 	if (armedWeapon.IsValid())
 	{
-		auto permanentItem = Cast<UItemPermanent>(armedWeapon->GetItemObject());
-		permanentItem->Using(ownerController, armedWeapon->GetSkeletalMesh());
+		TWeakObjectPtr<UItemPermanent> permanentItem = Cast<UItemPermanent>(armedWeapon->GetItemObject());
+		if (permanentItem.IsValid())
+		{
+			permanentItem->Using(armedWeapon->GetSkeletalMesh());
+		}
 	}
+}
+
+bool UInventoryComponent::IsWeaponUsable()
+{
+	if (armedWeapon.IsValid())
+	{
+		if (armedWeapon->GetItemType() == EItemMainType::RangedWeapon)
+		{
+			TWeakObjectPtr<UItemProjectileWeapon> rangedWeapon = Cast<UItemProjectileWeapon>(armedWeapon->GetItemObject());
+			if (rangedWeapon->HasAmmo())
+			{
+				return true;
+			}
+		}
+		else
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 EPermanentItemType UInventoryComponent::ArmRecentWeapon()
@@ -244,5 +283,14 @@ TWeakObjectPtr<UItemObject> UInventoryComponent::GetItemObjectOfType(const EItem
 			return pair.Key;
 	}
 	return nullptr;
+}
+
+void UInventoryComponent::UsingConsumableItemOfType(const EItemMainType itemType)
+{
+	TWeakObjectPtr<UItemConsumable> consuambleItemObj = Cast<UItemConsumable>(GetItemObjectOfType(itemType));
+	if (consuambleItemObj.IsValid())
+	{
+		consuambleItemObj->Using();
+	}
 }
 

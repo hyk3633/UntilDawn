@@ -7,12 +7,14 @@
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/TextBlock.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Slate/SlateBrushAsset.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
 void UWidgetItemGrid::OnRemoved()
 {
+	itemObj->DUpdateItemQuantity.Unbind();
     DOnRemoved.ExecuteIfBound(itemObj.Get());
 }
 
@@ -31,6 +33,13 @@ void UWidgetItemGrid::OnDragDetectedCall()
 	RemoveFromParent();
 }
 
+void UWidgetItemGrid::SetItem(TWeakObjectPtr<UItemObject> newItemObj)
+{
+	itemObj = newItemObj;
+	UpdateItemQuantityText(itemObj->GetItemQuantity());
+	itemObj->DUpdateItemQuantity.BindUFunction(this, FName("UpdateItemQuantityText"));
+}
+
 UItemObject* UWidgetItemGrid::GetItem() const
 {
 	return itemObj.Get();
@@ -44,4 +53,9 @@ FSlateBrush UWidgetItemGrid::GetIconImage()
 		FMath::TruncToInt(widgetSize.X),
 		FMath::TruncToInt(widgetSize.Y)
 	);
+}
+
+void UWidgetItemGrid::UpdateItemQuantityText(const uint8 quantity)
+{
+	ItemQuantity->SetText(FText::FromString(FString::FromInt(quantity)));
 }

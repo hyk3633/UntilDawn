@@ -70,4 +70,21 @@ void UItemObject::SetTopLeft(const FTile& newTopLeft)
 void UItemObject::SetItemQuantity(const uint8 quantity)
 {
 	itemInfo.quantity = quantity;
+	DUpdateItemQuantity.ExecuteIfBound(quantity);
+}
+
+void UItemObject::SetOwnerController(TWeakObjectPtr<APlayerControllerMainMap> controller)
+{
+	ownerController = controller;
+}
+
+void UItemObject::SetOwnerCharacter(TWeakObjectPtr<APlayerCharacter> character)
+{
+	ownerCharacter = character;
+}
+
+void UItemObject::ResetOwner()
+{
+	ownerController.Reset();
+	ownerCharacter.Reset();
 }

@@ -9,17 +9,25 @@
 /**
  * 
  */
+
+DECLARE_DELEGATE_OneParam(DelegateItemExhaust, FString itemID);
+
+class APlayerControllerMainMap;
+class APlayerCharacter;
+
 UCLASS(Abstract)
 class UNTILDAWN_API UItemConsumable : public UItemObject
 {
 	GENERATED_BODY()
-
+	
 protected:
 
 	void Consumed(const uint16 consumedAmount);
 
 public:
 
-	virtual uint16 Using(const uint16 neededAmount) PURE_VIRTUAL(UItemConsumable::Using, return 0;);
+	virtual void Using(const uint16 neededAmount = 1) PURE_VIRTUAL(UItemConsumable::Using);
 	
+	DelegateItemExhaust DItemExhaust;
+
 };

@@ -23,7 +23,7 @@ void UPlayerAnimInst::UpdateValue()
 		turnRight = myCharacter->GetTurnRight();
 		turnLeft = myCharacter->GetTurnLeft();
 		rightClick = myCharacter->GetRightClick();
-		isAbleShoot = myCharacter->GetIsAbleShoot();
+		isAbleShoot = myCharacter->GetBowStatus() ? true : false;
 		currentWeaponType = myCharacter->GetCurrentWeaponType();
 		isWrestling = myCharacter->GetWrestling();
 	}

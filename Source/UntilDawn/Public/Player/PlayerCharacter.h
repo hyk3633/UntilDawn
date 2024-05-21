@@ -27,7 +27,14 @@ class AItemMeleeWeapon;
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
 DECLARE_DELEGATE_TwoParams(DelegateZombieHitsMe, int zombieNumber, bool bResult);
-DECLARE_DELEGATE_OneParam(DelegateHealthChanged, float healthPercentage);
+
+enum class EBowStatus : uint8
+{
+	Loaded,
+	Drawed,
+	Full = 3,
+};
+
 
 UCLASS()
 class UNTILDAWN_API APlayerCharacter : public ACharacter
@@ -41,7 +48,6 @@ public:
 	DelegateZombieInRange DZombieInRange;
 	DelegateZombieInRange DZombieOutRange;
 	DelegateZombieHitsMe DZombieHitsMe;
-	DelegateHealthChanged DHealthChanged;
 
 protected:
 
@@ -114,7 +120,6 @@ public:
 	FORCEINLINE const bool GetTurnRight() const { return turnRight; }
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
 	FORCEINLINE const bool GetRightClick() const { return rightClick; }
-	FORCEINLINE const bool GetIsAbleShoot() const { return isAbleShoot; }
 
 	EPermanentItemType GetCurrentWeaponType() const;
 
@@ -129,6 +134,7 @@ public:
 	FORCEINLINE void SetWrestlingOn();
 	FORCEINLINE void SetWrestlingOff();
 	FORCEINLINE bool GetWrestling() { return bWrestling; }
+	FORCEINLINE uint8 GetBowStatus() const { return bowStatus; }
 
 	void PlayPushingZombieMontage(const bool isBlocking);
 
@@ -145,6 +151,8 @@ public:
 	void PlayerRespawn(const bool isLocalPlayer);
 
 	void DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency);
+
+	void SetHealth(const float newHealth);
 
 	float GetHealthPercentage();
 
@@ -193,7 +201,7 @@ private:
 
 	bool turnRight, turnLeft, rightClick;
 
-	bool isAbleShoot;
+	uint8 bowStatus;
 
 	float shootPower;
 
