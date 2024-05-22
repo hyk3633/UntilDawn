@@ -13,6 +13,12 @@ ClientSocket* UUntilDawnGameInstance::GetSocket()
 	return socket;
 }
 
+void UUntilDawnGameInstance::SetPlayerIDAndNumber(const FString& id, const int number)
+{
+	playerID = id;
+	playerNumber = number;
+}
+
 void UUntilDawnGameInstance::Shutdown()
 {
 	Super::Shutdown();

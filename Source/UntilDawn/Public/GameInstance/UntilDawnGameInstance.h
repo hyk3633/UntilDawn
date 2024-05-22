@@ -21,9 +21,9 @@ public:
 
 	ClientSocket* GetSocket();
 
-	void EndConnection();
+	void SetPlayerIDAndNumber(const FString& id, const int number);
 
-	FORCEINLINE void SetPlayerNumber(int number) { playerNumber = number; }
+	FORCEINLINE FString GetPlayerID() const { return playerID; }
 	FORCEINLINE int GetPlayerNumber() const { return playerNumber; }
 
 protected:
@@ -33,6 +33,8 @@ protected:
 private:
 
 	ClientSocket* socket;
+
+	FString playerID;
 
 	int playerNumber;
 };

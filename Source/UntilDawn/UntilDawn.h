@@ -21,6 +21,7 @@
 #define ECC_Player			ECollisionChannel::ECC_GameTraceChannel9
 #define ECC_AimTrace		ECollisionChannel::ECC_GameTraceChannel10
 #define ECC_Projectile		ECollisionChannel::ECC_GameTraceChannel11
+#define ECC_PlayerTrace		ECollisionChannel::ECC_GameTraceChannel12
 
 FORCEINLINE void VectorTruncate(FVector& vector)
 {

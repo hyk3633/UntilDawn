@@ -55,7 +55,13 @@ public:
 
 protected:
 
-	void ItemTrace();
+	void Trace();
+
+	void GetTraceLocationAndDirection(FVector& location, FVector& direction);
+
+	void CharacterTrace(const FVector& location, const FVector& direction);
+
+	void ItemTrace(const FVector& location, const FVector& direction);
 
 	virtual void SetupInputComponent() override;
 
@@ -195,7 +201,7 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* hKeyAction;
 
-	FHitResult itemHit;
+	FHitResult itemHit, characterHit;
 
 	TWeakObjectPtr<AItemBase> lookingItem;
 

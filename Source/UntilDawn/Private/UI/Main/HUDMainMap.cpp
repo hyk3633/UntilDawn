@@ -10,7 +10,7 @@ AHUDMainMap::AHUDMainMap()
 	PrimaryActorTick.bCanEverTick = true;
 
 	static ConstructorHelpers::FClassFinder<UWidgetMainInterface> WBP_MainInterface
-	(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Inventory/WBP_MainInterface.WBP_MainInterface_C'"));
+	(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_MainInterface.WBP_MainInterface_C'"));
 	if (WBP_MainInterface.Succeeded()) widgetMainInterfaceClass = WBP_MainInterface.Class;
 
 	static ConstructorHelpers::FClassFinder<UWidgetWrestlingProgress> WBP_WrestlingProgress

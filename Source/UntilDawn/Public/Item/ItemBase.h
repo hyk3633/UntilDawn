@@ -44,6 +44,10 @@ public:
 
 	EItemMainType GetItemType();
 
+	void RenderCustomDepthOn();
+
+	void RenderCustomDepthOff();
+
 protected:
 
 	virtual void BeginPlay() override;

@@ -63,10 +63,18 @@ void APlayerControllerMainMap::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
-	ItemTrace();
+	Trace();
 }
 
-void APlayerControllerMainMap::ItemTrace()
+void APlayerControllerMainMap::Trace()
+{
+	FVector location, direction;
+	GetTraceLocationAndDirection(location, direction);
+	CharacterTrace(location, direction);
+	ItemTrace(location, direction);
+}
+
+void APlayerControllerMainMap::GetTraceLocationAndDirection(FVector& location, FVector& direction)
 {
 	FVector2D ViewPortSize;
 	if (GEngine && GEngine->GameViewport)
@@ -74,27 +82,59 @@ void APlayerControllerMainMap::ItemTrace()
 		GEngine->GameViewport->GetViewportSize(ViewPortSize);
 	}
 	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
-	FVector startLoc, dir;
-	UGameplayStatics::DeprojectScreenToWorld(this, CrosshairLocation, startLoc, dir);
+	UGameplayStatics::DeprojectScreenToWorld(this, CrosshairLocation, location, direction);
+}
+
+void APlayerControllerMainMap::CharacterTrace(const FVector& location, const FVector& direction)
+{
+	GetWorld()->LineTraceSingleByChannel
+	(
+		characterHit,
+		location,
+		location + direction * 5000.f,
+		ECC_PlayerTrace
+	);
+	if (characterHit.bBlockingHit)
+	{
+		TWeakObjectPtr<APlayerCharacter> otherPlayer = Cast<APlayerCharacter>(characterHit.GetActor());
+		if (otherPlayer.IsValid())
+		{
+			otherPlayer->ShowHealthWidget();
+		}
+	}
+}
+
+void APlayerControllerMainMap::ItemTrace(const FVector& location, const FVector& direction)
+{
 	GetWorld()->LineTraceSingleByChannel
 	(
 		itemHit,
-		startLoc,
-		startLoc + dir * 5000.f,
+		location,
+		location + direction * 5000.f,
 		ECC_ItemTrace
 	);
-	//DrawDebugLine(GetWorld(), startLoc, startLoc + dir * 5000.f, FColor::Blue, false, -1.f, 0U, 1.5f);
 	if (itemHit.bBlockingHit)
 	{
 		TWeakObjectPtr<AItemBase> item = Cast<AItemBase>(itemHit.GetActor());
-		if (item.IsValid())
+		if (item.IsValid() && item != lookingItem)
 		{
+			if (lookingItem.IsValid())
+			{
+				lookingItem->RenderCustomDepthOff();
+				lookingItem.Reset();
+			}
 			lookingItem = item;
-			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Blue, TEXT("item"));
+			lookingItem->RenderCustomDepthOn();
 		}
-		else lookingItem = nullptr;
 	}
-	else lookingItem = nullptr;
+	else
+	{
+		if (lookingItem.IsValid())
+		{
+			lookingItem->RenderCustomDepthOff();
+			lookingItem.Reset();
+		}
+	}
 }
 
 void APlayerControllerMainMap::SetupInputComponent()

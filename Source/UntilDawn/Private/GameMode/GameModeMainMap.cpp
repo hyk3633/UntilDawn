@@ -68,6 +68,7 @@ void AGameModeMainMap::BeginPlay()
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
+	myID = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetPlayerID();
 	myNumber = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetPlayerNumber();
 
 	GetWorldTimerManager().SetTimer(playerSpawnDelayTimer, this, &AGameModeMainMap::PlayerSpawnAfterDelay, 0.5f);
@@ -116,8 +117,7 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 				FVector(info.characterInfo.vectorX, info.characterInfo.vectorY, info.characterInfo.vectorZ),
 				FRotator(info.characterInfo.pitch, info.characterInfo.yaw, info.characterInfo.roll)
 			);
-		newPlayerCharacter->SetPlayerNumber(number);
-		newPlayerCharacter->SetPlayerID(FString(UTF8_TO_TCHAR(info.playerID.c_str())));
+		newPlayerCharacter->SetPlayerIDAndNumber(FString(UTF8_TO_TCHAR(info.playerID.c_str())), number);
 
 		for (auto& equipped : info.equippedItems)
 		{
@@ -535,6 +535,8 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 	check(myController.Get());
 	myController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
+	myPlayerCharacter->SetPlayerIDAndNumber(myID, myNumber);
+	bProcessPacket = true;
 }
 
 void AGameModeMainMap::ReceiveReplicatedProjectile(std::stringstream& recvStream)
@@ -604,5 +606,8 @@ void AGameModeMainMap::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
-	ProcessPacket();
+	if (bProcessPacket)
+	{
+		ProcessPacket();
+	}
 }

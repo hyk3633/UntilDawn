@@ -120,6 +120,8 @@ private:
 
 	TMap<int, TWeakObjectPtr<AZombieCharacter>> zombieCharacterMap;
 
+	FString myID;
+
 	int myNumber;
 
 	FTimerHandle playerSpawnDelayTimer;
@@ -127,5 +129,7 @@ private:
 	std::unordered_map<EPacketType, void (AGameModeMainMap::*)(std::stringstream&)> packetCallbacks;
 
 	TWeakObjectPtr<APlayerControllerMainMap> myController;
+
+	bool bProcessPacket;
 
 };

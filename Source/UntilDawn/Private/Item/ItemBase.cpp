@@ -60,6 +60,18 @@ EItemMainType AItemBase::GetItemType()
 	return EItemMainType::MAX;
 }
 
+void AItemBase::RenderCustomDepthOn()
+{
+	skeletalMesh->SetRenderCustomDepth(true);
+	staticMesh->SetRenderCustomDepth(true);
+}
+
+void AItemBase::RenderCustomDepthOff()
+{
+	skeletalMesh->SetRenderCustomDepth(false);
+	staticMesh->SetRenderCustomDepth(false);
+}
+
 void AItemBase::BeginPlay()
 {
 	Super::BeginPlay();

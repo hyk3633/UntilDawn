@@ -7,6 +7,7 @@
 #include <sstream>
 #include <queue>
 #include <vector>
+#include <string>
 #include "PlayerControllerLoginMap.generated.h"
 /**
  * 

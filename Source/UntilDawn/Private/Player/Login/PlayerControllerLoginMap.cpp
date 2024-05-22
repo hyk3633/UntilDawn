@@ -95,10 +95,11 @@ void APlayerControllerLoginMap::SetLoginMessageTextAndLoginToMap(std::stringstre
 	loginMapHUD->SetLoginMessageBox(isGranted);
 	if (isGranted)
 	{
+		std::string playerID;
 		int playerNumber = -1;
-		recvStream >> playerNumber;
+		recvStream >> playerID >> playerNumber;
 		check(playerNumber >= 0);
-		GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerNumber(playerNumber);
+		GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->SetPlayerIDAndNumber(FString(UTF8_TO_TCHAR(playerID.c_str())), playerNumber);
 		GetWorldTimerManager().SetTimer(levelTransitionTimer, this, &APlayerControllerLoginMap::StartLevelTransition, 2.f, false);
 	}
 }

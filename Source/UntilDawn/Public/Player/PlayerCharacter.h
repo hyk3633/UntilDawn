@@ -23,6 +23,7 @@ class AZombieCharacter;
 class UItemObject;
 class AItemBase;
 class AItemMeleeWeapon;
+class UWidgetComponent;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -103,11 +104,9 @@ public:
 
 	void UpdatePlayerInfo();
 
-	FORCEINLINE void SetPlayerNumber(const int num) { number = num; }
-	FORCEINLINE int GetPlayerNumber() const { return number; }
+	void SetPlayerIDAndNumber(const FString& id, const int number);
 
-	FORCEINLINE void SetPlayerID(const FString& id) { playerID = id; }
-
+	FORCEINLINE int GetPlayerNumber() const { return playerNumber; }
 	FORCEINLINE const FString& GetPlayerID() { return playerID; }
 
 	const bool GetIsFalling() const;
@@ -162,6 +161,12 @@ public:
 
 	void DettachItemActor(TWeakObjectPtr<AItemBase> item);
 
+	void ShowHealthWidget();
+
+protected:
+
+	void HideHealthWidget();
+
 private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -191,7 +196,10 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* sprintAction;
 
-	int number;
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true"))
+	UWidgetComponent* healthWidget;
+
+	int playerNumber;
 
 	FString playerID;
 
@@ -218,5 +226,7 @@ private:
 	float maxHealth = 100.f;
 
 	EPermanentItemType currentWeaponType = EPermanentItemType::NONE;
+
+	FTimerHandle healthWidgetDeacitvateTimer;
 
 };

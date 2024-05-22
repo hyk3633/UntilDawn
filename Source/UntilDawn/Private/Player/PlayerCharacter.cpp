@@ -4,11 +4,13 @@
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerAnimInst.h"
 #include "UI/Main/HUDMainMap.h"
+#include "UI/Main/WidgetPlayerHealth.h"
 #include "Zombie/ZombieCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -67,6 +69,15 @@ APlayerCharacter::APlayerCharacter()
 	playerRange->SetSphereRadius(1024);
 	playerRange->bHiddenInGame = false;
 
+	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
+	healthWidget->SetupAttachment(RootComponent);
+	healthWidget->SetVisibility(true);
+	healthWidget->SetRelativeLocation(FVector(0.f, 0.f, 130.f));
+	healthWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	healthWidget->SetDrawSize(FVector2D(100.f, 50.f));
+	static ConstructorHelpers::FClassFinder<UWidgetPlayerHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_PlayerHealthWidget.WBP_PlayerHealthWidget_C'"));
+	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
+
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Phong_Base.SK_Phong_Base'"));
 	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
 
@@ -115,6 +126,10 @@ void APlayerCharacter::PossessedBy(AController* newController)
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
 	}
+	TWeakObjectPtr<UWidgetPlayerHealth> healthWidgetObject = Cast<UWidgetPlayerHealth>(healthWidget->GetWidget());
+	check(healthWidgetObject.IsValid());
+	healthWidgetObject->InitHealthWidget(playerID, GetHealthPercentage(), Cast<APlayerControllerMainMap>(playerController));
+
 	GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
 	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
@@ -399,6 +414,12 @@ void APlayerCharacter::UpdatePlayerInfo()
 	myInfo.roll = rotation.Roll;
 }
 
+void APlayerCharacter::SetPlayerIDAndNumber(const FString& id, const int number)
+{
+	playerID = id;
+	playerNumber = number;
+}
+
 const bool APlayerCharacter::GetIsFalling() const
 {
 	return GetMovementComponent()->IsFalling();
@@ -481,6 +502,7 @@ void APlayerCharacter::PlayerDead()
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeadPlayer"));
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
+	healthWidget->SetVisibility(false);
 	InitializePlayerInfo();
 }
 
@@ -540,4 +562,19 @@ void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
 void APlayerCharacter::DettachItemActor(TWeakObjectPtr<AItemBase> item)
 {
 	item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+}
+
+void APlayerCharacter::ShowHealthWidget()
+{
+	if (GetWorldTimerManager().IsTimerActive(healthWidgetDeacitvateTimer))
+	{
+		GetWorldTimerManager().ClearTimer(healthWidgetDeacitvateTimer);
+	}
+	GetWorldTimerManager().SetTimer(healthWidgetDeacitvateTimer, this, &APlayerCharacter::HideHealthWidget, 5.f);
+	healthWidget->SetVisibility(true);
+}
+
+void APlayerCharacter::HideHealthWidget()
+{
+	healthWidget->SetVisibility(false);
 }

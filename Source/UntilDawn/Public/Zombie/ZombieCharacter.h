@@ -12,6 +12,7 @@
 
 class UZombieAnimInstance;
 class APlayerCharacter;
+class UWidgetComponent;
 
 UCLASS()
 class UNTILDAWN_API AZombieCharacter : public ACharacter, public IPoolableActor
@@ -86,6 +87,9 @@ private:
 
 	UPROPERTY()
 	UZombieAnimInstance* animInst;
+
+	UPROPERTY()
+	UWidgetComponent* healthWidget;
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	bool isActive;

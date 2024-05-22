@@ -4,7 +4,9 @@
 #include "Zombie/ZombieAIController.h"
 #include "Zombie/ZombieAnimInstance.h"
 #include "Player/PlayerCharacter.h"
+#include "UI/Main/WidgetZombieHealth.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UntilDawn/UntilDawn.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -39,6 +41,12 @@ AZombieCharacter::AZombieCharacter()
 
 	static ConstructorHelpers::FClassFinder<UZombieAnimInstance> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Zombies/AnimBP_Zombie.AnimBP_Zombie_C'"));
 	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
+
+	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
+	healthWidget->SetupAttachment(RootComponent);
+	healthWidget->SetVisibility(false);
+	static ConstructorHelpers::FClassFinder<UWidgetZombieHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_ZombieHealthWidget.WBP_ZombieHealthWidget_C'"));
+	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
 }
 
 void AZombieCharacter::ActivateActor()
