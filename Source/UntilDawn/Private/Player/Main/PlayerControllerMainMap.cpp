@@ -411,10 +411,10 @@ void APlayerControllerMainMap::DropEquippedItem(const FString itemID)
 	clientSocket->DropEquippedItem(itemID);
 }
 
-void APlayerControllerMainMap::SendItemInfoToDrop(const FString itemID)
+void APlayerControllerMainMap::DropInventoryItem(const FString itemID)
 {
 	check(clientSocket);
-	clientSocket->SendItemInfoToDrop(itemID);
+	clientSocket->DropInventoryItem(itemID);
 }
 
 void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits)
@@ -471,10 +471,10 @@ TWeakObjectPtr<UItemObject> APlayerControllerMainMap::GetItemObjectOfType(const 
 	return inventoryComponent->GetItemObjectOfType(itemType);
 }
 
-void APlayerControllerMainMap::SendItemUsing(const FString& itemID, const int usedAmount)
+void APlayerControllerMainMap::SendItemUsing(const FString& itemID, const int consumedAmount)
 {
 	check(clientSocket);
-	clientSocket->SendItemUsing(itemID, usedAmount);
+	clientSocket->SendItemUsing(itemID, consumedAmount);
 }
 
 void APlayerControllerMainMap::ItemExhausted(TWeakObjectPtr<UItemObject> itemObj)

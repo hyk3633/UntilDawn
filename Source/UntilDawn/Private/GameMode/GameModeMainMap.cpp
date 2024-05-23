@@ -108,8 +108,8 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 	
 	for (auto& initialInfo : playerInitialInfoSet.playerInitialInfoMap)
 	{
-		int number = initialInfo.first;
-		if (number == myNumber) continue;
+		const int playerNumber = initialInfo.first;
+		if (playerNumber == myNumber) continue;
 		PlayerInitialInfo& info = initialInfo.second;
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
@@ -117,17 +117,20 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 				FVector(info.characterInfo.vectorX, info.characterInfo.vectorY, info.characterInfo.vectorZ),
 				FRotator(info.characterInfo.pitch, info.characterInfo.yaw, info.characterInfo.roll)
 			);
-		newPlayerCharacter->SetPlayerIDAndNumber(FString(UTF8_TO_TCHAR(info.playerID.c_str())), number);
+
+		newPlayerCharacter->SetPlayerIDAndNumber(FString(UTF8_TO_TCHAR(info.playerID.c_str())), playerNumber);
+		newPlayerCharacter->InitializeHealthWidget();
+		newPlayerCharacter->SetHealth(info.playerStatus.health);
 
 		for (auto& equipped : info.equippedItems)
 		{
 			auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
-			itemManager->ItemEquipped(FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
+			itemManager->ItemEquipped(playerNumber, FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
 			newPlayerCharacter->AttachItemActor(itemActor);
 			itemActor->ActivateEquipMode();
 		}
 
-		playerCharacterMap.Add(number, newPlayerCharacter);
+		playerCharacterMap.Add(playerNumber, newPlayerCharacter);
 	}
 }
 
@@ -239,15 +242,15 @@ void AGameModeMainMap::PlayerItemGridPointUpdate(std::stringstream& recvStream)
 void AGameModeMainMap::PlayerItemEquip(std::stringstream& recvStream)
 {
 	string itemID;
-	int playerID = -1, boxNumber;
+	int playerNumber = -1, boxNumber;
 	bool result = false;
-	recvStream >> playerID >> itemID >> boxNumber >> result;
+	recvStream >> playerNumber >> itemID >> boxNumber >> result;
 	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 
 	TWeakObjectPtr<AItemBase> itemActor = itemManager->GetItemActor(fItemID);
 	check(itemActor.IsValid());
 
-	if (playerID == myNumber)
+	if (playerNumber == myNumber)
 	{
 		APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 		if (result)
@@ -261,11 +264,11 @@ void AGameModeMainMap::PlayerItemEquip(std::stringstream& recvStream)
 	}
 	else
 	{
-		playerCharacterMap[playerID]->AttachItemActor(itemActor);
+		playerCharacterMap[playerNumber]->AttachItemActor(itemActor);
 	}
 	if (result)
 	{
-		itemManager->ItemEquipped(fItemID, itemActor);
+		itemManager->ItemEquipped(playerNumber, fItemID, itemActor);
 	}
 }
 
@@ -306,14 +309,20 @@ void AGameModeMainMap::PlayerItemDrop(std::stringstream& recvStream)
 {
 	string itemID;
 	int playerNumber = -1;
-	recvStream >> playerNumber >> itemID;
+	bool result = false;
+	recvStream >> playerNumber >> itemID >> result;
 	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 
-	TWeakObjectPtr<AItemBase> droppedItem = itemManager->GetItemActor(fItemID);
-	if (droppedItem.IsValid() && playerCharacterMap.Find(playerNumber))
+	if (result)
 	{
-		droppedItem->GetItemObject()->ResetOwner();
-		DropItem(playerCharacterMap[playerNumber], droppedItem);
+		int itemKey = 0, itemQuantity = 0;
+		recvStream >> itemKey >> itemQuantity;
+		TWeakObjectPtr<AItemBase> droppedItem = itemManager->GetItemActor(fItemID, itemKey, itemQuantity);
+		if (droppedItem.IsValid() && playerCharacterMap.Find(playerNumber))
+		{
+			droppedItem->GetItemObject()->ResetOwner();
+			DropItem(playerCharacterMap[playerNumber], droppedItem);
+		}
 	}
 }
 
@@ -429,8 +438,9 @@ void AGameModeMainMap::ProcessDisconnectedPlayer(std::stringstream& recvStream)
 	recvStream >> playerNumber;
 	if (playerCharacterMap.Find(playerNumber))
 	{
-		APlayerCharacter* player = playerCharacterMap[playerNumber];
+		auto player = playerCharacterMap[playerNumber];
 		playerCharacterMap.Remove(playerNumber);
+		itemManager->RemovePlayersItems(playerNumber);
 		player->Destroy();
 	}
 }
@@ -520,7 +530,7 @@ void AGameModeMainMap::InitializePlayerEquippedItems(std::stringstream& recvStre
 	{
 		recvStream >> equipped;
 		auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
-		itemManager->ItemEquipped(FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
+		itemManager->ItemEquipped(myNumber, FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
 		APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 		myPlayerController->EquipItem(equipped.slotNumber, itemActor);
 		itemActor->ActivateEquipMode();
@@ -531,11 +541,12 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 {
 	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
 	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
+	myPlayerCharacter->SetPlayerIDAndNumber(myID, myNumber);
+	myPlayerCharacter->InitializeHealthWidget();
 	myController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 	check(myController.Get());
 	myController->Possess(myPlayerCharacter);
 	playerCharacterMap.Add(myNumber, myPlayerCharacter);
-	myPlayerCharacter->SetPlayerIDAndNumber(myID, myNumber);
 	bProcessPacket = true;
 }
 
@@ -556,12 +567,12 @@ void AGameModeMainMap::ReceiveReplicatedProjectile(std::stringstream& recvStream
 
 void AGameModeMainMap::PlayerUseItem(std::stringstream& recvStream)
 {
-	int playerNumber = -1;
+	int playerNumber = -1, consumedAmount = 0;
 	string itemID;
-	recvStream >> playerNumber >> itemID;
+	recvStream >> playerNumber >> itemID >> consumedAmount;
 	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 
-
+	itemManager->OtherPlayerUseItem(playerCharacterMap[playerNumber], fItemID, consumedAmount);
 }
 
 void AGameModeMainMap::UpdatePlayerStatus(std::stringstream& recvStream)
@@ -576,7 +587,7 @@ void AGameModeMainMap::UpdatePlayerStatus(std::stringstream& recvStream)
 	}
 	else
 	{
-
+		playerCharacterMap[playerNumber]->SetHealth(status.health);
 	}
 }
 

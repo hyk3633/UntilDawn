@@ -53,7 +53,7 @@ public:
 
 	void UnequipItem(const FString itemID, const int xPoint, const int yPoint);
 
-	void SendItemInfoToDrop(const FString itemID);
+	void DropInventoryItem(const FString itemID);
 
 	void SendHittedCharacters(TArray<TPair<int, bool>>& hittedCharacters);
 
@@ -61,7 +61,7 @@ public:
 
 	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
 
-	void SendItemUsing(const FString& itemID, const int usedAmount);
+	void SendItemUsing(const FString& itemID, const int consumedAmount);
 
 	// FRunnable 가상 함수
 

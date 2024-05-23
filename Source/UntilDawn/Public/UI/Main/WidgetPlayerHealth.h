@@ -12,7 +12,6 @@
 
 class UTextBlock;
 class UProgressBar;
-class APlayerControllerMainMap;
 
 UCLASS()
 class UNTILDAWN_API UWidgetPlayerHealth : public UUserWidget
@@ -21,11 +20,8 @@ class UNTILDAWN_API UWidgetPlayerHealth : public UUserWidget
 	
 public:
 
-	void InitHealthWidget(const FString& playerID, const float healthPercentage, TWeakObjectPtr<APlayerControllerMainMap> controller);
+	void InitHealthWidget(const FString& playerID, const float healthPercentage);
 
-protected:
-
-	UFUNCTION()
 	void SetProgressPercentage(const float percentage);
 	
 private:

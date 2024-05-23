@@ -71,10 +71,10 @@ APlayerCharacter::APlayerCharacter()
 
 	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
 	healthWidget->SetupAttachment(RootComponent);
-	healthWidget->SetVisibility(true);
+	healthWidget->SetVisibility(false);
 	healthWidget->SetRelativeLocation(FVector(0.f, 0.f, 130.f));
 	healthWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	healthWidget->SetDrawSize(FVector2D(100.f, 50.f));
+	healthWidget->SetDrawSize(FVector2D(250.f, 70.f));
 	static ConstructorHelpers::FClassFinder<UWidgetPlayerHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_PlayerHealthWidget.WBP_PlayerHealthWidget_C'"));
 	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
 
@@ -126,9 +126,6 @@ void APlayerCharacter::PossessedBy(AController* newController)
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
 	}
-	TWeakObjectPtr<UWidgetPlayerHealth> healthWidgetObject = Cast<UWidgetPlayerHealth>(healthWidget->GetWidget());
-	check(healthWidgetObject.IsValid());
-	healthWidgetObject->InitHealthWidget(playerID, GetHealthPercentage(), Cast<APlayerControllerMainMap>(playerController));
 
 	GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
@@ -541,6 +538,7 @@ void APlayerCharacter::DeadReckoningMovement(const FVector& lastLocation, const 
 void APlayerCharacter::SetHealth(const float newHealth)
 {
 	health = FMath::Min(newHealth, maxHealth);
+	healthWidgetObject->SetProgressPercentage(GetHealthPercentage());
 }
 
 float APlayerCharacter::GetHealthPercentage()
@@ -572,6 +570,13 @@ void APlayerCharacter::ShowHealthWidget()
 	}
 	GetWorldTimerManager().SetTimer(healthWidgetDeacitvateTimer, this, &APlayerCharacter::HideHealthWidget, 5.f);
 	healthWidget->SetVisibility(true);
+}
+
+void APlayerCharacter::InitializeHealthWidget()
+{
+	healthWidgetObject = Cast<UWidgetPlayerHealth>(healthWidget->GetWidget());
+	check(healthWidgetObject.IsValid());
+	healthWidgetObject->InitHealthWidget(playerID, GetHealthPercentage());
 }
 
 void APlayerCharacter::HideHealthWidget()

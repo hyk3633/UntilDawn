@@ -8,6 +8,7 @@
 #include "Structs/Pos.h"
 #include "Structs/ItemInfo.h"
 #include "Structs/EquippedItem.h"
+#include "Structs/PlayerStatus.h"
 
 enum class EZombieInfoBitType
 {
@@ -170,12 +171,14 @@ struct PlayerInitialInfo
 {
 	std::string playerID;
 	CharacterInfo characterInfo;
+	PlayerStatus playerStatus;
 	std::vector<EquippedItem> equippedItems;
 
 	friend std::istream& operator>>(std::istream& stream, PlayerInitialInfo& info)
 	{
 		stream >> info.playerID;
 		stream >> info.characterInfo;
+		stream >> info.playerStatus;
 		int size = 0;
 		stream >> size;
 		info.equippedItems.reserve(size);

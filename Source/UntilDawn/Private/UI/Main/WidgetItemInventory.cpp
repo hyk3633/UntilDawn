@@ -31,7 +31,7 @@ void UWidgetItemInventory::ItemDrop(UDragDropOperation* operation)
 		}
 		else
 		{
-			playerController->SendItemInfoToDrop(itemObj->GetItemID());
+			playerController->DropInventoryItem(itemObj->GetItemID());
 		}
 	}
 }

@@ -190,7 +190,7 @@ void ClientSocket::UnequipItem(const FString itemID, const int xPoint, const int
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendItemInfoToDrop(const FString itemID)
+void ClientSocket::DropInventoryItem(const FString itemID)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::DROP_ITEM) << "\n";
@@ -227,12 +227,12 @@ void ClientSocket::ReplicateProjectile(const FVector& location, const FRotator& 
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendItemUsing(const FString& itemID, const int usedAmount)
+void ClientSocket::SendItemUsing(const FString& itemID, const int consumedAmount)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::USINGITEM) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	sendStream << usedAmount << "\n";
+	sendStream << consumedAmount << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 

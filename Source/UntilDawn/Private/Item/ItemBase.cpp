@@ -48,6 +48,7 @@ bool AItemBase::IsActorActivated()
 void AItemBase::ActivateEquipMode()
 {
 	skeletalMesh->SetVisibility(true);
+	skeletalMesh->SetCollisionResponseToChannel(ECC_ItemTrace, ECR_Ignore);
 	isActive = true;
 }
 

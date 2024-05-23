@@ -136,7 +136,7 @@ public:
 
 	void DropEquippedItem(const FString itemID);
 
-	void SendItemInfoToDrop(const FString itemID);
+	void DropInventoryItem(const FString itemID);
 
 	void SendHittedCharacters(TArray<FHitResult>& hits);
 
@@ -148,7 +148,7 @@ public:
 
 	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
 	
-	void SendItemUsing(const FString& itemID, const int usedAmount);
+	void SendItemUsing(const FString& itemID, const int consumedAmount);
 
 	void ItemExhausted(TWeakObjectPtr<UItemObject> itemObj);
 

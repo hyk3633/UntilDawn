@@ -24,6 +24,7 @@ class UItemObject;
 class AItemBase;
 class AItemMeleeWeapon;
 class UWidgetComponent;
+class UWidgetPlayerHealth;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -163,6 +164,8 @@ public:
 
 	void ShowHealthWidget();
 
+	void InitializeHealthWidget();
+
 protected:
 
 	void HideHealthWidget();
@@ -198,6 +201,8 @@ private:
 
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* healthWidget;
+
+	TWeakObjectPtr<UWidgetPlayerHealth> healthWidgetObject;
 
 	int playerNumber;
 

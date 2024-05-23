@@ -9,6 +9,7 @@
 #include "Item/ItemObject/ItemMeleeWeapon.h"
 #include "Item/ItemObject/ItemRecovery.h"
 #include "Item/ItemObject/ItemAmmo.h"
+#include "Player/PlayerCharacter.h"
 #include "GameSystem/JsonParser.h"
 #include "Engine/DataTable.h"
 #include "../UntilDawn.h"
@@ -113,6 +114,21 @@ TWeakObjectPtr<AItemBase> UItemManager::FindItemActor(TWeakObjectPtr<UItemObject
 	return Cast<AItemBase>(itemPooler->GetPooledActor());
 }
 
+TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const FString& itemID, const int itemKey, const int itemQuantity)
+{
+	auto itemObj = GetItemObject(itemID);
+	if (itemObj.IsValid() == false)
+	{
+		itemObj = CreateItemObject(itemID, itemKey);
+		itemObj->SetItemQuantity(itemQuantity);
+		return itemObj;
+	}
+	else
+	{
+		return itemObj;
+	}
+}
+
 TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const FString& itemID)
 {
 	if (itemObjectMap.Find(itemID))
@@ -123,6 +139,12 @@ TWeakObjectPtr<UItemObject> UItemManager::GetItemObject(const FString& itemID)
 	{
 		return nullptr;
 	}
+}
+
+TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(const FString& itemID, const int itemKey, const int itemQuantity)
+{
+	auto itemObj = GetItemObject(itemID, itemKey, itemQuantity);
+	return GetItemActor(itemObj);
 }
 
 TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(const FString& itemID)
@@ -158,10 +180,20 @@ TWeakObjectPtr<AItemBase> UItemManager::GetItemActorInField(const FString& itemI
 	}
 }
 
-void UItemManager::ItemEquipped(const FString& itemID, TWeakObjectPtr<AItemBase> itemActor)
+void UItemManager::ItemEquipped(const int playerNumber, const FString& itemID, TWeakObjectPtr<AItemBase> itemActor)
 {
 	itemActorMap.Add(itemID, itemActor);
 	itemActor->ActivateEquipMode();
+	AddToPossessedItemsMap(playerNumber, itemActor);
+}
+
+void UItemManager::AddToPossessedItemsMap(const int playerNumber, TWeakObjectPtr<AItemBase> itemActor)
+{
+	if (equippedItemsMap.Find(playerNumber) == nullptr)
+	{
+		equippedItemsMap.Add(playerNumber, TArray<TWeakObjectPtr<AItemBase>>());
+	}
+	equippedItemsMap[playerNumber].Add(itemActor);
 }
 
 void UItemManager::ItemPickedUp(const FString& itemID)
@@ -173,11 +205,24 @@ void UItemManager::ItemPickedUp(const FString& itemID)
 	}
 }
 
+void UItemManager::AddToEquippedItemsMap(const int playerNumber, TWeakObjectPtr<UItemObject> itemObj)
+{
+	if (possessedItemsMap.Find(playerNumber) == nullptr)
+	{
+		possessedItemsMap.Add(playerNumber, TArray<TWeakObjectPtr<UItemObject>>());
+	}
+	possessedItemsMap[playerNumber].Add(itemObj);
+}
+
 void UItemManager::ItemPickedUpOtherPlayer(TWeakObjectPtr<APlayerCharacter> player, const FString& itemID)
 {
 	if (itemActorMap.Find(itemID))
 	{
-		itemActorMap[itemID]->GetItemObject()->SetOwnerCharacter(player);
+		auto itemObj = itemActorMap[itemID]->GetItemObject();
+		itemObj->SetOwnerCharacter(player);
+
+		AddToEquippedItemsMap(player->GetPlayerNumber(), itemObj);
+
 		itemActorMap[itemID]->DeactivateActor();
 		itemActorMap.Remove(itemID);
 	}
@@ -198,7 +243,42 @@ TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> dro
 void UItemManager::DestroyItem(const FString& itemID)
 {
 	// tweakobject로 파괴되었는지 체크
+	itemObjectMap[itemID]->MarkPendingKill();
 	itemObjectMap.Remove(itemID);
+}
+
+void UItemManager::OtherPlayerUseItem(TWeakObjectPtr<APlayerCharacter> player, const FString& itemID, const int consumedAmount)
+{
+	if (itemObjectMap.Find(itemID))
+	{
+		TWeakObjectPtr<UItemObject> itemObj = itemObjectMap[itemID];
+		if (itemObj->GetIsConsumable())
+		{
+			TWeakObjectPtr<UItemConsumable> itemConsumable = Cast<UItemConsumable>(itemObj);
+			itemConsumable->Using(consumedAmount);
+		}
+	}
+}
+
+void UItemManager::RemovePlayersItems(const int playerNumber)
+{
+	if (possessedItemsMap.Find(playerNumber))
+	{
+		for (auto itemObj : possessedItemsMap[playerNumber])
+		{
+			DestroyItem(itemObj->GetItemID());
+		}
+		possessedItemsMap.Remove(playerNumber);
+	}
+	if (equippedItemsMap.Find(playerNumber))
+	{
+		for (auto itemActor : equippedItemsMap[playerNumber])
+		{
+			DestroyItem(itemActor->GetItemID());
+			itemActor->DeactivateActor();
+		}
+		equippedItemsMap.Remove(playerNumber);
+	}
 }
 
 void UItemManager::ItemExhausted(const FString& itemID)
