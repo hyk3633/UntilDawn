@@ -17,3 +17,13 @@ EPermanentItemType UItemPermanent::GetPermanentItemType() const
 {
     return permanentItemType;
 }
+
+void UItemPermanent::SetEquippedSlotNumber(const int8 number)
+{
+    equippedSlotNumber = number;
+}
+
+int8 UItemPermanent::GetEquippedSlotNumber() const
+{
+    return equippedSlotNumber;
+}

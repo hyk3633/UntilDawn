@@ -50,7 +50,7 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::UNEQUIP_ITEM]			= &AGameModeMainMap::PlayerUnequipItem;
 	packetCallbacks[EPacketType::DROP_ITEM]				= &AGameModeMainMap::PlayerItemDrop;
 	packetCallbacks[EPacketType::DROP_EQUIPPED_ITEM]	= &AGameModeMainMap::PlayerDropEquippedItem;
-	packetCallbacks[EPacketType::INITIALINFO]			= &AGameModeMainMap::InitializeWorld;
+	packetCallbacks[EPacketType::WORLDINITIALINFO]		= &AGameModeMainMap::InitializeWorld;
 	packetCallbacks[EPacketType::PLAYERINPUTACTION]		= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
 	packetCallbacks[EPacketType::WRESTLINGRESULT]		= &AGameModeMainMap::PlayWrestlingResultAction;
 	packetCallbacks[EPacketType::WRESTLINGSTART]		= &AGameModeMainMap::StartPlayerWrestling;
@@ -65,6 +65,10 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::PROJECTILE]			= &AGameModeMainMap::ReceiveReplicatedProjectile;
 	packetCallbacks[EPacketType::USINGITEM]				= &AGameModeMainMap::PlayerUseItem;
 	packetCallbacks[EPacketType::PLAYERSTATUS]			= &AGameModeMainMap::UpdatePlayerStatus;
+	packetCallbacks[EPacketType::PLAYERINITIALINFO]		= &AGameModeMainMap::InitializePlayerInitialInfo;
+	packetCallbacks[EPacketType::CHANGE_WEAPON]			= &AGameModeMainMap::PlayerChangeWeapon;
+	packetCallbacks[EPacketType::ARM_WEAPON]			= &AGameModeMainMap::PlayerArmWeapon;
+	packetCallbacks[EPacketType::DISARM_WEAPON]			= &AGameModeMainMap::PlayerDisarmWeapon;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -126,10 +130,13 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 		{
 			auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
 			itemManager->ItemEquipped(playerNumber, FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
-			newPlayerCharacter->AttachItemActor(itemActor);
+			newPlayerCharacter->EquipItem(itemActor, equipped.slotNumber);
+			if (equipped.isArmed)
+			{
+				newPlayerCharacter->ArmWeapon(itemActor);
+			}
 			itemActor->ActivateEquipMode();
 		}
-
 		playerCharacterMap.Add(playerNumber, newPlayerCharacter);
 	}
 }
@@ -264,7 +271,7 @@ void AGameModeMainMap::PlayerItemEquip(std::stringstream& recvStream)
 	}
 	else
 	{
-		playerCharacterMap[playerNumber]->AttachItemActor(itemActor);
+		playerCharacterMap[playerNumber]->EquipItem(itemActor, boxNumber);
 	}
 	if (result)
 	{
@@ -295,7 +302,7 @@ void AGameModeMainMap::PlayerUnequipItem(std::stringstream& recvStream)
 		}
 		else
 		{
-			playerCharacterMap[playerNumber]->DettachItemActor(itemActor);
+			playerCharacterMap[playerNumber]->UnEquipItem(itemActor);
 		}
 	}
 	else
@@ -341,9 +348,8 @@ void AGameModeMainMap::PlayerDropEquippedItem(std::stringstream& recvStream)
 	}
 	else
 	{
-		playerCharacterMap[playerNumber]->DettachItemActor(droppedItem);
+		playerCharacterMap[playerNumber]->UnEquipItem(droppedItem);
 	}
-	droppedItem->GetItemObject()->ResetOwner();
 	DropItem(playerCharacterMap[playerNumber], droppedItem);
 }
 
@@ -525,9 +531,10 @@ void AGameModeMainMap::InitializePlayerEquippedItems(std::stringstream& recvStre
 {
 	int size;
 	recvStream >> size;
-	EquippedItem equipped;
+
 	for (int i = 0; i < size; i++)
 	{
+		EquippedItem equipped;
 		recvStream >> equipped;
 		auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
 		itemManager->ItemEquipped(myNumber, FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
@@ -591,6 +598,49 @@ void AGameModeMainMap::UpdatePlayerStatus(std::stringstream& recvStream)
 	}
 }
 
+void AGameModeMainMap::InitializePlayerInitialInfo(std::stringstream& recvStream)
+{
+	int health = 0, rows = 0, columns = 0;
+	recvStream >> health >> rows >> columns;
+	playerCharacterMap[myNumber]->SetMaxHealth(health);
+	myController->SetRowColumn(rows, columns);
+}
+
+void AGameModeMainMap::PlayerChangeWeapon(std::stringstream& recvStream)
+{
+	int playerNumber = -1;
+	string changedWeaponID;
+
+	recvStream >> playerNumber >> changedWeaponID;
+	FString fChangedWeaponID = FString(UTF8_TO_TCHAR(changedWeaponID.c_str()));
+
+	TWeakObjectPtr<AItemBase> changedWeaponActor = itemManager->GetItemActorInField(fChangedWeaponID);
+	check(changedWeaponActor.IsValid());
+
+	playerCharacterMap[playerNumber]->ChangeWeapon(changedWeaponActor);
+}
+
+void AGameModeMainMap::PlayerArmWeapon(std::stringstream& recvStream)
+{
+	int playerNumber = -1;
+	string armedWeaponID;
+
+	recvStream >> playerNumber >> armedWeaponID;
+	FString fArmedWeaponID = FString(UTF8_TO_TCHAR(armedWeaponID.c_str()));
+
+	TWeakObjectPtr<AItemBase> armedWeaponActor = itemManager->GetItemActorInField(fArmedWeaponID);
+	check(armedWeaponActor.IsValid());
+
+	playerCharacterMap[playerNumber]->ArmWeapon(armedWeaponActor);
+}
+
+void AGameModeMainMap::PlayerDisarmWeapon(std::stringstream& recvStream)
+{
+	int playerNumber = -1;
+	recvStream >> playerNumber;
+	playerCharacterMap[playerNumber]->DisarmWeapon();
+}
+
 void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem)
 {
 	FVector spawnLocation = dropper->GetActorLocation();
@@ -605,6 +655,7 @@ void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakO
 		ECC_Visibility
 	);
 	droppedItem->SetActorLocation(hit.ImpactPoint);
+	droppedItem->GetItemObject()->ResetOwner();
 	droppedItem->ActivateActor();
 }
 

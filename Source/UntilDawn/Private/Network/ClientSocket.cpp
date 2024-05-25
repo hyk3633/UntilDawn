@@ -236,6 +236,29 @@ void ClientSocket::SendItemUsing(const FString& itemID, const int consumedAmount
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
+void ClientSocket::ChangeWeapon(const FString& changedWeaponID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::CHANGE_WEAPON) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*changedWeaponID)) << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::ArmWeapon(const FString& itemID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ARM_WEAPON) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::DisarmWeapon()
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::DISARM_WEAPON) << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
 bool ClientSocket::Init()
 {
 	bRun = true;

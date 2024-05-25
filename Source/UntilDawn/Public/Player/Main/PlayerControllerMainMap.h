@@ -28,6 +28,8 @@ DECLARE_DELEGATE(DelegateEKeyPressed);
 DECLARE_DELEGATE(DelegateIKeyPressed);
 DECLARE_DELEGATE_TwoParams(DelegateEquipItem, UItemObject* itemObj, const int boxNumber);
 DECLARE_DELEGATE_OneParam(DelegateHealthChanged, float healthPercentage);
+DECLARE_DELEGATE_OneParam(DelegateWeaponArmed, UMaterialInstance* weaponIcon);
+
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
@@ -44,6 +46,7 @@ public:
 	DelegateIKeyPressed DIKeyPressed;
 	DelegateEquipItem DEquipItem;
 	DelegateHealthChanged DHealthChanged;
+	DelegateWeaponArmed DWeaponArmed;
 
 protected:
 
@@ -84,6 +87,8 @@ protected:
 	void IKeyPressed();
 
 	void HKeyPressed();
+
+	void WheelRolled();
 
 public:
 
@@ -154,6 +159,8 @@ public:
 
 	void UpdateHealth(const float health);
 
+	void SetRowColumn(const int r, const int c);
+
 protected:
 
 	void SynchronizePlayerInfo();
@@ -200,6 +207,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* hKeyAction;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* wheelAction;
 
 	FHitResult itemHit, characterHit;
 

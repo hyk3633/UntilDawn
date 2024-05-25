@@ -21,6 +21,10 @@ public:
 	
 	EPermanentItemType GetPermanentItemType() const;
 
+	void SetEquippedSlotNumber(const int8 number);
+
+	int8 GetEquippedSlotNumber() const;
+
 protected:
 
 	virtual void ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap) override;
@@ -30,5 +34,7 @@ protected:
 private:
 
 	EPermanentItemType permanentItemType;
+
+	int8 equippedSlotNumber = -1;
 
 };

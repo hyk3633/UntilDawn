@@ -74,7 +74,9 @@ public:
 
 	bool IsWeaponUsable();
 
-	EPermanentItemType ArmRecentWeapon();
+	TWeakObjectPtr<AItemBase> ArmRecentWeapon();
+
+public:
 
 	EPermanentItemType GetCurrentWeaponType() const;
 
@@ -90,22 +92,26 @@ public:
 
 	void UsingConsumableItemOfType(const EItemMainType itemType);
 
+	bool IsAnyWeaponArmed();
+
+	TWeakObjectPtr<AItemBase> ChangeWeapon();
+
 public:
 
-	FORCEINLINE int GetColumns() const { return columns; }
-	FORCEINLINE void SetColumns(int col) { columns = col; }
-	FORCEINLINE int GetRows() const { return rows; }
-	FORCEINLINE void SetRows(int row) { rows = row; }
+	FORCEINLINE uint8 GetColumns() const { return columns; }
+	FORCEINLINE uint8 GetRows() const { return rows; }
+
+	void SetRowColumn(const uint8 r, const uint8 c);
 
 private:
 
 	TWeakObjectPtr<APlayerCharacter> ownerCharacter;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
-	int columns;
+	uint8 columns;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
-	int rows;
+	uint8 rows;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	bool isDirty;
@@ -119,6 +125,6 @@ private:
 
 	TWeakObjectPtr<AItemBase> armedWeapon;
 	
-	int recentWeaponSlot = -1;
+	int8 recentWeaponSlot = -1;
 
 };

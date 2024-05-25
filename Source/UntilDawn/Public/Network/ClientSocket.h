@@ -4,6 +4,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
+#include <ws2tcpip.h>
 #include <sstream>
 #include "Enums/PacketType.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
@@ -62,6 +63,12 @@ public:
 	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
 
 	void SendItemUsing(const FString& itemID, const int consumedAmount);
+
+	void ChangeWeapon(const FString& changedWeaponID);
+
+	void ArmWeapon(const FString& itemID);
+
+	void DisarmWeapon();
 
 	// FRunnable 가상 함수
 

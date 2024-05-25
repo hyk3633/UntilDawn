@@ -95,6 +95,14 @@ protected:
 
 	void UpdatePlayerStatus(std::stringstream& recvStream);
 
+	void InitializePlayerInitialInfo(std::stringstream& recvStream);
+
+	void PlayerChangeWeapon(std::stringstream& recvStream);
+
+	void PlayerArmWeapon(std::stringstream& recvStream);
+
+	void PlayerDisarmWeapon(std::stringstream& recvStream);
+
 public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);

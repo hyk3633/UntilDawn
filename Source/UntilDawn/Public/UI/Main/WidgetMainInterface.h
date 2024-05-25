@@ -14,6 +14,7 @@ class UWidgetItemInventory;
 class UProgressBar;
 class UUniformGridPanel;
 class APlayerControllerMainMap;
+class UImage;
 
 UCLASS()
 class UNTILDAWN_API UWidgetMainInterface : public UUserWidget
@@ -31,6 +32,9 @@ protected:
 	UFUNCTION()
 	void OnCharacterHealthChanged(const float percentage);
 
+	UFUNCTION()
+	void OnChangeEquippedWeapon(UMaterialInstance* matInst);
+
 private:
 	
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
@@ -40,7 +44,7 @@ private:
 	UProgressBar* HealthBar;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
-	UUniformGridPanel* EquipmentPanel;
+	UImage* EquipmentQuickSlotImage;
 
 	UPROPERTY()
 	TWeakObjectPtr<APlayerControllerMainMap> playerController;

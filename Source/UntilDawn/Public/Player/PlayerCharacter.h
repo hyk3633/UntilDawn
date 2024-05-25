@@ -25,6 +25,7 @@ class AItemBase;
 class AItemMeleeWeapon;
 class UWidgetComponent;
 class UWidgetPlayerHealth;
+class UItemPermanent;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -83,9 +84,7 @@ public:
 
 	bool RightClickEnd(const EPermanentItemType weaponType);
 
-	bool RKeyPressed(const EPermanentItemType recentWeaponType);
-
-	bool RKeyHold(const EPermanentItemType weaponType);
+	bool ArmWeapon(TWeakObjectPtr<AItemBase> itemActor);
 
 	bool HKeyPressed();
 
@@ -158,13 +157,26 @@ public:
 
 	void RecoverHealth(const float recoveryAmount);
 
+	void EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber);
+
 	void AttachItemActor(TWeakObjectPtr<AItemBase> item);
 
-	void DettachItemActor(TWeakObjectPtr<AItemBase> item);
+	void UnEquipItem(TWeakObjectPtr<AItemBase> item);
 
 	void ShowHealthWidget();
 
 	void InitializeHealthWidget();
+
+	void SetMaxHealth(const int newHealth);
+
+	UFUNCTION(BlueprintCallable)
+	void AttachDisarmedWeaponToBack();
+
+	void ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor);
+
+	bool DisarmWeapon();
+
+	TWeakObjectPtr<AItemBase> GetArmedWeapon() const;
 
 protected:
 
@@ -226,12 +238,14 @@ private:
 
 	bool bset;
 
-	float health = 50.f;
+	float health;
 
-	float maxHealth = 100.f;
+	float maxHealth;
 
 	EPermanentItemType currentWeaponType = EPermanentItemType::NONE;
 
 	FTimerHandle healthWidgetDeacitvateTimer;
+
+	TWeakObjectPtr<AItemBase> armedWeapon;
 
 };

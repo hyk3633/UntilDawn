@@ -11,6 +11,8 @@
 #include "GameMode/GameModeMainMap.h"
 #include "Engine/SkeletalMeshSocket.h"
 
+const int8 UNARMED = -1;
+
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -21,7 +23,6 @@ void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	grids.Init(nullptr, columns * rows);
 }
 
 void UInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -132,9 +133,9 @@ void UInventoryComponent::RemoveItem(TWeakObjectPtr<UItemObject> removedItem)
 void UInventoryComponent::RemoveItemGrid(TWeakObjectPtr<UItemObject> removedItem, const FTile& topLeft)
 {
 	FIntPoint dim = removedItem->GetDimensions();
-	for (int i = topLeft.Y; i < topLeft.Y + dim.Y; i++)
+	for (uint16 i = topLeft.Y; i < topLeft.Y + dim.Y; i++)
 	{
-		for (int j = topLeft.X; j < topLeft.X + dim.X; j++)
+		for (uint16 j = topLeft.X; j < topLeft.X + dim.X; j++)
 		{
 			const int index = TileToIndex({ j, i });
 			grids[index].Reset();
@@ -149,7 +150,7 @@ void UInventoryComponent::RemoveEquipmentItem(const int slotNumber, const EEquip
 	case EEquipmentBox::Weapon:
 		if (equippedItems.IsValidIndex(slotNumber))
 		{
-			equippedItems[slotNumber] = nullptr;
+			equippedItems[slotNumber].Reset();
 		}
 		break;
 	}
@@ -168,10 +169,14 @@ void UInventoryComponent::EquipItem(const int boxNumber, TWeakObjectPtr<AItemBas
 
 void UInventoryComponent::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 {
-	for (int i=0; i< equippedItems.Num(); i++)
+	for (uint8 i=0; i< equippedItems.Num(); i++)
 	{
 		if (equippedItems[i] == itemActor)
 		{
+			if (i == recentWeaponSlot)
+			{
+				recentWeaponSlot = UNARMED;
+			}
 			equippedItems[i].Reset();
 			return;
 		}
@@ -210,34 +215,29 @@ bool UInventoryComponent::IsWeaponUsable()
 	return false;
 }
 
-EPermanentItemType UInventoryComponent::ArmRecentWeapon()
+TWeakObjectPtr<AItemBase> UInventoryComponent::ArmRecentWeapon()
 {
 	if (armedWeapon.IsValid())
 	{
-		return GetCurrentWeaponType();
+		return nullptr;
 	}
 
 	if (recentWeaponSlot != -1)
 	{
 		armedWeapon = equippedItems[recentWeaponSlot];
-		armedWeapon->ActivateActor();
-		return GetCurrentWeaponType();
+		return armedWeapon;
 	}
 
-	for (int i = 0; i < equippedItems.Num(); i++)
+	for (uint8 i = 0; i < equippedItems.Num(); i++)
 	{
 		if (equippedItems[i].IsValid())
 		{
 			armedWeapon = equippedItems[i];
 			recentWeaponSlot = i;
-
-			APlayerCharacter* player = Cast<APlayerCharacter>(ownerCharacter);
-			const USkeletalMeshSocket* socket = player->GetMesh()->GetSocketByName(armedWeapon->GetSocketName());
-			socket->AttachActor(armedWeapon.Get(), player->GetMesh());
-			return GetCurrentWeaponType();
+			return armedWeapon;
 		}
 	}
-	return EPermanentItemType::NONE;
+	return nullptr;
 }
 
 EPermanentItemType UInventoryComponent::GetCurrentWeaponType() const
@@ -262,7 +262,7 @@ void UInventoryComponent::InitializeEquippedWeaponArr(const int size)
 
 int UInventoryComponent::GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj)
 {
-	for (int i=0; i< equippedItems.Num(); i++)
+	for (uint8 i=0; i< equippedItems.Num(); i++)
 	{
 		if (equippedItems[i].IsValid() && equippedItems[i]->GetItemObject() == itemObj)
 			return i;
@@ -294,3 +294,36 @@ void UInventoryComponent::UsingConsumableItemOfType(const EItemMainType itemType
 	}
 }
 
+bool UInventoryComponent::IsAnyWeaponArmed()
+{
+	return armedWeapon.IsValid();
+}
+
+TWeakObjectPtr<AItemBase> UInventoryComponent::ChangeWeapon()
+{
+	if (recentWeaponSlot == -1)
+		return nullptr;
+
+	const uint8 size = equippedItems.Num();
+
+	uint8 nextIndex = recentWeaponSlot, count = 0;
+	while (count < size - 1)
+	{
+		++count;
+		nextIndex = (nextIndex + 1) % size;
+		if (equippedItems[nextIndex].IsValid())
+		{
+			recentWeaponSlot = nextIndex;
+			armedWeapon = equippedItems[nextIndex];
+			return armedWeapon;
+		}
+	}
+	return nullptr;
+}
+
+void UInventoryComponent::SetRowColumn(const uint8 r, const uint8 c)
+{
+	rows = r;
+	columns = c;
+	grids.Init(nullptr, columns * rows);
+}

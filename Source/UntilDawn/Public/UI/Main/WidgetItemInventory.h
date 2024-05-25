@@ -44,6 +44,6 @@ private:
 	UInventoryComponent* inventoryComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
-	float tileSize = 50.f;
+	float tileSize = 70.f;
 
 };

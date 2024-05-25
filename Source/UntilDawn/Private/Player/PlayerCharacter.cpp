@@ -24,6 +24,7 @@
 #include "UntilDawn/UntilDawn.h"
 #include "Item/ItemObject.h"
 #include "Item/ItemBase.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "Engine/SkeletalMeshSocket.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -301,42 +302,19 @@ bool APlayerCharacter::RightClickEnd(const EPermanentItemType weaponType)
 	}
 }
 
-bool APlayerCharacter::RKeyPressed(const EPermanentItemType recentWeaponType)
+bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (recentWeaponType != EPermanentItemType::NONE)
-	{
-		animInst->PlayWeaponArmMontage(recentWeaponType);
-
-		bUseControllerRotationYaw = true;
-		GetCharacterMovement()->bOrientRotationToMovement = false;
-
-		return true;
-	}
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(itemActor->GetItemObject());
+	SetCurrentWeaponType(permanentItemObj->GetPermanentItemType());
 	
-	return false;
-}
+	AttachItemActor(itemActor);
 
-bool APlayerCharacter::RKeyHold(const EPermanentItemType weaponType)
-{
-	if (CheckAbleInput() == false)
-		return false;
-
-	if (weaponType == EPermanentItemType::NONE)
-	{
-		return false;
-	}
-	else
-	{
-		animInst->PlayWeaponDisarmMontage(weaponType);
-
-		bUseControllerRotationYaw = false;
-		GetCharacterMovement()->bOrientRotationToMovement = true;
-
-		return true;
-	}
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	return true;
 }
 
 bool APlayerCharacter::HKeyPressed()
@@ -429,6 +407,7 @@ EPermanentItemType APlayerCharacter::GetCurrentWeaponType() const
 
 void APlayerCharacter::SetCurrentWeaponType(const EPermanentItemType weaponType)
 {
+	animInst->PlayWeaponArmMontage(weaponType);
 	currentWeaponType = weaponType;
 }
 
@@ -453,12 +432,6 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weapon
 		break;
 	case EPlayerInputs::RightClickEnd:
 		RightClickEnd(eWeaponType);
-		break;
-	case EPlayerInputs::RKeyPressed:
-		RKeyPressed(eWeaponType);
-		break;
-	case EPlayerInputs::RKeyHold:
-		RKeyHold(eWeaponType);
 		break;
 	}
 }
@@ -553,13 +526,47 @@ void APlayerCharacter::RecoverHealth(const float recoveryAmount)
 
 void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
 {
+	TWeakObjectPtr<UItemPermanent> equipmentObj = Cast<UItemPermanent>(item->GetItemObject());
+	SetCurrentWeaponType(equipmentObj->GetPermanentItemType());
 	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
 	socket->AttachActor(item.Get(), GetMesh());
+	armedWeapon = item;
 }
 
-void APlayerCharacter::DettachItemActor(TWeakObjectPtr<AItemBase> item)
+void APlayerCharacter::EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber)
 {
+	FName socketName;
+	if (slotNumber == 0)
+	{
+		socketName = "Ranged1_Back";
+	}
+	else if (slotNumber == 1)
+	{
+		socketName = "Ranged2_Back";
+	}
+	else
+	{
+		socketName = "Melee_Back";
+	}
+	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(socketName);
+	socket->AttachActor(item.Get(), GetMesh());
+
+	item->ActivateEquipMode();
+
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
+	permanentItemObj->SetEquippedSlotNumber(slotNumber);
+}
+
+void APlayerCharacter::UnEquipItem(TWeakObjectPtr<AItemBase> item)
+{
+	if (item == armedWeapon)
+	{
+		DisarmWeapon();
+	}
 	item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
+	permanentItemObj->SetEquippedSlotNumber(-1);
 }
 
 void APlayerCharacter::ShowHealthWidget()
@@ -579,7 +586,46 @@ void APlayerCharacter::InitializeHealthWidget()
 	healthWidgetObject->InitHealthWidget(playerID, GetHealthPercentage());
 }
 
+void APlayerCharacter::SetMaxHealth(const int newHealth)
+{
+	maxHealth = newHealth;
+}
+
 void APlayerCharacter::HideHealthWidget()
 {
 	healthWidget->SetVisibility(false);
+}
+
+void APlayerCharacter::AttachDisarmedWeaponToBack()
+{
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(armedWeapon->GetItemObject());
+	EquipItem(armedWeapon, permanentItemObj->GetEquippedSlotNumber());
+	armedWeapon.Reset();
+}
+
+void APlayerCharacter::ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor)
+{
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(armedWeapon->GetItemObject());
+	EquipItem(armedWeapon, permanentItemObj->GetEquippedSlotNumber());
+	armedWeapon = changedWeaponActor;
+	ArmWeapon(armedWeapon);
+}
+
+TWeakObjectPtr<AItemBase> APlayerCharacter::GetArmedWeapon() const
+{
+	return armedWeapon;
+}
+
+bool APlayerCharacter::DisarmWeapon()
+{
+	if (CheckAbleInput() == false)
+		return false;
+
+	animInst->PlayWeaponDisarmMontage(currentWeaponType);
+	currentWeaponType = EPermanentItemType::NONE;
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	return true;
 }

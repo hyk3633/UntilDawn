@@ -243,7 +243,7 @@ TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> dro
 void UItemManager::DestroyItem(const FString& itemID)
 {
 	// tweakobject로 파괴되었는지 체크
-	itemObjectMap[itemID]->MarkPendingKill();
+	itemObjectMap[itemID]->MarkAsGarbage();
 	itemObjectMap.Remove(itemID);
 }
 

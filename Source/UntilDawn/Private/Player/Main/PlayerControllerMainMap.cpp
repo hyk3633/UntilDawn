@@ -19,9 +19,6 @@
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
 	inventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory Component"));
-	inventoryComponent->SetColumns(6);
-	inventoryComponent->SetRows(15);
-	// 서버로부터 전달받기
 
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsController.IMC_DefaultsController"));
 	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
@@ -49,6 +46,9 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_HKey(TEXT("/Game/_Assets/Inputs/Actions/IA_HKey.IA_HKey"));
 	if (obj_HKey.Succeeded()) hKeyAction = obj_HKey.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Wheel(TEXT("/Game/_Assets/Inputs/Actions/IA_Wheel.IA_Wheel"));
+	if (obj_Wheel.Succeeded()) wheelAction = obj_Wheel.Object;
 }
 
 void APlayerControllerMainMap::BeginPlay()
@@ -153,6 +153,7 @@ void APlayerControllerMainMap::SetupInputComponent()
 		EnhancedInputComponent->BindAction(eKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::EKeyPressed);
 		EnhancedInputComponent->BindAction(iKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::IKeyPressed);
 		EnhancedInputComponent->BindAction(hKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::HKeyPressed);
+		EnhancedInputComponent->BindAction(wheelAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::WheelRolled);
 	}
 }
 
@@ -209,10 +210,11 @@ void APlayerControllerMainMap::RKeyPressed()
 	const EPermanentItemType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
 	if (currentWeaponType == EPermanentItemType::NONE)
 	{
-		const EPermanentItemType recentWeaponType = inventoryComponent->ArmRecentWeapon();
-		if (myCharacter->RKeyPressed(recentWeaponType))
+		auto itemActor = inventoryComponent->ArmRecentWeapon();
+		if (myCharacter->ArmWeapon(itemActor))
 		{
-			SendPlayerInputAction(EPlayerInputs::RKeyPressed, recentWeaponType);
+			DWeaponArmed.ExecuteIfBound(itemActor->GetItemObject()->GetRotatedIcon());
+			clientSocket->ArmWeapon(itemActor->GetItemID());
 		}
 	}
 }
@@ -220,10 +222,11 @@ void APlayerControllerMainMap::RKeyPressed()
 void APlayerControllerMainMap::RKeyHold()
 {
 	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (weaponType != EPermanentItemType::NONE && myCharacter->RKeyHold(weaponType))
+	if (weaponType != EPermanentItemType::NONE && myCharacter->DisarmWeapon())
 	{
 		inventoryComponent->DisarmWeapon();
-		SendPlayerInputAction(EPlayerInputs::RKeyHold, weaponType);
+		clientSocket->DisarmWeapon();
+		DWeaponArmed.ExecuteIfBound(nullptr);
 	}
 }
 
@@ -252,6 +255,20 @@ void APlayerControllerMainMap::HKeyPressed()
 	if (myCharacter->HKeyPressed())
 	{
 		inventoryComponent->UsingConsumableItemOfType(EItemMainType::RecoveryItem);
+	}
+}
+
+void APlayerControllerMainMap::WheelRolled()
+{
+	if (inventoryComponent->IsAnyWeaponArmed())
+	{
+		auto changedWeaponActor = inventoryComponent->ChangeWeapon();
+		if (changedWeaponActor.IsValid())
+		{
+			DWeaponArmed.ExecuteIfBound(changedWeaponActor->GetItemObject()->GetRotatedIcon());
+			myCharacter->ChangeWeapon(changedWeaponActor);
+			clientSocket->ChangeWeapon(changedWeaponActor->GetItemID());
+		}
 	}
 }
 
@@ -304,7 +321,6 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 		Subsystem->AddMappingContext(defaultMappingContext, 1);
 	}
 
-	GetHUD<AHUDMainMap>()->StartHUD();
 	DHealthChanged.ExecuteIfBound(myCharacter->GetHealthPercentage());
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
@@ -370,7 +386,7 @@ void APlayerControllerMainMap::EquipItem(const int boxNumber, TWeakObjectPtr<AIt
 {
 	DEquipItem.ExecuteIfBound(itemActor->GetItemObject().Get(), boxNumber);
 	inventoryComponent->EquipItem(boxNumber, itemActor);
-	myCharacter->AttachItemActor(itemActor);
+	myCharacter->EquipItem(itemActor, boxNumber);
 
 	itemActor->GetItemObject()->SetOwnerController(this);
 	itemActor->GetItemObject()->SetOwnerCharacter(myCharacter);
@@ -383,15 +399,23 @@ void APlayerControllerMainMap::NotifyToServerUnequipItem(const FString itemID, c
 
 void APlayerControllerMainMap::UnequipItemAndAddToInventory(TWeakObjectPtr<AItemBase> itemActor, const FTile& addedPoint)
 {
+	if (myCharacter->GetArmedWeapon() == itemActor)
+	{
+		DWeaponArmed.ExecuteIfBound(nullptr);
+	}
+	myCharacter->UnEquipItem(itemActor);
 	inventoryComponent->UnequipItem(itemActor);
 	AddItemToInventory(itemActor->GetItemObject(), addedPoint);
-	myCharacter->DettachItemActor(itemActor);
 }
 
 void APlayerControllerMainMap::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 {
+	if (myCharacter->GetArmedWeapon() == itemActor)
+	{
+		DWeaponArmed.ExecuteIfBound(nullptr);
+	}
+	myCharacter->UnEquipItem(itemActor);
 	inventoryComponent->UnequipItem(itemActor);
-	myCharacter->DettachItemActor(itemActor);
 }
 
 void APlayerControllerMainMap::RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj)
@@ -487,6 +511,12 @@ void APlayerControllerMainMap::UpdateHealth(const float health)
 	check(myCharacter);
 	myCharacter->SetHealth(health);
 	DHealthChanged.ExecuteIfBound(myCharacter->GetHealthPercentage());
+}
+
+void APlayerControllerMainMap::SetRowColumn(const int r, const int c)
+{
+	inventoryComponent->SetRowColumn(r, c);
+	GetHUD<AHUDMainMap>()->StartHUD();
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()
