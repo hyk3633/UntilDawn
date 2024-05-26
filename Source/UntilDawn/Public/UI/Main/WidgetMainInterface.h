@@ -15,6 +15,10 @@ class UProgressBar;
 class UUniformGridPanel;
 class APlayerControllerMainMap;
 class UImage;
+class UOverlay;
+class UTextBlock;
+class UItemObject;
+class UItemProjectileWeapon;
 
 UCLASS()
 class UNTILDAWN_API UWidgetMainInterface : public UUserWidget
@@ -33,7 +37,12 @@ protected:
 	void OnCharacterHealthChanged(const float percentage);
 
 	UFUNCTION()
-	void OnChangeEquippedWeapon(UMaterialInstance* matInst);
+	void OnChangeEquippedWeapon(UItemObject* itemObj);
+
+	void SetRangedWeaponUI(TWeakObjectPtr<UItemObject> itemObj);
+
+	UFUNCTION()
+	void AmmoStatusChanged(const uint16 remainedAmount);
 
 private:
 	
@@ -41,12 +50,25 @@ private:
 	UWidgetItemInventory* ItemInventory;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
-	UProgressBar* HealthBar;
+	UProgressBar* HealthProgressBar;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	UImage* EquipmentQuickSlotImage;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UOverlay* AmmoAmountStatus;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UProgressBar* AmmoAmountProgressBar;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UTextBlock* LoadedAmmoAmountText;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UTextBlock* MagazineAmountText;
+
 	TWeakObjectPtr<APlayerControllerMainMap> playerController;
+
+	TWeakObjectPtr<UItemProjectileWeapon> projectileWeaponObj;
 
 };

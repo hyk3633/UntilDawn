@@ -11,6 +11,8 @@
  * 
  */
 
+DECLARE_DELEGATE_OneParam(OnFireWeapon, uint16 loadedAmmo);
+
 class FunctionProjectileShooting;
 
 UCLASS()
@@ -22,6 +24,8 @@ public:
 
 	UItemProjectileWeapon() = default;
 	~UItemProjectileWeapon() = default;
+
+	OnFireWeapon onFireWeapon;
 
 protected:
 
@@ -35,7 +39,9 @@ public:
 
 	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) override;
 
-	bool HasAmmo();
+	uint16 GetMagazineAmount() const { return concreteInfo.magazine; }
+
+	uint16 GetLoadedAmmoAmount() const { return loadedAmmoAmount; }
 
 private:
 
@@ -43,6 +49,6 @@ private:
 
 	FRangedWeaponInfo concreteInfo;
 
-	uint8 loadedAmmoAmount = 0;
+	uint16 loadedAmmoAmount = 0;
 	
 };

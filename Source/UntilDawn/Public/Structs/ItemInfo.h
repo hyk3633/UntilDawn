@@ -15,7 +15,7 @@ public:
 	int itemKey;
 	FString itemName;
 	EItemMainType itemType;
-	uint8 quantity;
+	uint16 quantity;
 	FIntPoint itemGridSize;
 	bool isConsumable;
 

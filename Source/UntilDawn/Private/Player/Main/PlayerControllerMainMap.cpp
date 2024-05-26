@@ -213,7 +213,7 @@ void APlayerControllerMainMap::RKeyPressed()
 		auto itemActor = inventoryComponent->ArmRecentWeapon();
 		if (myCharacter->ArmWeapon(itemActor))
 		{
-			DWeaponArmed.ExecuteIfBound(itemActor->GetItemObject()->GetRotatedIcon());
+			onWeaponArmed.ExecuteIfBound(itemActor->GetItemObject().Get());
 			clientSocket->ArmWeapon(itemActor->GetItemID());
 		}
 	}
@@ -226,7 +226,7 @@ void APlayerControllerMainMap::RKeyHold()
 	{
 		inventoryComponent->DisarmWeapon();
 		clientSocket->DisarmWeapon();
-		DWeaponArmed.ExecuteIfBound(nullptr);
+		onWeaponArmed.ExecuteIfBound(nullptr);
 	}
 }
 
@@ -265,7 +265,7 @@ void APlayerControllerMainMap::WheelRolled()
 		auto changedWeaponActor = inventoryComponent->ChangeWeapon();
 		if (changedWeaponActor.IsValid())
 		{
-			DWeaponArmed.ExecuteIfBound(changedWeaponActor->GetItemObject()->GetRotatedIcon());
+			onWeaponArmed.ExecuteIfBound(changedWeaponActor->GetItemObject().Get());
 			myCharacter->ChangeWeapon(changedWeaponActor);
 			clientSocket->ChangeWeapon(changedWeaponActor->GetItemID());
 		}
@@ -401,7 +401,7 @@ void APlayerControllerMainMap::UnequipItemAndAddToInventory(TWeakObjectPtr<AItem
 {
 	if (myCharacter->GetArmedWeapon() == itemActor)
 	{
-		DWeaponArmed.ExecuteIfBound(nullptr);
+		onWeaponArmed.ExecuteIfBound(nullptr);
 	}
 	myCharacter->UnEquipItem(itemActor);
 	inventoryComponent->UnequipItem(itemActor);
@@ -412,7 +412,7 @@ void APlayerControllerMainMap::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 {
 	if (myCharacter->GetArmedWeapon() == itemActor)
 	{
-		DWeaponArmed.ExecuteIfBound(nullptr);
+		onWeaponArmed.ExecuteIfBound(nullptr);
 	}
 	myCharacter->UnEquipItem(itemActor);
 	inventoryComponent->UnequipItem(itemActor);

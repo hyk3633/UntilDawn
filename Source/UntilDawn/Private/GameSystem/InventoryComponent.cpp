@@ -201,8 +201,7 @@ bool UInventoryComponent::IsWeaponUsable()
 	{
 		if (armedWeapon->GetItemType() == EItemMainType::RangedWeapon)
 		{
-			TWeakObjectPtr<UItemProjectileWeapon> rangedWeapon = Cast<UItemProjectileWeapon>(armedWeapon->GetItemObject());
-			if (rangedWeapon->HasAmmo())
+			if (GetItemObjectOfType(EItemMainType::AmmoItem).IsValid())
 			{
 				return true;
 			}

@@ -28,7 +28,7 @@ DECLARE_DELEGATE(DelegateEKeyPressed);
 DECLARE_DELEGATE(DelegateIKeyPressed);
 DECLARE_DELEGATE_TwoParams(DelegateEquipItem, UItemObject* itemObj, const int boxNumber);
 DECLARE_DELEGATE_OneParam(DelegateHealthChanged, float healthPercentage);
-DECLARE_DELEGATE_OneParam(DelegateWeaponArmed, UMaterialInstance* weaponIcon);
+DECLARE_DELEGATE_OneParam(OnWeaponArmed, UItemObject* itemObj);
 
 
 UCLASS()
@@ -46,7 +46,7 @@ public:
 	DelegateIKeyPressed DIKeyPressed;
 	DelegateEquipItem DEquipItem;
 	DelegateHealthChanged DHealthChanged;
-	DelegateWeaponArmed DWeaponArmed;
+	OnWeaponArmed onWeaponArmed;
 
 protected:
 

@@ -68,7 +68,7 @@ public:
 
 	void SetItemQuantity(const uint8 quantity);
 
-	FORCEINLINE uint8 GetItemQuantity() const { return itemInfo.quantity; }
+	FORCEINLINE uint16 GetItemQuantity() const { return itemInfo.quantity; }
 
 	void SetOwnerController(TWeakObjectPtr<APlayerControllerMainMap> controller);
 

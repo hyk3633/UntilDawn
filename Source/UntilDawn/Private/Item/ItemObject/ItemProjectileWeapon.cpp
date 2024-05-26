@@ -22,14 +22,17 @@ void UItemProjectileWeapon::Reload()
 {
 	auto itemObj = GetOwnerController()->GetItemObjectOfType(EItemMainType::AmmoItem);
 	TWeakObjectPtr<UItemAmmo> ammoItemObj = Cast<UItemAmmo>(itemObj);
-	check(ammoItemObj.IsValid());
+	if (ammoItemObj.IsValid() == false)
+		return;
 
-	uint8 neededAmmo = StaticCast<uint8>(concreteInfo.magazine) - loadedAmmoAmount;
+	uint16 neededAmmo = StaticCast<uint16>(concreteInfo.magazine) - loadedAmmoAmount;
 	if (neededAmmo)
 	{
 		neededAmmo = FMath::Min(neededAmmo, ammoItemObj->GetItemQuantity());
 		loadedAmmoAmount += neededAmmo;
 		ammoItemObj->Using(neededAmmo);
+
+		onFireWeapon.ExecuteIfBound(loadedAmmoAmount);
 		
 		// 재장전 애니메이션
 	}
@@ -47,25 +50,7 @@ void UItemProjectileWeapon::Using(USkeletalMeshComponent* itemMesh)
 		{
 			shootingFunction->Shooting(GetOwnerController(), itemMesh);
 			loadedAmmoAmount--;
+			onFireWeapon.ExecuteIfBound(loadedAmmoAmount);
 		}
 	}
-}
-
-bool UItemProjectileWeapon::HasAmmo()
-{
-	if (loadedAmmoAmount)
-	{
-		return true;
-	}
-	else
-	{
-		auto itemObj = GetOwnerController()->GetItemObjectOfType(EItemMainType::AmmoItem);
-		TWeakObjectPtr<UItemAmmo> ammoItemObj = Cast<UItemAmmo>(itemObj);
-		if (ammoItemObj.IsValid())
-		{
-			return true;
-		}
-	}
-
-	return false;
 }

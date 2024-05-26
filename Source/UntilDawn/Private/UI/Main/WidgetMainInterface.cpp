@@ -7,8 +7,12 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "Components/Image.h"
+#include "Components/Overlay.h"
+#include "Components/TextBlock.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
+#include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemProjectileWeapon.h"
 
 void UWidgetMainInterface::InitializeWidget()
 {
@@ -17,8 +21,11 @@ void UWidgetMainInterface::InitializeWidget()
 
 	playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
 	playerController->DHealthChanged.BindUFunction(this, FName("OnCharacterHealthChanged"));
-	playerController->DWeaponArmed.BindUFunction(this, FName("OnChangeEquippedWeapon"));
-	HealthBar->SetPercent(1.f);
+	playerController->onWeaponArmed.BindUFunction(this, FName("OnChangeEquippedWeapon"));
+
+	HealthProgressBar->SetPercent(1.f);
+	EquipmentQuickSlotImage->SetVisibility(ESlateVisibility::Hidden);
+	AmmoAmountStatus->SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UWidgetMainInterface::ToggleInventoryUI()
@@ -44,10 +51,64 @@ void UWidgetMainInterface::ToggleInventoryUI()
 
 void UWidgetMainInterface::OnCharacterHealthChanged(const float percentage)
 {
-	HealthBar->SetPercent(percentage);
+	HealthProgressBar->SetPercent(percentage);
 }
 
-void UWidgetMainInterface::OnChangeEquippedWeapon(UMaterialInstance* matInst)
+void UWidgetMainInterface::OnChangeEquippedWeapon(UItemObject* itemObj)
 {
-	EquipmentQuickSlotImage->SetBrushFromMaterial(matInst);
+	TWeakObjectPtr<UItemObject> itemObjPtr = itemObj;
+	if (itemObjPtr.IsValid())
+	{
+		EquipmentQuickSlotImage->SetVisibility(ESlateVisibility::Visible);
+		EquipmentQuickSlotImage->SetBrushFromMaterial(itemObjPtr->GetRotatedIcon());
+
+		SetRangedWeaponUI(itemObjPtr);
+	}
+	else
+	{
+		EquipmentQuickSlotImage->SetVisibility(ESlateVisibility::Hidden);
+		EquipmentQuickSlotImage->SetBrushFromMaterial(nullptr);
+	}
+}
+
+void UWidgetMainInterface::SetRangedWeaponUI(TWeakObjectPtr<UItemObject> itemObj)
+{
+	if (projectileWeaponObj.IsValid())
+	{
+		AmmoAmountStatus->SetVisibility(ESlateVisibility::Hidden);
+		projectileWeaponObj->onFireWeapon.Unbind();
+		projectileWeaponObj.Reset();
+	}
+	TWeakObjectPtr<UItemProjectileWeapon> newProjectileWeaponObj = Cast<UItemProjectileWeapon>(itemObj);
+	if (newProjectileWeaponObj.IsValid())
+	{
+		newProjectileWeaponObj->onFireWeapon.BindUFunction(this, FName("AmmoStatusChanged"));
+		projectileWeaponObj = newProjectileWeaponObj;
+
+		const auto magazineAmount = newProjectileWeaponObj->GetMagazineAmount();
+		const auto remainedAmmoAmount = newProjectileWeaponObj->GetLoadedAmmoAmount();
+
+		MagazineAmountText->SetText(FText::FromString(FString::FromInt(magazineAmount)));
+		LoadedAmmoAmountText->SetText(FText::FromString(FString::FromInt(remainedAmmoAmount)));
+		AmmoAmountProgressBar->SetPercent(StaticCast<float>(remainedAmmoAmount) / magazineAmount);
+
+		AmmoAmountStatus->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void UWidgetMainInterface::AmmoStatusChanged(const uint16 remainedAmount)
+{
+	if (projectileWeaponObj.IsValid())
+	{
+		const auto magazineAmount = projectileWeaponObj->GetMagazineAmount();
+		const auto remainedAmmoAmount = projectileWeaponObj->GetLoadedAmmoAmount();
+
+		MagazineAmountText->SetText(FText::FromString(FString::FromInt(magazineAmount)));
+		LoadedAmmoAmountText->SetText(FText::FromString(FString::FromInt(remainedAmmoAmount)));
+		AmmoAmountProgressBar->SetPercent(StaticCast<float>(remainedAmmoAmount) / StaticCast<float>(magazineAmount));
+	}
+	else
+	{
+		projectileWeaponObj.Reset();
+	}
 }
