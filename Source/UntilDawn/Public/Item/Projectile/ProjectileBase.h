@@ -37,6 +37,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	void SetAttackPower(const float atkPower);
+
 private:
 
 	UPROPERTY(EditDefaultsOnly)
@@ -54,4 +56,6 @@ private:
 	bool isActive;
 
 	FTimerHandle deactivateTimer;
+
+	float attackPower;
 };

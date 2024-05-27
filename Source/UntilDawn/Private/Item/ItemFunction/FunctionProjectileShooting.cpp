@@ -46,7 +46,7 @@ FVector FunctionProjectileShooting::GetAimLocaion(TWeakObjectPtr<APlayerControll
 	}
 }
 
-void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh)
+void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh, const float atkPower)
 {
 	check(attackerController.IsValid());
 
@@ -61,6 +61,7 @@ void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerControllerMainMa
 	check(projectile.IsValid());
 
 	projectile->SetOwner(attackerController.Get());
+	projectile->SetAttackPower(atkPower);
 	projectile->SetActorLocation(projectileLocation);
 	projectile->SetActorRotation(direction.Rotation());
 	projectile->ActivateActor();

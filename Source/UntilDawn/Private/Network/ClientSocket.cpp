@@ -198,15 +198,15 @@ void ClientSocket::DropInventoryItem(const FString itemID)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendHittedCharacters(TArray<TPair<int, bool>>& hittedCharacters)
+void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const float atkPower)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";
 	sendStream << hittedCharacters.Num() << "\n";
-	for (auto& pair : hittedCharacters)
+	sendStream << atkPower << "\n";
+	for (auto& hitInfo : hittedCharacters)
 	{
-		sendStream << pair.Key << "\n";
-		sendStream << pair.Value << "\n";
+		sendStream << hitInfo;
 	}
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }

@@ -14,7 +14,7 @@ FunctionMeleeAttack::~FunctionMeleeAttack()
 {
 }
 
-void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh)
+void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh, const float stkPower)
 {
 	check(attackerController.IsValid());
 
@@ -27,7 +27,7 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 	(
 		attackerController.Get(),
 		collisionLocation,
-		collisionLocation,
+		collisionLocation + FVector(0, 0, 1),
 		12,
 		UEngineTypes::ConvertToTraceType(ECC_PlayerAttack),
 		false,
@@ -36,9 +36,9 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 		hits,
 		true
 	);
-
+	
 	if (hits.Num())
 	{
-		attackerController->SendHittedCharacters(hits);
+		attackerController->SendHittedCharacters(hits, stkPower);
 	}
 }

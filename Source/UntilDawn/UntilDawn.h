@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include <fstream>
 #include "CoreMinimal.h"
+
+using std::ostream;
+using std::istream;
 
 #define CALLINFO			(FString(__FUNCTION__) + TEXT("(")+FString::FromInt(__LINE__) + TEXT(")")) 
 

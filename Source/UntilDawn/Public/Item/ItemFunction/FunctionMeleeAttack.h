@@ -20,6 +20,6 @@ protected:
 
 public:
 
-	void MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh);
+	void MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh, const float stkPower);
 
 };

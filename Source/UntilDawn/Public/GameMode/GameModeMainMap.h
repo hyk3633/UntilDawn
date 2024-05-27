@@ -9,6 +9,7 @@
 #include "Structs/PossessedItem.h"
 #include "Structs/EquippedItem.h"
 #include "Structs/PlayerStatus.h"
+#include "Structs/HitInfo.h"
 #include "Enums/PacketType.h"
 #include <unordered_map>
 #include <sstream>
@@ -93,7 +94,7 @@ protected:
 
 	void PlayerUseItem(std::stringstream& recvStream);
 
-	void UpdatePlayerStatus(std::stringstream& recvStream);
+	void UpdateCharacterHealth(std::stringstream& recvStream);
 
 	void InitializePlayerInitialInfo(std::stringstream& recvStream);
 
@@ -102,6 +103,8 @@ protected:
 	void PlayerArmWeapon(std::stringstream& recvStream);
 
 	void PlayerDisarmWeapon(std::stringstream& recvStream);
+
+	void ProcessAttackResult(std::stringstream& recvStream);
 
 public:
 

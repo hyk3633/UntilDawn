@@ -48,7 +48,7 @@ void UItemProjectileWeapon::Using(USkeletalMeshComponent* itemMesh)
 		}
 		if (loadedAmmoAmount)
 		{
-			shootingFunction->Shooting(GetOwnerController(), itemMesh);
+			shootingFunction->Shooting(GetOwnerController(), itemMesh, concreteInfo.attackPower);
 			loadedAmmoAmount--;
 			onFireWeapon.ExecuteIfBound(loadedAmmoAmount);
 		}

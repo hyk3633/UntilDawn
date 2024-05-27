@@ -10,6 +10,7 @@
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "UntilDawn/UntilDawn.h"
 #include "Structs/CharacterInfo.h"
+#include "Structs/HitInfo.h"
 #include "CoreMinimal.h"
 
 /**
@@ -56,7 +57,7 @@ public:
 
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacters(TArray<TPair<int, bool>>& hittedCharacters);
+	void SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const float atkPower);
 
 	void SendRespawnRequest();
 

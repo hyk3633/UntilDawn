@@ -17,5 +17,5 @@ void UItemMeleeWeapon::MakeItemFunction()
 
 void UItemMeleeWeapon::Using(USkeletalMeshComponent* itemMesh)
 {
-	meleeAttackFunction->MeleeAttack(GetOwnerController(), itemMesh);
+	meleeAttackFunction->MeleeAttack(GetOwnerController(), itemMesh, concreteInfo.attackPower);
 }

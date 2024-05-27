@@ -441,10 +441,10 @@ void APlayerControllerMainMap::DropInventoryItem(const FString itemID)
 	clientSocket->DropInventoryItem(itemID);
 }
 
-void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits)
+void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits, const float atkPower)
 {
 	check(clientSocket);
-	TArray<TPair<int, bool>> hittedCharacters;
+	TArray<FHitInfo> hittedCharacters;
 	for (auto& hit : hits)
 	{
 		if (hit.bBlockingHit == false)
@@ -452,22 +452,20 @@ void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits)
 		TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(hit.GetActor());
 		if (player.IsValid())
 		{
-			// 플레이어인 경우 구분하는 flag를 true로
-			hittedCharacters.Add(TPair<int, bool>(player->GetPlayerNumber(), true));
+			hittedCharacters.Add(FHitInfo{ player->GetPlayerNumber(), true , hit.ImpactPoint, hit.ImpactNormal.Rotation()});
 		}
 		else
 		{
 			TWeakObjectPtr<AZombieCharacter> zombie = Cast<AZombieCharacter>(hit.GetActor());
 			if (zombie.IsValid())
 			{
-				// 좀비인 경우 구분하는 flag를 false로
-				hittedCharacters.Add(TPair<int, bool>(zombie->GetNumber(), false));
+				hittedCharacters.Add(FHitInfo{ zombie->GetNumber(), false , hit.ImpactPoint, hit.ImpactNormal.Rotation() });
 			}
 		}
 	}
 	if (hittedCharacters.Num())
 	{
-		clientSocket->SendHittedCharacters(hittedCharacters);
+		clientSocket->SendHittedCharacters(hittedCharacters, atkPower);
 	}
 }
 

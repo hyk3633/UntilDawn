@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Structs/CharacterInfo.h"
 #include "Structs/Tile.h"
+#include "Structs/HitInfo.h"
 #include "Enums/PlayerInputs.h"
 #include "Enums/PermanentItemType.h"
 #include "PlayerControllerMainMap.generated.h"
@@ -143,7 +144,7 @@ public:
 
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacters(TArray<FHitResult>& hits);
+	void SendHittedCharacters(TArray<FHitResult>& hits, const float atkPower);
 
 	void PlayerDead();
 

@@ -45,6 +45,9 @@ AZombieCharacter::AZombieCharacter()
 	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
 	healthWidget->SetupAttachment(RootComponent);
 	healthWidget->SetVisibility(false);
+	healthWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	healthWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	healthWidget->SetDrawSize(FVector2D(180.f, 30.f));
 	static ConstructorHelpers::FClassFinder<UWidgetZombieHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_ZombieHealthWidget.WBP_ZombieHealthWidget_C'"));
 	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
 }
@@ -54,6 +57,7 @@ void AZombieCharacter::ActivateActor()
 	isActive = true;
 	GetCapsuleComponent()->SetCollisionProfileName(FName("ActivatedZombieCapsule"));
 	GetMesh()->SetVisibility(true);
+	healthWidgetObject->InitializeProgressBar();
 }
 
 void AZombieCharacter::DeactivateActor()
@@ -157,6 +161,10 @@ void AZombieCharacter::BeginPlay()
 	
 	animInst = Cast<UZombieAnimInstance>(GetMesh()->GetAnimInstance());
 	//if (animInst) animInst->SetMyCharacter(this);
+
+	healthWidgetObject = Cast<UWidgetZombieHealth>(healthWidget->GetWidget());
+	check(healthWidgetObject.IsValid());
+	healthWidgetObject->InitHealthWidget(this);
 }
 
 void AZombieCharacter::Tick(float DeltaTime)
@@ -313,5 +321,25 @@ void AZombieCharacter::SetAttackToPlayerResult(const bool result)
 	{
 		targetPlayer->SetAttackResult(result, number);
 	}
+}
+
+void AZombieCharacter::UpdateHealth(const float newHealth)
+{
+	health = newHealth;
+	onHealthChanged.ExecuteIfBound(health / maxHealth);
+	healthWidget->SetVisibility(true);
+	if (health)
+	{
+		GetWorldTimerManager().SetTimer(healthWidgetHideTimer, this, &AZombieCharacter::HideHealthWidget, 10.f);
+	}
+	else
+	{
+		GetWorldTimerManager().ClearTimer(healthWidgetHideTimer);
+	}
+}
+
+void AZombieCharacter::HideHealthWidget()
+{
+	healthWidget->SetVisibility(false);
 }
 

@@ -24,6 +24,6 @@ protected:
 
 public:
 
-	void Shooting(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh);
+	void Shooting(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh, const float atkPower);
 
 };

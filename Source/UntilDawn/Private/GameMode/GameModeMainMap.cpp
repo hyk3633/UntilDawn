@@ -64,11 +64,12 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::PLAYEREQUIPMENT]		= &AGameModeMainMap::InitializePlayerEquippedItems;
 	packetCallbacks[EPacketType::PROJECTILE]			= &AGameModeMainMap::ReceiveReplicatedProjectile;
 	packetCallbacks[EPacketType::USINGITEM]				= &AGameModeMainMap::PlayerUseItem;
-	packetCallbacks[EPacketType::PLAYERSTATUS]			= &AGameModeMainMap::UpdatePlayerStatus;
+	packetCallbacks[EPacketType::HEALTH_CHANGED]		= &AGameModeMainMap::UpdateCharacterHealth;
 	packetCallbacks[EPacketType::PLAYERINITIALINFO]		= &AGameModeMainMap::InitializePlayerInitialInfo;
 	packetCallbacks[EPacketType::CHANGE_WEAPON]			= &AGameModeMainMap::PlayerChangeWeapon;
 	packetCallbacks[EPacketType::ARM_WEAPON]			= &AGameModeMainMap::PlayerArmWeapon;
 	packetCallbacks[EPacketType::DISARM_WEAPON]			= &AGameModeMainMap::PlayerDisarmWeapon;
+	packetCallbacks[EPacketType::ATTACKRESULT]			= &AGameModeMainMap::ProcessAttackResult;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -582,19 +583,31 @@ void AGameModeMainMap::PlayerUseItem(std::stringstream& recvStream)
 	itemManager->OtherPlayerUseItem(playerCharacterMap[playerNumber], fItemID, consumedAmount);
 }
 
-void AGameModeMainMap::UpdatePlayerStatus(std::stringstream& recvStream)
+void AGameModeMainMap::UpdateCharacterHealth(std::stringstream& recvStream)
 {
-	int playerNumber = -1;
-	PlayerStatus status;
-	recvStream >> playerNumber >> status;
+	int size = 0, characterNumber = -1;
+	bool isPlayer = false;
+	float health = 0;
+	recvStream >> size;
 
-	if (playerNumber == myNumber)
+	for (int i = 0; i < size; i++)
 	{
-		myController->UpdateHealth(status.health);
-	}
-	else
-	{
-		playerCharacterMap[playerNumber]->SetHealth(status.health);
+		recvStream >> characterNumber >> isPlayer >> health;
+		if (isPlayer)
+		{
+			if (characterNumber == myNumber)
+			{
+				myController->UpdateHealth(health);
+			}
+			else
+			{
+				playerCharacterMap[characterNumber]->SetHealth(health);
+			}
+		}
+		else
+		{
+			zombieCharacterMap[characterNumber]->UpdateHealth(health);
+		}
 	}
 }
 
@@ -639,6 +652,18 @@ void AGameModeMainMap::PlayerDisarmWeapon(std::stringstream& recvStream)
 	int playerNumber = -1;
 	recvStream >> playerNumber;
 	playerCharacterMap[playerNumber]->DisarmWeapon();
+}
+
+void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
+{
+	int size = 0;
+	recvStream >> size;
+
+	FHitInfo hitInfo;
+	for (int i = 0; i < size; i++)
+	{
+		recvStream >> hitInfo;
+	}
 }
 
 void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem)

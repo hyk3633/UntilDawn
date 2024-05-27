@@ -11,6 +11,7 @@
  */
 
 class UProgressBar;
+class AZombieCharacter;
 
 UCLASS()
 class UNTILDAWN_API UWidgetZombieHealth : public UUserWidget
@@ -19,6 +20,14 @@ class UNTILDAWN_API UWidgetZombieHealth : public UUserWidget
 
 public:
 
+	void InitHealthWidget(TWeakObjectPtr<AZombieCharacter> zombieCharacter);
+
+	void InitializeProgressBar();
+
+protected:
+
+	UFUNCTION()
+	void SetProgressPercentage(const float percentage);
 
 private:
 

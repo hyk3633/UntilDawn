@@ -63,6 +63,8 @@ void AProjectileBase::DeactivateActor()
 	movementComponent->Deactivate();
 
 	isActive = false;
+
+	attackPower = 0.f;
 }
 
 bool AProjectileBase::IsActorActivated()
@@ -79,13 +81,14 @@ void AProjectileBase::BeginPlay()
 
 void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	check(attackPower >= 0.f);
 	TWeakObjectPtr<APlayerControllerMainMap> owner = Cast<APlayerControllerMainMap>(GetOwner());
 	if (owner.IsValid())
 	{		
 		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
 		TArray<FHitResult> hits;
 		hits.Add(Hit);
-		owner->SendHittedCharacters(hits);
+		owner->SendHittedCharacters(hits, attackPower);
 	}
 }
 
@@ -98,6 +101,11 @@ void AProjectileBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AProjectileBase::SetAttackPower(const float atkPower)
+{
+	attackPower = atkPower;
 }
 
 

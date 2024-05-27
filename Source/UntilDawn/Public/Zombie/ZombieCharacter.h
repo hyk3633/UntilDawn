@@ -13,6 +13,9 @@
 class UZombieAnimInstance;
 class APlayerCharacter;
 class UWidgetComponent;
+class UWidgetZombieHealth;
+
+DECLARE_DELEGATE_OneParam(OnHealthChanged, float healthPercentage);
 
 UCLASS()
 class UNTILDAWN_API AZombieCharacter : public ACharacter, public IPoolableActor
@@ -32,6 +35,8 @@ public:
 	void SetZombieInfo(const ZombieInfo& info);
 
 	void ZombieDead();
+
+	OnHealthChanged onHealthChanged;
 
 protected:
 
@@ -83,6 +88,12 @@ public:
 
 	void SetAttackToPlayerResult(const bool result);
 
+	void UpdateHealth(const float newHealth);
+
+protected:
+
+	void HideHealthWidget();
+
 private:
 
 	UPROPERTY()
@@ -90,6 +101,12 @@ private:
 
 	UPROPERTY()
 	UWidgetComponent* healthWidget;
+
+	TWeakObjectPtr<UWidgetZombieHealth> healthWidgetObject;
+
+	float health = 200;
+
+	float maxHealth = 200;
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	bool isActive;
@@ -115,5 +132,7 @@ private:
 	int16 damage = 30;
 
 	FTimerHandle deactivateDelayTimer;
+
+	FTimerHandle healthWidgetHideTimer;
 
 };
