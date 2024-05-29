@@ -19,6 +19,9 @@ void UWidgetItemInventory::InitializeWidget()
 
 void UWidgetItemInventory::ItemDrop(UDragDropOperation* operation)
 {
+	if (IsValid(operation) == false || IsValid(operation->Payload) == false)
+		return;
+
 	if (InventoryGrid->GetIsCursorInArea() == false && EquipmentWindow->GetIsCursorInArea() == false)
 	{
 		TWeakObjectPtr<UItemObject> itemObj = Cast<UItemObject>(operation->Payload);

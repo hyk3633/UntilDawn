@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
-#include "../Enums/PermanentItemType.h"
+#include "../Enums/WeaponType.h"
+#include "../Enums/ArmourSlot.h"
 #include "Structs/CharacterInfo.h"
 #include "Structs/Tile.h"
 #include "PlayerCharacter.generated.h"
@@ -74,15 +75,15 @@ public:
 
 	bool CheckAbleInput();
 
-	bool LeftClick(const EPermanentItemType weaponType);
+	bool LeftClick(const EWeaponType weaponType);
 
-	bool LeftClickHold(const EPermanentItemType weaponType);
+	bool LeftClickHold(const EWeaponType weaponType);
 
-	bool LeftClickEnd(const EPermanentItemType weaponType);
+	bool LeftClickEnd(const EWeaponType weaponType);
 
-	bool RightClick(const EPermanentItemType weaponType);
+	bool RightClick(const EWeaponType weaponType);
 
-	bool RightClickEnd(const EPermanentItemType weaponType);
+	bool RightClickEnd(const EWeaponType weaponType);
 
 	bool ArmWeapon(TWeakObjectPtr<AItemBase> itemActor);
 
@@ -120,9 +121,9 @@ public:
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
 	FORCEINLINE const bool GetRightClick() const { return rightClick; }
 
-	EPermanentItemType GetCurrentWeaponType() const;
+	EWeaponType GetCurrentWeaponType() const;
 
-	void SetCurrentWeaponType(const EPermanentItemType weaponType);
+	void SetCurrentWeaponType(const EWeaponType weaponType);
 
 	FORCEINLINE CharacterInfo& GetPlayerInfo() { return myInfo; }
 
@@ -196,6 +197,18 @@ private:
 	UPROPERTY()
 	UPlayerAnimInst* animInst;
 
+	UPROPERTY()
+	USkeletalMeshComponent* HeadMeshComponent;
+
+	UPROPERTY()
+	USkeletalMeshComponent* TopMeshComponent;
+
+	UPROPERTY()
+	USkeletalMeshComponent* BottomMeshComponent;
+
+	UPROPERTY()
+	USkeletalMeshComponent* FootMeshComponent;
+
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* defaultMappingContext;
 
@@ -242,7 +255,7 @@ private:
 
 	float maxHealth;
 
-	EPermanentItemType currentWeaponType = EPermanentItemType::NONE;
+	EWeaponType currentWeaponType = EWeaponType::NONE;
 
 	FTimerHandle healthWidgetDeacitvateTimer;
 

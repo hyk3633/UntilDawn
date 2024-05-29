@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "../Enums/ItemType.h"
-#include "../Enums/PermanentItemType.h"
+#include "../Enums/WeaponType.h"
 #include "../Structs/ItemInfo.h"
 #include "../Structs/ItemAsset.h"
 #include "../Structs/PossessedItem.h"
@@ -38,9 +38,9 @@ protected:
 
 public:
 
-	TWeakObjectPtr<UItemObject> CreatePlayersPossessedItem(const PossessedItem& possessed);
+	TWeakObjectPtr<UItemObject> GetPlayersPossessedItem(const PossessedItem& possessed);
 
-	TWeakObjectPtr<AItemBase> CreatePlayersEquippedItem(const EquippedItem& equipped);
+	TWeakObjectPtr<AItemBase> GetPlayersEquippedItem(const EquippedItem& equipped);
 
 	void SpawnItem(const FString& itemID, const int itemKey, const FVector location);
 

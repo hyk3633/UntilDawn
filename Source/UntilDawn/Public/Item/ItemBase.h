@@ -36,7 +36,9 @@ public:
 
 	virtual bool IsActorActivated() override;
 
-	void ActivateEquipMode();
+	void ActivateFieldMode();
+
+	void ActivateEquipMode(const EItemMainType itemType);
 
 	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
 

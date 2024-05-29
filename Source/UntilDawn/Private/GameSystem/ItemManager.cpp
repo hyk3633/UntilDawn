@@ -9,6 +9,7 @@
 #include "Item/ItemObject/ItemMeleeWeapon.h"
 #include "Item/ItemObject/ItemRecovery.h"
 #include "Item/ItemObject/ItemAmmo.h"
+#include "Item/ItemObject/ItemArmour.h"
 #include "Player/PlayerCharacter.h"
 #include "GameSystem/JsonParser.h"
 #include "Engine/DataTable.h"
@@ -41,18 +42,37 @@ FItemAsset UItemManager::GetItemAssetMap(const int itemKey)
 	return *itemAsset;
 }
 
-TWeakObjectPtr<UItemObject> UItemManager::CreatePlayersPossessedItem(const PossessedItem& possessed)
+TWeakObjectPtr<UItemObject> UItemManager::GetPlayersPossessedItem(const PossessedItem& possessed)
 {
-	auto itemObj = CreateItemObject(FString(UTF8_TO_TCHAR(possessed.itemID.c_str())) , possessed.itemKey);
+	const FString itemID = FString(UTF8_TO_TCHAR(possessed.itemID.c_str()));
+	auto itemObj = GetItemObject(itemID);
+	if (itemObj.IsValid() == false)
+	{
+		itemObj = CreateItemObject(itemID, possessed.itemKey);
+	}
 	itemObj->SetItemQuantity(possessed.quantity);
-	if (possessed.isRotated) itemObj->Rotate();
+	ItemPickedUp(itemID);
+	if (possessed.isRotated)
+	{
+		itemObj->Rotate();
+	}
 	return itemObj;
 }
 
-TWeakObjectPtr<AItemBase> UItemManager::CreatePlayersEquippedItem(const EquippedItem& equipped)
+TWeakObjectPtr<AItemBase> UItemManager::GetPlayersEquippedItem(const EquippedItem& equipped)
 {
-	auto itemObj = CreateItemObject(FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), equipped.itemKey);
-	TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(itemPooler->GetPooledActor());
+	const FString itemID = FString(UTF8_TO_TCHAR(equipped.itemID.c_str()));
+
+	auto itemActor = GetItemActorInField(itemID);
+	if (itemActor.IsValid())
+		return itemActor;
+
+	auto itemObj = GetItemObject(itemID);
+	if (itemObj.IsValid() == false)
+	{
+		itemObj = CreateItemObject(itemID, equipped.itemKey);
+	}
+	itemActor = Cast<AItemBase>(itemPooler->GetPooledActor());
 	itemActor->SetItemObject(itemObj);
 	return itemActor;
 }
@@ -71,7 +91,7 @@ void UItemManager::SpawnItem(const FString& itemID, const int itemKey, const FVe
 	TWeakObjectPtr<AItemBase> itemActor = Cast<AItemBase>(actor);
 	check(itemActor.IsValid());
 	itemActor->SetItemObject(itemObj);
-	itemActor->ActivateActor();
+	itemActor->ActivateFieldMode();
 	itemActor->SetActorLocation(location);
 
 	itemActorMap.Add(itemID, itemActor.Get());
@@ -104,6 +124,8 @@ UItemObject* UItemManager::NewItemObject(const EItemMainType itemType)
 			return NewObject<UItemRecovery>(GetWorld());
 		case EItemMainType::AmmoItem:
 			return NewObject<UItemAmmo>(GetWorld());
+		case EItemMainType::ArmourItem:
+			return NewObject<UItemArmour>(GetWorld());
 		default:
 			return nullptr;
 	}
@@ -160,7 +182,6 @@ TWeakObjectPtr<AItemBase> UItemManager::GetItemActor(TWeakObjectPtr<UItemObject>
 	if (itemActor.IsValid())
 	{
 		itemActor->SetItemObject(itemObj);
-		itemActor->ActivateEquipMode();
 		itemActorMap.Add(itemObj->GetItemID(), itemActor);
 		return itemActor;
 	}
@@ -183,7 +204,6 @@ TWeakObjectPtr<AItemBase> UItemManager::GetItemActorInField(const FString& itemI
 void UItemManager::ItemEquipped(const int playerNumber, const FString& itemID, TWeakObjectPtr<AItemBase> itemActor)
 {
 	itemActorMap.Add(itemID, itemActor);
-	itemActor->ActivateEquipMode();
 	AddToPossessedItemsMap(playerNumber, itemActor);
 }
 
@@ -242,7 +262,6 @@ TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> dro
 
 void UItemManager::DestroyItem(const FString& itemID)
 {
-	// tweakobject로 파괴되었는지 체크
 	itemObjectMap[itemID]->MarkAsGarbage();
 	itemObjectMap.Remove(itemID);
 }

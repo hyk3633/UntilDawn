@@ -56,7 +56,7 @@ public:
 
 	FORCEINLINE FString GetItemID() const { return itemID; }
 
-	FORCEINLINE int GetItemType() const { return static_cast<int>(itemInfo.itemType); }
+	FORCEINLINE EItemMainType GetItemType() const { return itemInfo.itemType; }
 
 	FORCEINLINE bool GetIsConsumable() const { return itemInfo.isConsumable; }
 

@@ -73,19 +73,16 @@ bool UInventoryComponent::IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj
 				{
 					if (result.Value.IsValid() && result.Value != newItemObj)
 					{
-						WLOG(TEXT("item obj"));
 						return false;
 					}
 				}
 				else
 				{
-					WLOG(TEXT("invalid index"));
 					return false;
 				}
 			}
 			else
 			{
-				WLOG(TEXT("invalid tile"));
 				return false;
 			}
 		}
@@ -143,11 +140,11 @@ void UInventoryComponent::RemoveItemGrid(TWeakObjectPtr<UItemObject> removedItem
 	}
 }
 
-void UInventoryComponent::RemoveEquipmentItem(const int slotNumber, const EEquipmentBox boxType)
+void UInventoryComponent::RemoveEquipmentItem(const int slotNumber, const EEquipmentSlot slotType)
 {
-	switch (boxType)
+	switch (slotType)
 	{
-	case EEquipmentBox::Weapon:
+	case EEquipmentSlot::Weapon:
 		if (equippedItems.IsValidIndex(slotNumber))
 		{
 			equippedItems[slotNumber].Reset();
@@ -239,14 +236,14 @@ TWeakObjectPtr<AItemBase> UInventoryComponent::ArmRecentWeapon()
 	return nullptr;
 }
 
-EPermanentItemType UInventoryComponent::GetCurrentWeaponType() const
+EWeaponType UInventoryComponent::GetCurrentWeaponType() const
 {
 	if (armedWeapon.IsValid())
 	{
 		auto permanentItem = Cast<UItemPermanent>(armedWeapon->GetItemObject());
-		return permanentItem->GetPermanentItemType();
+		return StaticCast<EWeaponType>(permanentItem->GetItemSubType());
 	}
-	return EPermanentItemType::NONE;
+	return EWeaponType::NONE;
 }
 
 void UInventoryComponent::DisarmWeapon()
@@ -278,7 +275,7 @@ TWeakObjectPtr<UItemObject> UInventoryComponent::GetItemObjectOfType(const EItem
 {
 	for (auto& pair : items)
 	{
-		if (StaticCast<EItemMainType>(pair.Key->GetItemType()) == itemType)
+		if (pair.Key->GetItemType() == itemType)
 			return pair.Key;
 	}
 	return nullptr;

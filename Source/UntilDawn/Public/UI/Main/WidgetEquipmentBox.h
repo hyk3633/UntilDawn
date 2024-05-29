@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "../../Enums/ItemType.h"
-#include "../../Enums/PermanentItemType.h"
-#include "../../Enums/EquipmentBox.h"
+#include "../../Enums/WeaponType.h"
+#include "../../Enums/EquipmentSlot.h"
 #include "WidgetEquipmentBox.generated.h"
 
 /**
@@ -21,7 +21,7 @@ class UItemObject;
 class UWidgetDragVisual;
 class UInventoryComponent;
 
-DECLARE_DELEGATE_TwoParams(DelegateOnEquipmentRemoved, int slotNumber, EEquipmentBox boxType);
+DECLARE_DELEGATE_TwoParams(DelegateOnEquipmentRemoved, int slotNumber, EEquipmentSlot slotType);
 
 UCLASS()
 class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
@@ -31,7 +31,7 @@ class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
 public:
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EPermanentItemType newEquipmentType, const EEquipmentBox newBoxType, const float size);
+	void InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType mainType, const uint8 subType, const EEquipmentSlot newSlotType, const float size);
 	
 	UFUNCTION(BlueprintCallable)
 	void OnDropCalled(UDragDropOperation* operation);
@@ -93,9 +93,11 @@ private:
 	FVector2D widgetSize;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true", BindWidget))
-	EPermanentItemType equipmentType;
+	EItemMainType equipmentMainType;
 
-	EEquipmentBox boxType;
+	uint8 equipmentSubType;
+
+	EEquipmentSlot slotType;
 	
 	int number;
 

@@ -11,10 +11,10 @@
 
 void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, const float size)
 {
-	const int arrSize = equipmentTypes.Num();
+	const int arrSize = weaponTypes.Num();
 
 	inventoryComponent = invComp;
-	inventoryComponent->InitializeEquippedWeaponArr(arrSize);
+	inventoryComponent->InitializeEquippedWeaponArr(arrSize + 4);
 
 	APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
 	playerController->DEquipItem.BindUFunction(this, FName("EquipItemToBox"));
@@ -27,11 +27,27 @@ void UWidgetEquipmentWindow::InitializeWidget(UInventoryComponent* invComp, cons
 		gridSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
 		
 		equipmentBox->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
-		equipmentBox->InitializeWidget(i, invComp, dragVisualClass, equipmentTypes[i], EEquipmentBox::Weapon, size);
+		equipmentBox->InitializeWidget(i, invComp, dragVisualClass, weaponTypes[i].mainType, StaticCast<uint8>(weaponTypes[i].subType), weaponTypes[i].slotType, size);
 		equipmentBox->Padding = FMargin(5, 5);
-
-		equipmentBoxArr.Add(equipmentBox);
+	
+		equipmentSlots.Add(equipmentBox);
 	}
+
+	HeadSlot->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
+	HeadSlot->InitializeWidget(arrSize + StaticCast<uint8>(EArmourSlot::Head), invComp, dragVisualClass, EItemMainType::ArmourItem, StaticCast<uint8>(EArmourSlot::Head), EEquipmentSlot::Armour, size);
+	equipmentSlots.Add(HeadSlot);
+
+	TopSlot->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
+	TopSlot->InitializeWidget(arrSize + StaticCast<uint8>(EArmourSlot::Top), invComp, dragVisualClass, EItemMainType::ArmourItem, StaticCast<uint8>(EArmourSlot::Top), EEquipmentSlot::Armour, size);
+	equipmentSlots.Add(TopSlot);
+
+	BottomSlot->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
+	BottomSlot->InitializeWidget(arrSize + StaticCast<uint8>(EArmourSlot::Bottom), invComp, dragVisualClass, EItemMainType::ArmourItem, StaticCast<uint8>(EArmourSlot::Bottom), EEquipmentSlot::Armour, size);
+	equipmentSlots.Add(BottomSlot);
+
+	FootSlot->DOnEquipmentRemoved.BindUFunction(this, FName("OnItemRemoved"));
+	FootSlot->InitializeWidget(arrSize + StaticCast<uint8>(EArmourSlot::Foot), invComp, dragVisualClass, EItemMainType::ArmourItem, StaticCast<uint8>(EArmourSlot::Foot), EEquipmentSlot::Armour, size);
+	equipmentSlots.Add(FootSlot);
 }
 
 void UWidgetEquipmentWindow::SetCursorInArea(const bool bIn)
@@ -39,15 +55,15 @@ void UWidgetEquipmentWindow::SetCursorInArea(const bool bIn)
 	isCursorInArea = bIn;
 }
 
-void UWidgetEquipmentWindow::EquipItemToBox(UItemObject* itemObj, const int boxNumber)
+void UWidgetEquipmentWindow::EquipItemToBox(UItemObject* itemObj, const int slotNumber)
 {
-	if (equipmentBoxArr.IsValidIndex(boxNumber))
+	if (equipmentSlots.IsValidIndex(slotNumber))
 	{
-		equipmentBoxArr[boxNumber]->Equip(itemObj);
+		equipmentSlots[slotNumber]->Equip(itemObj);
 	}
 }
 
-void UWidgetEquipmentWindow::OnItemRemoved(const int slotNumber, EEquipmentBox boxType)
+void UWidgetEquipmentWindow::OnItemRemoved(const int slotNumber, EEquipmentSlot slotType)
 {
-	inventoryComponent->RemoveEquipmentItem(slotNumber, boxType);
+	inventoryComponent->RemoveEquipmentItem(slotNumber, slotType);
 }

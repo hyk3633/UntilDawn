@@ -55,7 +55,6 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::WRESTLINGRESULT]		= &AGameModeMainMap::PlayWrestlingResultAction;
 	packetCallbacks[EPacketType::WRESTLINGSTART]		= &AGameModeMainMap::StartPlayerWrestling;
 	packetCallbacks[EPacketType::PLAYERDISCONNECTED]	= &AGameModeMainMap::ProcessDisconnectedPlayer;
-	packetCallbacks[EPacketType::ITEMPICKUPOTHER]		= &AGameModeMainMap::ItemPickUpOtherPlayer;
 	packetCallbacks[EPacketType::PLAYERDEAD]			= &AGameModeMainMap::ProcessPlayerDead;
 	packetCallbacks[EPacketType::PLAYERRESPAWN]			= &AGameModeMainMap::RespawnPlayer;
 	packetCallbacks[EPacketType::ZOMBIEDEAD]			= &AGameModeMainMap::ProcessZombieDead;
@@ -129,14 +128,13 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 
 		for (auto& equipped : info.equippedItems)
 		{
-			auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
+			auto itemActor = itemManager->GetPlayersEquippedItem(equipped);
 			itemManager->ItemEquipped(playerNumber, FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
 			newPlayerCharacter->EquipItem(itemActor, equipped.slotNumber);
 			if (equipped.isArmed)
 			{
 				newPlayerCharacter->ArmWeapon(itemActor);
 			}
-			itemActor->ActivateEquipMode();
 		}
 		playerCharacterMap.Add(playerNumber, newPlayerCharacter);
 	}
@@ -428,17 +426,6 @@ void AGameModeMainMap::StartPlayerWrestling(std::stringstream& recvStream)
 	}
 }
 
-void AGameModeMainMap::ItemPickUpOtherPlayer(std::stringstream& recvStream)
-{
-	string itemID;
-	int xIndex, yIndex;
-	recvStream >> itemID >> xIndex >> yIndex;
-	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
-
-	TWeakObjectPtr<UItemObject> itemObj = itemManager->GetItemObject(fItemID);
-	myController->UpdateItemInventoryGrid(itemObj, xIndex, yIndex);
-}
-
 void AGameModeMainMap::ProcessDisconnectedPlayer(std::stringstream& recvStream)
 {
 	int playerNumber = -1;
@@ -523,7 +510,7 @@ void AGameModeMainMap::InitializePlayerPossessedItems(std::stringstream& recvStr
 	for (int i = 0; i < size; i++)
 	{
 		recvStream >> possessed;
-		auto itemObj = itemManager->CreatePlayersPossessedItem(possessed);
+		auto itemObj = itemManager->GetPlayersPossessedItem(possessed);
 		myController->AddItemToInventory(itemObj, { possessed.topLeftX, possessed.topLeftY });
 	}
 }
@@ -537,11 +524,10 @@ void AGameModeMainMap::InitializePlayerEquippedItems(std::stringstream& recvStre
 	{
 		EquippedItem equipped;
 		recvStream >> equipped;
-		auto itemActor = itemManager->CreatePlayersEquippedItem(equipped);
+		auto itemActor = itemManager->GetPlayersEquippedItem(equipped);
 		itemManager->ItemEquipped(myNumber, FString(UTF8_TO_TCHAR(equipped.itemID.c_str())), itemActor);
 		APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 		myPlayerController->EquipItem(equipped.slotNumber, itemActor);
-		itemActor->ActivateEquipMode();
 	}
 }
 
@@ -681,7 +667,7 @@ void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakO
 	);
 	droppedItem->SetActorLocation(hit.ImpactPoint);
 	droppedItem->GetItemObject()->ResetOwner();
-	droppedItem->ActivateActor();
+	droppedItem->ActivateFieldMode();
 }
 
 TWeakObjectPtr<AProjectileBase> AGameModeMainMap::GetProjectile() const

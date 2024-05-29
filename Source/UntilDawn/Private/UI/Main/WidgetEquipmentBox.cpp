@@ -18,25 +18,27 @@
 #include "Slate/SlateBrushAsset.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
-void UWidgetEquipmentBox::InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EPermanentItemType newEquipmentType, const EEquipmentBox newBoxType, const float size)
+void UWidgetEquipmentBox::InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType mainType, const uint8 subType, const EEquipmentSlot newSlotType, const float size)
 {
 	number = num;
 	inventoryComponent = invComp;
 	dragVisualClass = dragVisClass;
 	dragVisual = CreateWidget<UWidgetDragVisual>(GetOwningPlayer(), dragVisualClass);
 	dragVisual->SetVisibility(ESlateVisibility::Hidden);
-	equipmentType = newEquipmentType;
-	boxType = newBoxType;
+	equipmentMainType = mainType;
+	equipmentSubType = subType;
+	slotType = newSlotType;
 	tileSize = size;
 }
 
 void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 {
 	TWeakObjectPtr<UItemObject> newItemObj = Cast<UItemObject>(operation->Payload);
-	check(newItemObj.IsValid());
+	if (newItemObj.IsValid() == false)
+		return;
 
-	auto equipment = Cast<UItemPermanent>(newItemObj);
-	if (equipment->GetPermanentItemType() == equipmentType)
+	TWeakObjectPtr<UItemPermanent> equipment = Cast<UItemPermanent>(newItemObj);
+	if (equipment.IsValid() && equipment->GetItemType() == equipmentMainType && equipment->GetItemSubType() == equipmentSubType)
 	{
 		// 플레이어 컨트롤러 호출
 		APlayerControllerMainMap* playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
@@ -51,7 +53,7 @@ void UWidgetEquipmentBox::OnDropCalled(UDragDropOperation* operation)
 
 void UWidgetEquipmentBox::OnRemoved()
 {
-	DOnEquipmentRemoved.ExecuteIfBound(number, boxType);
+	DOnEquipmentRemoved.ExecuteIfBound(number, slotType);
 }
 
 void UWidgetEquipmentBox::Refresh()
@@ -89,12 +91,24 @@ UItemObject* UWidgetEquipmentBox::GetItem() const
 
 FSlateBrush UWidgetEquipmentBox::GetIconImage()
 {
-	return UWidgetBlueprintLibrary::MakeBrushFromMaterial
-	(
-		itemObj->GetRotatedIcon(),
-		FMath::TruncToInt(widgetSize.Y),
-		FMath::TruncToInt(widgetSize.X)
-	);
+	if (itemObj->GetItemType() == EItemMainType::ArmourItem)
+	{
+		return UWidgetBlueprintLibrary::MakeBrushFromMaterial
+		(
+			itemObj->GetIcon(),
+			FMath::TruncToInt(widgetSize.Y),
+			FMath::TruncToInt(widgetSize.X)
+		);
+	}
+	else
+	{
+		return UWidgetBlueprintLibrary::MakeBrushFromMaterial
+		(
+			itemObj->GetRotatedIcon(),
+			FMath::TruncToInt(widgetSize.Y),
+			FMath::TruncToInt(widgetSize.X)
+		);
+	}
 }
 
 FSlateBrush UWidgetEquipmentBox::GetOriginIconImage()

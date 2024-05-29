@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Item/ItemObject.h"
-#include "../../Enums/PermanentItemType.h"
 #include "ItemPermanent.generated.h"
 
 /**
@@ -19,21 +18,13 @@ public:
 
 	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) PURE_VIRTUAL(UItemPermanant::Using, );
 	
-	EPermanentItemType GetPermanentItemType() const;
+	virtual uint8 GetItemSubType() const PURE_VIRTUAL(UItemPermanant::GetItemSubType, return 0;);
 
 	void SetEquippedSlotNumber(const int8 number);
 
 	int8 GetEquippedSlotNumber() const;
 
-protected:
-
-	virtual void ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap) override;
-
-	void SetPermanentItemType(const int type);
-
 private:
-
-	EPermanentItemType permanentItemType;
 
 	int8 equippedSlotNumber = -1;
 

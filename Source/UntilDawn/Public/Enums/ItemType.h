@@ -7,5 +7,6 @@ enum class EItemMainType : uint8
 	RangedWeapon,
 	RecoveryItem,
 	AmmoItem,
+	ArmourItem,
 	MAX,
 };

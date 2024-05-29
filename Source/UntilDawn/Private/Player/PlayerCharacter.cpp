@@ -42,6 +42,13 @@ APlayerCharacter::APlayerCharacter()
 
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
+	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Phong_Base.SK_Phong_Base'"));
+	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
+
+	static ConstructorHelpers::FClassFinder<UPlayerAnimInst> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Player/AnimBP_Player.AnimBP_Player_C'"));
+	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
@@ -70,6 +77,26 @@ APlayerCharacter::APlayerCharacter()
 	playerRange->SetSphereRadius(1024);
 	playerRange->bHiddenInGame = false;
 
+	HeadMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Head Parts"));
+	HeadMeshComponent->SetupAttachment(GetMesh());
+	HeadMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HeadMeshComponent->SetMasterPoseComponent(GetMesh());
+
+	TopMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Top Parts"));
+	TopMeshComponent->SetupAttachment(GetMesh());
+	TopMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TopMeshComponent->SetMasterPoseComponent(GetMesh());
+
+	BottomMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Bottom Parts"));
+	BottomMeshComponent->SetupAttachment(GetMesh());
+	BottomMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BottomMeshComponent->SetMasterPoseComponent(GetMesh());
+
+	FootMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Foot Parts"));
+	FootMeshComponent->SetupAttachment(GetMesh());
+	FootMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FootMeshComponent->SetMasterPoseComponent(GetMesh());
+
 	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
 	healthWidget->SetupAttachment(RootComponent);
 	healthWidget->SetVisibility(false);
@@ -79,13 +106,7 @@ APlayerCharacter::APlayerCharacter()
 	static ConstructorHelpers::FClassFinder<UWidgetPlayerHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_PlayerHealthWidget.WBP_PlayerHealthWidget_C'"));
 	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
 
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Phong_Base.SK_Phong_Base'"));
-	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
-
-	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	
-	static ConstructorHelpers::FClassFinder<UPlayerAnimInst> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Player/AnimBP_Player.AnimBP_Player_C'"));
-	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
 
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsCharacter.IMC_DefaultsCharacter"));
 	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
@@ -217,14 +238,14 @@ void APlayerCharacter::SprintEnd()
 	GetCharacterMovement()->MaxWalkSpeed = 300;
 }
 
-bool APlayerCharacter::LeftClick(const EPermanentItemType weaponType)
+bool APlayerCharacter::LeftClick(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType != EPermanentItemType::NONE)
+	if (weaponType != EWeaponType::NONE)
 	{
-		if (weaponType == EPermanentItemType::BOW)
+		if (weaponType == EWeaponType::BOW)
 		{
 			bowStatus |= (1 << StaticCast<uint8>(EBowStatus::Loaded));
 		}
@@ -237,12 +258,12 @@ bool APlayerCharacter::LeftClick(const EPermanentItemType weaponType)
 	}
 }
 
-bool APlayerCharacter::LeftClickHold(const EPermanentItemType weaponType)
+bool APlayerCharacter::LeftClickHold(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EPermanentItemType::BOW)
+	if (weaponType == EWeaponType::BOW)
 	{
 		bowStatus |= (1 << StaticCast<uint8>(EBowStatus::Drawed));
 		GetCharacterMovement()->MaxWalkSpeed = 300;
@@ -254,9 +275,9 @@ bool APlayerCharacter::LeftClickHold(const EPermanentItemType weaponType)
 	}
 }
 
-bool APlayerCharacter::LeftClickEnd(const EPermanentItemType weaponType)
+bool APlayerCharacter::LeftClickEnd(const EWeaponType weaponType)
 {
-	if (weaponType == EPermanentItemType::BOW)
+	if (weaponType == EWeaponType::BOW)
 	{
 		if (bowStatus == StaticCast<uint8>(EBowStatus::Full))
 		{
@@ -270,12 +291,12 @@ bool APlayerCharacter::LeftClickEnd(const EPermanentItemType weaponType)
 	return false;
 }
 
-bool APlayerCharacter::RightClick(const EPermanentItemType weaponType)
+bool APlayerCharacter::RightClick(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EPermanentItemType::AXE)
+	if (weaponType == EWeaponType::AXE)
 	{
 		rightClick = true;
 		return true;
@@ -286,12 +307,12 @@ bool APlayerCharacter::RightClick(const EPermanentItemType weaponType)
 	}
 }
 
-bool APlayerCharacter::RightClickEnd(const EPermanentItemType weaponType)
+bool APlayerCharacter::RightClickEnd(const EWeaponType weaponType)
 {
 	if (CheckAbleInput() == false)
 		return false;
 
-	if (weaponType == EPermanentItemType::AXE)
+	if (weaponType == EWeaponType::AXE)
 	{
 		rightClick = false;
 		return true;
@@ -308,7 +329,7 @@ bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
 		return false;
 
 	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(itemActor->GetItemObject());
-	SetCurrentWeaponType(permanentItemObj->GetPermanentItemType());
+	SetCurrentWeaponType(StaticCast<EWeaponType>(permanentItemObj->GetItemSubType()));
 	
 	AttachItemActor(itemActor);
 
@@ -400,12 +421,12 @@ const bool APlayerCharacter::GetIsFalling() const
 	return GetMovementComponent()->IsFalling();
 }
 
-EPermanentItemType APlayerCharacter::GetCurrentWeaponType() const
+EWeaponType APlayerCharacter::GetCurrentWeaponType() const
 {
 	return currentWeaponType;
 }
 
-void APlayerCharacter::SetCurrentWeaponType(const EPermanentItemType weaponType)
+void APlayerCharacter::SetCurrentWeaponType(const EWeaponType weaponType)
 {
 	animInst->PlayWeaponArmMontage(weaponType);
 	currentWeaponType = weaponType;
@@ -415,7 +436,7 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weapon
 {
 	if (inputType == 0) 
 		return;
-	const EPermanentItemType eWeaponType = static_cast<EPermanentItemType>(weaponType);
+	const EWeaponType eWeaponType = static_cast<EWeaponType>(weaponType);
 	switch (static_cast<EPlayerInputs>(inputType))
 	{
 	case EPlayerInputs::LeftClick:
@@ -527,7 +548,7 @@ void APlayerCharacter::RecoverHealth(const float recoveryAmount)
 void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
 {
 	TWeakObjectPtr<UItemPermanent> equipmentObj = Cast<UItemPermanent>(item->GetItemObject());
-	SetCurrentWeaponType(equipmentObj->GetPermanentItemType());
+	SetCurrentWeaponType(StaticCast<EWeaponType>(equipmentObj->GetItemSubType()));
 	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
 	socket->AttachActor(item.Get(), GetMesh());
 	armedWeapon = item;
@@ -535,38 +556,81 @@ void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
 
 void APlayerCharacter::EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber)
 {
-	FName socketName;
-	if (slotNumber == 0)
+	item->ActivateEquipMode(item->GetItemType());
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
+	permanentItemObj->SetEquippedSlotNumber(slotNumber);
+
+	if (item->GetItemType() == EItemMainType::ArmourItem)
 	{
-		socketName = "Ranged1_Back";
-	}
-	else if (slotNumber == 1)
-	{
-		socketName = "Ranged2_Back";
+		EArmourSlot armourType = StaticCast<EArmourSlot>(permanentItemObj->GetItemSubType());
+		switch (armourType)
+		{
+		case EArmourSlot::Head:
+			HeadMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		case EArmourSlot::Top:
+			TopMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		case EArmourSlot::Bottom:
+			BottomMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		case EArmourSlot::Foot:
+			FootMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		}
 	}
 	else
 	{
-		socketName = "Melee_Back";
+		FName socketName;
+		if (slotNumber == 0)
+		{
+			socketName = "Ranged1_Back";
+		}
+		else if (slotNumber == 1)
+		{
+			socketName = "Ranged2_Back";
+		}
+		else
+		{
+			socketName = "Melee_Back";
+		}
+		const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(socketName);
+		socket->AttachActor(item.Get(), GetMesh());
 	}
-	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(socketName);
-	socket->AttachActor(item.Get(), GetMesh());
-
-	item->ActivateEquipMode();
-
-	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
-	permanentItemObj->SetEquippedSlotNumber(slotNumber);
 }
 
 void APlayerCharacter::UnEquipItem(TWeakObjectPtr<AItemBase> item)
 {
-	if (item == armedWeapon)
-	{
-		DisarmWeapon();
-	}
-	item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
 	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
 	permanentItemObj->SetEquippedSlotNumber(-1);
+
+	if (item->GetItemType() == EItemMainType::ArmourItem)
+	{
+		EArmourSlot armourType = StaticCast<EArmourSlot>(permanentItemObj->GetItemSubType());
+		switch (armourType)
+		{
+		case EArmourSlot::Head:
+			HeadMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		case EArmourSlot::Top:
+			TopMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		case EArmourSlot::Bottom:
+			BottomMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		case EArmourSlot::Foot:
+			FootMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		}
+	}
+	else
+	{
+		if (item == armedWeapon)
+		{
+			DisarmWeapon();
+		}
+		item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	}
 }
 
 void APlayerCharacter::ShowHealthWidget()
@@ -622,7 +686,7 @@ bool APlayerCharacter::DisarmWeapon()
 		return false;
 
 	animInst->PlayWeaponDisarmMontage(currentWeaponType);
-	currentWeaponType = EPermanentItemType::NONE;
+	currentWeaponType = EWeaponType::NONE;
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;

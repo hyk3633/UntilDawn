@@ -159,8 +159,8 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 void APlayerControllerMainMap::LeftClick()
 {
-	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (weaponType != EPermanentItemType::NONE && inventoryComponent->IsWeaponUsable())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (weaponType != EWeaponType::NONE && inventoryComponent->IsWeaponUsable())
 	{
 		if (myCharacter->LeftClick(weaponType))
 		{
@@ -171,7 +171,7 @@ void APlayerControllerMainMap::LeftClick()
 
 void APlayerControllerMainMap::LeftClickHold()
 {
-	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->LeftClickHold(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClickHold, weaponType);
@@ -180,7 +180,7 @@ void APlayerControllerMainMap::LeftClickHold()
 
 void APlayerControllerMainMap::LeftClickEnd()
 {
-	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->LeftClickEnd(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::LeftClickEnd, weaponType);
@@ -189,7 +189,7 @@ void APlayerControllerMainMap::LeftClickEnd()
 
 void APlayerControllerMainMap::RightClick()
 {
-	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->RightClick(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::RightClick, weaponType);
@@ -198,7 +198,7 @@ void APlayerControllerMainMap::RightClick()
 
 void APlayerControllerMainMap::RightClickEnd()
 {
-	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (myCharacter->RightClickEnd(weaponType))
 	{
 		SendPlayerInputAction(EPlayerInputs::RightClickEnd, weaponType);
@@ -207,8 +207,8 @@ void APlayerControllerMainMap::RightClickEnd()
 
 void APlayerControllerMainMap::RKeyPressed()
 {
-	const EPermanentItemType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
-	if (currentWeaponType == EPermanentItemType::NONE)
+	const EWeaponType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
+	if (currentWeaponType == EWeaponType::NONE)
 	{
 		auto itemActor = inventoryComponent->ArmRecentWeapon();
 		if (myCharacter->ArmWeapon(itemActor))
@@ -221,8 +221,8 @@ void APlayerControllerMainMap::RKeyPressed()
 
 void APlayerControllerMainMap::RKeyHold()
 {
-	const EPermanentItemType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (weaponType != EPermanentItemType::NONE && myCharacter->DisarmWeapon())
+	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
+	if (weaponType != EWeaponType::NONE && myCharacter->DisarmWeapon())
 	{
 		inventoryComponent->DisarmWeapon();
 		clientSocket->DisarmWeapon();
@@ -329,7 +329,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
 }
 
-void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType, const EPermanentItemType weaponType)
+void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType)
 {
 	clientSocket->SendPlayerInputAction(static_cast<int>(inputType), static_cast<int>(weaponType));
 }

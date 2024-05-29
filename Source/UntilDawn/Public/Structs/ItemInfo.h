@@ -1,6 +1,8 @@
 #pragma once
 #include <sstream>
 #include "../Enums/ItemType.h"
+#include "../Enums/WeaponType.h"
+#include "../Enums/ArmourSlot.h"
 #include "ItemInfo.generated.h"
 
 USTRUCT()
@@ -33,10 +35,12 @@ public:
 	FWeaponInfo() {}
 
 	float attackPower;
+	EWeaponType weaponType;
 
 	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
 		attackPower = concreteInfoMap["AttackPower"]->AsNumber();
+		weaponType = StaticCast<EWeaponType>(concreteInfoMap["WeaponType"]->AsNumber());
 	}
 };
 
@@ -103,6 +107,27 @@ public:
 	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
 		ammoType = concreteInfoMap["AmmoType"]->AsNumber();
+	}
+
+};
+
+USTRUCT()
+struct FArmourItemInfo
+{
+	GENERATED_BODY()
+
+public:
+
+	FArmourItemInfo() {}
+
+	float defensePower;
+
+	EArmourSlot armourSlot;
+
+	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
+	{
+		defensePower = concreteInfoMap["DefensePower"]->AsNumber();
+		armourSlot = StaticCast<EArmourSlot>(concreteInfoMap["ArmourSlot"]->AsNumber());
 	}
 
 };

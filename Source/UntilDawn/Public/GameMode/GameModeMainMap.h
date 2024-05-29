@@ -72,8 +72,6 @@ protected:
 
 	void StartPlayerWrestling(std::stringstream& recvStream);
 
-	void ItemPickUpOtherPlayer(std::stringstream& recvStream);
-
 	void ProcessDisconnectedPlayer(std::stringstream& recvStream);
 
 	void ProcessPlayerDead(std::stringstream& recvStream);

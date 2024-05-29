@@ -6,13 +6,17 @@
 
 void UItemMeleeWeapon::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 {
-	Super::ParseItemConcreteInfo(concreteInfoMap);
 	concreteInfo.Parsing(concreteInfoMap);
 }
 
 void UItemMeleeWeapon::MakeItemFunction()
 {
 	meleeAttackFunction = MakeShared<FunctionMeleeAttack>();
+}
+
+uint8 UItemMeleeWeapon::GetItemSubType() const
+{
+	return StaticCast<uint8>(concreteInfo.weaponType);
 }
 
 void UItemMeleeWeapon::Using(USkeletalMeshComponent* itemMesh)

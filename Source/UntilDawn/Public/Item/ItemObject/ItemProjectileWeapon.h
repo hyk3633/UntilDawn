@@ -35,6 +35,8 @@ protected:
 
 public:
 
+	virtual uint8 GetItemSubType() const override;
+
 	void Reload();
 
 	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) override;

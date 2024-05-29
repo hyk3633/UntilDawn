@@ -5,9 +5,9 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Structs/Tile.h"
-#include "../Enums/EquipmentBox.h"
+#include "../Enums/EquipmentSlot.h"
 #include "../Enums/ItemType.h"
-#include "../Enums/PermanentItemType.h"
+#include "../Enums/WeaponType.h"
 #include "InventoryComponent.generated.h"
 
 class APlayerCharacter;
@@ -62,7 +62,7 @@ protected:
 
 public:
 
-	void RemoveEquipmentItem(const int boxNumber, const EEquipmentBox boxType);
+	void RemoveEquipmentItem(const int boxNumber, const EEquipmentSlot slotType);
 
 	TMap<TWeakObjectPtr<UItemObject>, FTile> GetAllItems() const;
 
@@ -78,7 +78,7 @@ public:
 
 public:
 
-	EPermanentItemType GetCurrentWeaponType() const;
+	EWeaponType GetCurrentWeaponType() const;
 
 	void DisarmWeapon();
 

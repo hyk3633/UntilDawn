@@ -29,30 +29,30 @@ void UPlayerAnimInst::UpdateValue()
 	}
 }
 
-void UPlayerAnimInst::PlayWeaponArmMontage(const EPermanentItemType type)
+void UPlayerAnimInst::PlayWeaponArmMontage(const EWeaponType type)
 {
 	if (IsAnyMontagePlaying()) 
 		return;
-	if (type == EPermanentItemType::AXE && axeArmDisarmMontage)
+	if (type == EWeaponType::AXE && axeArmDisarmMontage)
 	{
 		Montage_Play(axeArmDisarmMontage);
 	}
-	else if (type == EPermanentItemType::BOW && bowArmDisarmMontage)
+	else if (type == EWeaponType::BOW && bowArmDisarmMontage)
 	{
 		Montage_Play(bowArmDisarmMontage);
 	}
 	Montage_JumpToSection(FName("Arm"));
 }
 
-void UPlayerAnimInst::PlayWeaponDisarmMontage(const EPermanentItemType type)
+void UPlayerAnimInst::PlayWeaponDisarmMontage(const EWeaponType type)
 {
 	if (IsAnyMontagePlaying()) 
 		return;
-	if (type == EPermanentItemType::AXE && axeArmDisarmMontage)
+	if (type == EWeaponType::AXE && axeArmDisarmMontage)
 	{
 		Montage_Play(axeArmDisarmMontage);
 	}
-	else if (type == EPermanentItemType::BOW && bowArmDisarmMontage)
+	else if (type == EWeaponType::BOW && bowArmDisarmMontage)
 	{
 		Montage_Play(bowArmDisarmMontage);
 	}
@@ -90,13 +90,13 @@ void UPlayerAnimInst::PlayBowShootMontage()
 	}
 }
 
-void UPlayerAnimInst::PlayLeftClickMontage(const EPermanentItemType type)
+void UPlayerAnimInst::PlayLeftClickMontage(const EWeaponType type)
 {
-	if (type == EPermanentItemType::AXE)
+	if (type == EWeaponType::AXE)
 	{
 		PlayAxeAttackMontage();
 	}
-	else if (type == EPermanentItemType::BOW)
+	else if (type == EWeaponType::BOW)
 	{
 		PlayBowDrawMontage();
 	}

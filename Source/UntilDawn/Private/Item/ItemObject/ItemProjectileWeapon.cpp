@@ -9,13 +9,17 @@
 
 void UItemProjectileWeapon::ParseItemConcreteInfo(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 {
-	Super::ParseItemConcreteInfo(concreteInfoMap);
 	concreteInfo.Parsing(concreteInfoMap);
 }
 
 void UItemProjectileWeapon::MakeItemFunction()
 {
 	shootingFunction = MakeShared<FunctionProjectileShooting>();
+}
+
+uint8 UItemProjectileWeapon::GetItemSubType() const
+{
+	return StaticCast<uint8>(concreteInfo.weaponType);
 }
 
 void UItemProjectileWeapon::Reload()

@@ -5,23 +5,20 @@
 #include "CoreMinimal.h"
 #include "Item/ItemObject/ItemPermanent.h"
 #include "../../Structs/ItemInfo.h"
-#include "ItemMeleeWeapon.generated.h"
+#include "ItemArmour.generated.h"
 
 /**
  * 
  */
-
-class FunctionMeleeAttack;
-
 UCLASS()
-class UNTILDAWN_API UItemMeleeWeapon : public UItemPermanent
+class UNTILDAWN_API UItemArmour : public UItemPermanent
 {
 	GENERATED_BODY()
-
+	
 public:
 
-	UItemMeleeWeapon() = default;
-	~UItemMeleeWeapon() = default;
+	UItemArmour() = default;
+	~UItemArmour() = default;
 
 protected:
 
@@ -37,8 +34,6 @@ public:
 
 private:
 
-	TSharedPtr<FunctionMeleeAttack> meleeAttackFunction;
+	FArmourItemInfo concreteInfo;
 
-	FWeaponInfo concreteInfo;
-	
 };

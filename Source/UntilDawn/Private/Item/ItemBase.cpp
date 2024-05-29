@@ -27,8 +27,6 @@ AItemBase::AItemBase()
 
 void AItemBase::ActivateActor()
 {
-	skeletalMesh->SetVisibility(true);
-	skeletalMesh->SetCollisionProfileName(FName("ActivatedItem"));
 	isActive = true;
 }
 
@@ -45,9 +43,22 @@ bool AItemBase::IsActorActivated()
 	return isActive;
 }
 
-void AItemBase::ActivateEquipMode()
+void AItemBase::ActivateFieldMode()
 {
 	skeletalMesh->SetVisibility(true);
+	skeletalMesh->SetCollisionProfileName(FName("ActivatedItem"));
+}
+
+void AItemBase::ActivateEquipMode(const EItemMainType itemType)
+{
+	if (itemType == EItemMainType::ArmourItem)
+	{
+		skeletalMesh->SetVisibility(false);
+	}
+	else
+	{
+		skeletalMesh->SetVisibility(true);
+	}
 	skeletalMesh->SetCollisionResponseToChannel(ECC_ItemTrace, ECR_Ignore);
 	isActive = true;
 }
@@ -56,7 +67,7 @@ EItemMainType AItemBase::GetItemType()
 {
 	if (itemObj.IsValid())
 	{
-		return StaticCast<EItemMainType>(itemObj->GetItemType());
+		return itemObj->GetItemType();
 	}
 	return EItemMainType::MAX;
 }

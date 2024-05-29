@@ -1,7 +1,7 @@
 #pragma once
 
 UENUM(BlueprintType)
-enum class EPermanentItemType : uint8
+enum class EWeaponType : uint8
 {
 	AXE,
 	BOW,

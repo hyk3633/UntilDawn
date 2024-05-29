@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Enums/PermanentItemType.h"
-#include "Enums/EquipmentBox.h"
+#include "Enums/ItemType.h"
+#include "Enums/EquipmentSlot.h"
+#include "Enums/ArmourSlot.h"
+#include "Enums/WeaponType.h"
 #include "WidgetEquipmentWindow.generated.h"
 
 /**
@@ -17,6 +19,28 @@ class UWidgetEquipmentBox;
 class UItemObject;
 class UUniformGridPanel;
 class UWidgetDragVisual;
+
+USTRUCT(BlueprintType)
+struct FWeaponTypeInfo
+{
+	GENERATED_BODY()
+
+public:
+
+	FWeaponTypeInfo() {}
+
+	FWeaponTypeInfo(EItemMainType mType, EWeaponType sType, EEquipmentSlot slType) : mainType(mType), subType(sType), slotType(slType) {}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EItemMainType mainType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EWeaponType subType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EEquipmentSlot slotType;
+
+};
 
 UCLASS()
 class UNTILDAWN_API UWidgetEquipmentWindow : public UUserWidget
@@ -35,10 +59,10 @@ public:
 protected:
 
 	UFUNCTION()
-	void EquipItemToBox(UItemObject* itemObj, const int boxNumber);
+	void EquipItemToBox(UItemObject* itemObj, const int slotNumber);
 
 	UFUNCTION()
-	void OnItemRemoved(const int slotNumber, EEquipmentBox boxType);
+	void OnItemRemoved(const int slotNumber, EEquipmentSlot slotType);
 
 private:
 
@@ -47,6 +71,18 @@ private:
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	UUniformGridPanel* EquipmentPanel;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UWidgetEquipmentBox* HeadSlot;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UWidgetEquipmentBox* TopSlot;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UWidgetEquipmentBox* BottomSlot;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UWidgetEquipmentBox* FootSlot;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UWidgetEquipmentBox> equipmentBoxClass;
@@ -58,9 +94,9 @@ private:
 	bool isCursorInArea;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (AllowPrivateAccess = "true", ClampMin = "1", ClampMax = "5", BindWidget))
-	TArray<EPermanentItemType> equipmentTypes;
+	TArray<FWeaponTypeInfo> weaponTypes;
 
 	UPROPERTY()
-	TArray<UWidgetEquipmentBox*> equipmentBoxArr;
+	TArray<UWidgetEquipmentBox*> equipmentSlots;
 	
 };

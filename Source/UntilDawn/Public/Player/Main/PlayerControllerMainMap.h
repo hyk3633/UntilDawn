@@ -8,7 +8,7 @@
 #include "Structs/Tile.h"
 #include "Structs/HitInfo.h"
 #include "Enums/PlayerInputs.h"
-#include "Enums/PermanentItemType.h"
+#include "Enums/WeaponType.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -105,7 +105,7 @@ public:
 
 	virtual void OnPossess(APawn* pawn) override;
 
-	void SendPlayerInputAction(const EPlayerInputs inputType, const EPermanentItemType weaponType);
+	void SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType);
 
 	UFUNCTION()
 	void SendInRangeZombie(int zombieNumber);
