@@ -9,6 +9,8 @@
 #include "Structs/HitInfo.h"
 #include "Enums/PlayerInputs.h"
 #include "Enums/WeaponType.h"
+#include "Enums/InputType.h"
+#include "GameplayTagContainer.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -69,6 +71,10 @@ protected:
 
 	virtual void SetupInputComponent() override;
 
+	void WeaponInputPressed(const EInputType inputType);
+
+	void NormalInputPressed(const EInputType inputType);
+
 	void LeftClick();
 
 	void LeftClickHold();
@@ -79,9 +85,13 @@ protected:
 
 	void RightClickEnd();
 
-	void RKeyPressed();
+public:
 
-	void RKeyHold();
+	void ArmWeapon();
+
+	void DisarmWeapon();
+
+protected:
 
 	void EKeyPressed();
 
@@ -113,8 +123,7 @@ public:
 	UFUNCTION()
 	void SendOutRangeZombie(int zombieNumber);
 
-	UFUNCTION()
-	void SendZombieHitsMe(int zombieNumber, bool bResult);
+	void SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitResult& hitResult);
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
@@ -162,6 +171,8 @@ public:
 
 	void SetRowColumn(const int r, const int c);
 
+	void SendHitResult(TArray<FHitResult>& hits, FGameplayTag& triggerGameplayTag);
+
 protected:
 
 	void SynchronizePlayerInfo();
@@ -186,10 +197,16 @@ protected:
 	UInputMappingContext* defaultMappingContext;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* leftClickAction;
+	UInputAction* leftClickTabAction;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* leftClickPressedAction;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* leftClickHoldAction;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* leftClickReleasedAction;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* rightClickAction;

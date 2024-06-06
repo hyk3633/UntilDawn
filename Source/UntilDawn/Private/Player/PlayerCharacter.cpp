@@ -26,6 +26,7 @@
 #include "Item/ItemBase.h"
 #include "Item/ItemObject/ItemPermanent.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "AbilitySystemComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -59,6 +60,8 @@ APlayerCharacter::APlayerCharacter()
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
+	asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+
 	cameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	cameraBoom->SetupAttachment(RootComponent);
 	cameraBoom->SetRelativeLocation(FVector(0.f, 20.f, 50.f));
@@ -80,22 +83,22 @@ APlayerCharacter::APlayerCharacter()
 	HeadMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Head Parts"));
 	HeadMeshComponent->SetupAttachment(GetMesh());
 	HeadMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HeadMeshComponent->SetMasterPoseComponent(GetMesh());
+	HeadMeshComponent->SetLeaderPoseComponent(GetMesh());
 
 	TopMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Top Parts"));
 	TopMeshComponent->SetupAttachment(GetMesh());
 	TopMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	TopMeshComponent->SetMasterPoseComponent(GetMesh());
+	TopMeshComponent->SetLeaderPoseComponent(GetMesh());
 
 	BottomMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Bottom Parts"));
 	BottomMeshComponent->SetupAttachment(GetMesh());
 	BottomMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	BottomMeshComponent->SetMasterPoseComponent(GetMesh());
+	BottomMeshComponent->SetLeaderPoseComponent(GetMesh());
 
 	FootMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Foot Parts"));
 	FootMeshComponent->SetupAttachment(GetMesh());
 	FootMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	FootMeshComponent->SetMasterPoseComponent(GetMesh());
+	FootMeshComponent->SetLeaderPoseComponent(GetMesh());
 
 	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
 	healthWidget->SetupAttachment(RootComponent);
@@ -105,8 +108,6 @@ APlayerCharacter::APlayerCharacter()
 	healthWidget->SetDrawSize(FVector2D(250.f, 70.f));
 	static ConstructorHelpers::FClassFinder<UWidgetPlayerHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_PlayerHealthWidget.WBP_PlayerHealthWidget_C'"));
 	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
-
-	
 
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsCharacter.IMC_DefaultsCharacter"));
 	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
@@ -124,6 +125,13 @@ APlayerCharacter::APlayerCharacter()
 	if (obj_Sprint.Succeeded()) sprintAction = obj_Sprint.Object;
 }
 
+void APlayerCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	asc->InitAbilityActorInfo(this, this);
+}
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -133,6 +141,19 @@ void APlayerCharacter::BeginPlay()
 	{
 		animInst->InitAnimInst(this);
 		animInst->DMontageEnded.BindUFunction(this, FName("WrestlingEnd"));
+	}
+
+	for (const auto& ability : defaultAbilities)
+	{
+		FGameplayAbilitySpec spec(ability);
+		asc->GiveAbility(spec);
+	}
+
+	for (const auto& ability : inputAbilities)
+	{
+		FGameplayAbilitySpec spec(ability.Value);
+		spec.InputID = StaticCast<uint8>(ability.Key);
+		asc->GiveAbility(spec);
 	}
 }
 
@@ -227,7 +248,7 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 
 void APlayerCharacter::Sprint()
 {
-	if (bowStatus || CheckAbleInput() == false)
+	if (CheckAbleInput() == false)
 		return;
 
 	GetCharacterMovement()->MaxWalkSpeed = 600;
@@ -283,6 +304,7 @@ bool APlayerCharacter::LeftClickEnd(const EWeaponType weaponType)
 		{
 			animInst->PlayBowShootMontage();
 			shootPower = 0;
+			bowStatus = 0;
 			return true;
 		}
 		bowStatus = 0;
@@ -328,13 +350,18 @@ bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
 	if (CheckAbleInput() == false)
 		return false;
 
+	armedWeapon = itemActor;
+
 	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(itemActor->GetItemObject());
-	SetCurrentWeaponType(StaticCast<EWeaponType>(permanentItemObj->GetItemSubType()));
-	
+	currentWeaponType = StaticCast<EWeaponType>(permanentItemObj->GetItemSubType());
+
 	AttachItemActor(itemActor);
+
+	asc->AddLooseGameplayTags(itemActor->GetGameplayTags());
 
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+
 	return true;
 }
 
@@ -380,6 +407,11 @@ void APlayerCharacter::Tick(float deltaTime)
 	{
 		pitch -= 360.f;
 	}
+	yaw = GetBaseAimRotation().Yaw;
+	if (yaw >= 180.f)
+	{
+		yaw -= 360.f;
+	}
 
 	if (bowStatus)
 	{
@@ -410,6 +442,11 @@ void APlayerCharacter::UpdatePlayerInfo()
 	myInfo.roll = rotation.Roll;
 }
 
+UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
+{
+	return asc;
+}
+
 void APlayerCharacter::SetPlayerIDAndNumber(const FString& id, const int number)
 {
 	playerID = id;
@@ -424,12 +461,6 @@ const bool APlayerCharacter::GetIsFalling() const
 EWeaponType APlayerCharacter::GetCurrentWeaponType() const
 {
 	return currentWeaponType;
-}
-
-void APlayerCharacter::SetCurrentWeaponType(const EWeaponType weaponType)
-{
-	animInst->PlayWeaponArmMontage(weaponType);
-	currentWeaponType = weaponType;
 }
 
 void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weaponType)
@@ -455,11 +486,6 @@ void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weapon
 		RightClickEnd(eWeaponType);
 		break;
 	}
-}
-
-void APlayerCharacter::SetAttackResult(const bool result, const int zombieNumber)
-{
-	DZombieHitsMe.ExecuteIfBound(zombieNumber, result);
 }
 
 void APlayerCharacter::SetWrestlingOn()
@@ -547,16 +573,14 @@ void APlayerCharacter::RecoverHealth(const float recoveryAmount)
 
 void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
 {
-	TWeakObjectPtr<UItemPermanent> equipmentObj = Cast<UItemPermanent>(item->GetItemObject());
-	SetCurrentWeaponType(StaticCast<EWeaponType>(equipmentObj->GetItemSubType()));
 	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
 	socket->AttachActor(item.Get(), GetMesh());
-	armedWeapon = item;
 }
 
 void APlayerCharacter::EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber)
 {
 	item->ActivateEquipMode(item->GetItemType());
+
 	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
 	permanentItemObj->SetEquippedSlotNumber(slotNumber);
 
@@ -660,17 +684,85 @@ void APlayerCharacter::HideHealthWidget()
 	healthWidget->SetVisibility(false);
 }
 
+void APlayerCharacter::ActivateAbility(TSubclassOf<UGameplayAbility> ability, const EInputType inputType)
+{
+	FGameplayAbilitySpec* specPtr = asc->FindAbilitySpecFromClass(ability);
+	if (specPtr)
+	{
+		specPtr->InputID = StaticCast<uint8>(inputType);
+		if (specPtr->IsActive())
+		{
+			if (inputType == EInputType::LeftClick_Released || inputType == EInputType::RightClick_Released)
+			{
+				asc->AbilitySpecInputReleased(*specPtr);
+			}
+			else
+			{
+				specPtr->InputPressed = true;
+				asc->AbilitySpecInputPressed(*specPtr);
+			}
+		}
+		else
+		{
+			if (inputType != EInputType::LeftClick_Released && inputType != EInputType::RightClick_Released)
+			{
+				asc->TryActivateAbility(specPtr->Handle);
+			}
+		}
+	}
+	else
+	{
+		FGameplayAbilitySpec spec(ability);
+		spec.InputID = StaticCast<uint8>(inputType);
+		asc->GiveAbility(spec);
+		asc->TryActivateAbilityByClass(ability);
+	}
+}
+
+bool APlayerCharacter::TryActivateAbility(const EInputType inputType)
+{
+	FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromInputID(StaticCast<uint8>(inputType));
+	if (spec)
+	{
+		const bool result = asc->TryActivateAbility(spec->Handle);
+		return result;
+	}
+	return false;
+}
+
+void APlayerCharacter::ActivateInputInterval()
+{
+	bInputInterval = true;
+}
+
+void APlayerCharacter::DeactivateInputInterval()
+{
+	bInputInterval = false;
+}
+
+void APlayerCharacter::ActivateAiming()
+{
+	bAiming = true;
+}
+
+void APlayerCharacter::DeactivateAiming()
+{
+	bAiming = false;
+}
+
+// 애님 노티파이 호출
 void APlayerCharacter::AttachDisarmedWeaponToBack()
 {
 	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(armedWeapon->GetItemObject());
 	EquipItem(armedWeapon, permanentItemObj->GetEquippedSlotNumber());
 	armedWeapon.Reset();
+	currentWeaponType = EWeaponType::NONE;
 }
 
 void APlayerCharacter::ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor)
 {
-	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(armedWeapon->GetItemObject());
-	EquipItem(armedWeapon, permanentItemObj->GetEquippedSlotNumber());
+	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
+	AttachDisarmedWeaponToBack();
 	armedWeapon = changedWeaponActor;
 	ArmWeapon(armedWeapon);
 }
@@ -685,8 +777,7 @@ bool APlayerCharacter::DisarmWeapon()
 	if (CheckAbleInput() == false)
 		return false;
 
-	animInst->PlayWeaponDisarmMontage(currentWeaponType);
-	currentWeaponType = EWeaponType::NONE;
+	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;

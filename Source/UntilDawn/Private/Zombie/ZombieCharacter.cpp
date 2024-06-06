@@ -4,6 +4,7 @@
 #include "Zombie/ZombieAIController.h"
 #include "Zombie/ZombieAnimInstance.h"
 #include "Player/PlayerCharacter.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "UI/Main/WidgetZombieHealth.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
@@ -11,6 +12,9 @@
 #include "UntilDawn/UntilDawn.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "Tag/UntilDawnGameplayTags.h"
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -19,6 +23,8 @@ AZombieCharacter::AZombieCharacter()
 	AIControllerClass = AZombieAIController::StaticClass();
 
 	AutoPossessAI = EAutoPossessAI::Spawned;
+
+	asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombieCapsule"));
@@ -138,6 +144,13 @@ void AZombieCharacter::DeactivateAfterDelay()
 	DeactivateActor();
 }
 
+void AZombieCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	asc->InitAbilityActorInfo(this, this);
+}
+
 void AZombieCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -218,6 +231,11 @@ void AZombieCharacter::SetNextLocation(const FVector& nextLoc)
 			GetWorldTimerManager().SetTimer(movementUpdateTimer, this, &AZombieCharacter::StartMovementUpdate, interval, true);
 		}
 	}
+}
+
+UAbilitySystemComponent* AZombieCharacter::GetAbilitySystemComponent() const
+{
+	return asc;
 }
 
 void AZombieCharacter::UpdateMovement()
@@ -309,17 +327,31 @@ void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 	if (hit.bBlockingHit)
 	{
 		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
-		if(IsValid(player) && player == targetPlayer)
-		EndAttack();
-		SetAttackToPlayerResult(true);
+		if (IsValid(player) && player == targetPlayer)
+		{
+			FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hit);
+			FGameplayEventData payloadData;
+			payloadData.TargetData.Add(targetData);
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(hit.GetActor(), UD_EVENT_CHARACTER_HITREACTION, payloadData);
+
+			TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(player->GetController());
+			if (playerController.IsValid())
+			{
+				playerController->SendZombieHitsMe(number, true, hit);
+			}
+
+			EndAttack();
+		}
 	}
 }
 
-void AZombieCharacter::SetAttackToPlayerResult(const bool result)
+void AZombieCharacter::AttackFailed()
 {
-	if (IsValid(targetPlayer))
+	TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(targetPlayer->GetController());
+	if (playerController.IsValid())
 	{
-		targetPlayer->SetAttackResult(result, number);
+		FHitResult hit;
+		playerController->SendZombieHitsMe(number, false, hit);
 	}
 }
 

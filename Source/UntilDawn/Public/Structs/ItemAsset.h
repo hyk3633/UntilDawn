@@ -2,7 +2,11 @@
 
 #include "ItemInfo.h"
 #include "Engine/DataTable.h"
+#include "../Enums/InputType.h"
+#include "GameplayTagContainer.h"
 #include "ItemAsset.generated.h"
+
+class UGameplayAbility;
 
 USTRUCT(BlueprintType)
 struct FItemAsset : public FTableRowBase
@@ -20,8 +24,8 @@ public:
 		icon				= asset->icon;
 		iconRotated			= asset->iconRotated;
 		socketName			= asset->socketName;
-		itemUsingMontage	= asset->itemUsingMontage;
-		itemUsingParticle	= asset->itemUsingParticle;
+		abilities			= asset->abilities;
+		gameplayTags		= asset->gameplayTags;
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -40,9 +44,9 @@ public:
 	FName socketName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UAnimMontage* itemUsingMontage;
+	TMap<EInputType, TSubclassOf<UGameplayAbility>> abilities;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UParticleSystem* itemUsingParticle;
+	FGameplayTagContainer gameplayTags;
 
 };

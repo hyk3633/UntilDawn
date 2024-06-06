@@ -20,9 +20,11 @@ void UPlayerAnimInst::UpdateValue()
 		velocityZ = myCharacter->GetVelocity().Z;
 		direction = myCharacter->GetDirection();
 		pitch = myCharacter->GetPitch();
+		yaw = myCharacter->GetYaw();
 		turnRight = myCharacter->GetTurnRight();
 		turnLeft = myCharacter->GetTurnLeft();
-		rightClick = myCharacter->GetRightClick();
+		bRightClick = myCharacter->GetRightClick();
+		bAiming = myCharacter->GetAiming();
 		isAbleShoot = myCharacter->GetBowStatus() ? true : false;
 		currentWeaponType = myCharacter->GetCurrentWeaponType();
 		isWrestling = myCharacter->GetWrestling();

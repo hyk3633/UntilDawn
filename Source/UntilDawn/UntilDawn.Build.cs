@@ -7,10 +7,28 @@ public class UntilDawn : ModuleRules
 	public UntilDawn(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTasks", "UMG", "AnimGraphRuntime", "UMG", "SlateCore", "Json" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+        PublicIncludePaths.AddRange(new string[] { "UntilDawn" });
+
+        PublicDependencyModuleNames.AddRange(new string[] 
+		{	"Core", 
+			"CoreUObject", 
+			"Engine", 
+			"InputCore", 
+			"EnhancedInput", 
+			"GameplayTasks", 
+			"UMG", 
+			"AnimGraphRuntime", 
+			"UMG", 
+			"SlateCore", 
+			"Json",
+            "GameplayAbilities",
+            "GameplayTasks",
+            "GameplayTags"
+        });
+
+		PrivateDependencyModuleNames.AddRange(new string[] { 
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

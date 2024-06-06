@@ -8,17 +8,19 @@
 #include "Structs/Pos.h"
 #include "Structs/CharacterInfo.h"
 #include "../Interface/PoolableActor.h"
+#include "AbilitySystemInterface.h"
 #include "ZombieCharacter.generated.h"
 
 class UZombieAnimInstance;
 class APlayerCharacter;
 class UWidgetComponent;
 class UWidgetZombieHealth;
+class UGameplayAbility;
 
 DECLARE_DELEGATE_OneParam(OnHealthChanged, float healthPercentage);
 
 UCLASS()
-class UNTILDAWN_API AZombieCharacter : public ACharacter, public IPoolableActor
+class UNTILDAWN_API AZombieCharacter : public ACharacter, public IPoolableActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -44,6 +46,8 @@ protected:
 
 	void DeactivateAfterDelay();
 
+	virtual void PostInitializeComponents() override;
+
 	virtual void BeginPlay() override;
 
 public:	
@@ -68,6 +72,8 @@ public:
 
 	void SetNextLocation(const FVector& nextLoc);
 
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 protected:
 
 	void UpdateMovement();
@@ -86,7 +92,7 @@ public:
 
 	void ActivateAttackTrace(const int attackAnimationType);
 
-	void SetAttackToPlayerResult(const bool result);
+	void AttackFailed();
 
 	void UpdateHealth(const float newHealth);
 
@@ -95,6 +101,9 @@ protected:
 	void HideHealthWidget();
 
 private:
+
+	UPROPERTY(EditAnywhere, Category = GAS)
+	TObjectPtr<UAbilitySystemComponent> asc;
 
 	UPROPERTY()
 	UZombieAnimInstance* animInst;
@@ -129,7 +138,7 @@ private:
 
 	bool isAttackActivated;
 
-	int16 damage = 30;
+	int16 attackPower = 30;
 
 	FTimerHandle deactivateDelayTimer;
 

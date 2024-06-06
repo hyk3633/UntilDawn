@@ -3,6 +3,7 @@
 #include "../Enums/ItemType.h"
 #include "../Enums/WeaponType.h"
 #include "../Enums/ArmourSlot.h"
+#include "../Enums/AmmoType.h"
 #include "ItemInfo.generated.h"
 
 USTRUCT()
@@ -53,21 +54,15 @@ public:
 
 	FRangedWeaponInfo() {}
 
-	float fireRate;
-
-	float recoil;
-
 	int magazine;
 
-	float reloadingSpeed;
+	EAmmoType ammoType;
 
 	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
 		FWeaponInfo::Parsing(concreteInfoMap);
-		fireRate		= concreteInfoMap["FireRate"]->AsNumber();
-		recoil			= concreteInfoMap["Recoil"]->AsNumber();
 		magazine		= concreteInfoMap["Magazine"]->AsNumber();
-		reloadingSpeed	= concreteInfoMap["ReloadingSpeed"]->AsNumber();
+		ammoType		= StaticCast<EAmmoType>(concreteInfoMap["AmmoType"]->AsNumber());
 	}
 
 };
@@ -102,11 +97,11 @@ public:
 
 	FAmmoItemInfo() {}
 
-	int ammoType;
+	EAmmoType ammoType;
 
 	void Parsing(TMap<FString, TSharedPtr<FJsonValue>>& concreteInfoMap)
 	{
-		ammoType = concreteInfoMap["AmmoType"]->AsNumber();
+		ammoType = StaticCast<EAmmoType>(concreteInfoMap["AmmoType"]->AsNumber());
 	}
 
 };

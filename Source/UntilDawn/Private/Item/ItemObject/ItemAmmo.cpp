@@ -18,3 +18,8 @@ void UItemAmmo::Using(const uint16 neededAmount)
 {
 	Consumed(neededAmount);
 }
+
+EAmmoType UItemAmmo::GetAmmoType() const
+{
+	return concreteInfo.ammoType;
+}

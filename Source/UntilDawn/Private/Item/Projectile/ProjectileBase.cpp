@@ -4,9 +4,12 @@
 #include "Item/Projectile/ProjectileBase.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "GameFramework/Character.h"
 #include "Components/SphereComponent.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "../../UntilDawn/UntilDawn.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Tag/UntilDawnGameplayTags.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -22,6 +25,7 @@ AProjectileBase::AProjectileBase()
 	collision->SetNotifyRigidBodyCollision(true);
 
 	skeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
+	skeletalMesh->SetupAttachment(RootComponent);
 	skeletalMesh->SetupAttachment(RootComponent);
 	skeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	skeletalMesh->SetRelativeLocation(FVector(-96.f, 0.f, 0.f));
@@ -41,21 +45,14 @@ AProjectileBase::AProjectileBase()
 void AProjectileBase::ActivateActor()
 {
 	skeletalMesh->SetVisibility(true);
-
-	movementComponent->SetUpdatedComponent(RootComponent);
-	movementComponent->SetVelocityInLocalSpace(FVector(-1000, 0, 0));
-	movementComponent->bRotationFollowsVelocity = true;
-	movementComponent->bInterpMovement = true;
-	movementComponent->Activate(true);
-
-	collision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
 	isActive = true;
 }
 
 void AProjectileBase::DeactivateActor()
 {
-	//skeletalMesh->SetVisibility(false);
+	SetOwner(nullptr);
+
+	skeletalMesh->SetVisibility(false);
 
 	collision->SetSimulatePhysics(false);
 	collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -72,6 +69,17 @@ bool AProjectileBase::IsActorActivated()
 	return isActive;
 }
 
+void AProjectileBase::ActivateProjectile()
+{
+	movementComponent->SetUpdatedComponent(RootComponent);
+	movementComponent->SetVelocityInLocalSpace(FVector(-1000, 0, 0));
+	movementComponent->bRotationFollowsVelocity = true;
+	movementComponent->bInterpMovement = true;
+	movementComponent->Activate(true);
+
+	collision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+}
+
 void AProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -86,9 +94,19 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	if (owner.IsValid())
 	{		
 		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
+
+		TWeakObjectPtr<ACharacter> character = Cast<ACharacter>(Hit.GetActor());
+		if (character.IsValid() == false)
+			return;
+
 		TArray<FHitResult> hits;
 		hits.Add(Hit);
 		owner->SendHittedCharacters(hits, attackPower);
+
+		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(Hit);
+		FGameplayEventData payloadData;
+		payloadData.TargetData.Add(targetData);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Hit.GetActor(), UD_EVENT_CHARACTER_HITREACTION, payloadData);
 	}
 }
 

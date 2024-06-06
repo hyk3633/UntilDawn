@@ -8,10 +8,13 @@
 void UAnimNotify_PlayerAttack::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
-	auto player = Cast<APlayerCharacter>(MeshComp->GetOwner());
-	auto playerController = Cast<APlayerControllerMainMap>(player->GetController());
-	if (IsValid(playerController))
+	TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(MeshComp->GetOwner());
+	if (player.IsValid())
 	{
-		playerController->StartAttack();
+		TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(player->GetController());
+		if (playerController.IsValid())
+		{
+			playerController->StartAttack();
+		}
 	}
 }

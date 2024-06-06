@@ -64,5 +64,5 @@ void FunctionProjectileShooting::Shooting(TWeakObjectPtr<APlayerControllerMainMa
 	projectile->SetAttackPower(atkPower);
 	projectile->SetActorLocation(projectileLocation);
 	projectile->SetActorRotation(direction.Rotation());
-	projectile->ActivateActor();
+	projectile->ActivateProjectile();
 }

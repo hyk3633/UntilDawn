@@ -4,11 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include <sstream>
+#include <queue>
+#include <vector>
+#include <string>
 #include "GameModeLoginMap.generated.h"
 
 /**
  * 
  */
+
+class ClientSocket;
+class APlayerControllerLoginMap;
+
 UCLASS()
 class UNTILDAWN_API AGameModeLoginMap : public AGameModeBase
 {
@@ -22,6 +30,23 @@ public:
 
 protected:
 
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float deltaTime) override;
+
+	void ProcessPacket();
+
+	void ReceiveSignUpResult(std::stringstream& recvStream);
+
+	void ReceiveLoginResult(std::stringstream& recvStream);
+
+private:
+
+	ClientSocket* clientSocket;
+
+	UPROPERTY()
+	APlayerControllerLoginMap* loginController;
+
+	bool isConnected;
+
+	std::vector<void (AGameModeLoginMap::*)(std::stringstream&)> packetCallbacks;
 
 };

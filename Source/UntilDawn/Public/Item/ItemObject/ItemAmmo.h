@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Item/ItemObject/ItemConsumable.h"
 #include "../../Structs/ItemInfo.h"
+#include "../../Enums/AmmoType.h"
 #include "ItemAmmo.generated.h"
 
 /**
@@ -21,6 +22,8 @@ class UNTILDAWN_API UItemAmmo : public UItemConsumable
 public:
 
 	virtual void Using(const uint16 neededAmount = 1) override;
+
+	EAmmoType GetAmmoType() const;
 
 protected:
 

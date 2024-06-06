@@ -100,6 +100,11 @@ FString AItemBase::GetItemID() const
 	return itemObj->GetItemID();
 }
 
+const FGameplayTagContainer& AItemBase::GetGameplayTags()
+{
+	return itemObj->GetGameplayTags();
+}
+
 void AItemBase::SetItemObject(TWeakObjectPtr<UItemObject> newItemObj)
 {
 	itemObj = newItemObj;

@@ -41,7 +41,7 @@ public:
 
 	void SendOutRangeZombie(int zombieNumber);
 
-	void SendZombieHitsMe(int zombieNumber, bool bResult);
+	void SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitInfo& hitInfo);
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
@@ -58,6 +58,8 @@ public:
 	void DropInventoryItem(const FString itemID);
 
 	void SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const float atkPower);
+
+	void SendKickedCharacters(TArray<FHitInfo>& hittedCharacters);
 
 	void SendRespawnRequest();
 

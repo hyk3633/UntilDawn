@@ -37,8 +37,6 @@ void UItemProjectileWeapon::Reload()
 		ammoItemObj->Using(neededAmmo);
 
 		onFireWeapon.ExecuteIfBound(loadedAmmoAmount);
-		
-		// 재장전 애니메이션
 	}
 }
 

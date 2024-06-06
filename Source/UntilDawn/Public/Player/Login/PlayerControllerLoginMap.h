@@ -4,17 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include <sstream>
-#include <queue>
-#include <vector>
-#include <string>
 #include "PlayerControllerLoginMap.generated.h"
 /**
  * 
  */
 
-class ClientSocket;
 class AHUDLoginMap;
+class ClientSocket;
 
 UCLASS()
 class UNTILDAWN_API APlayerControllerLoginMap : public APlayerController
@@ -27,18 +23,16 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void Tick(float DeltaTime) override;
+	void SetSocket(ClientSocket* socket);
+
+	void SetSignUpMessageText(const bool isGranted);
+
+	void SetLoginMessageTextAndLoginToMap(const bool isGranted, FString playerID = TEXT(""), const int playerNumber = -1);
 
 protected:
 
-	void ProcessPacket();
-
 	UFUNCTION()
 	void ReceiveAccountInfo(const FText& id, const FText& pw, const bool isLogin);
-
-	void SetSignUpMessageText(std::stringstream& recvStream);
-
-	void SetLoginMessageTextAndLoginToMap(std::stringstream& recvStream);
 
 	void StartLevelTransition();
 	
@@ -49,10 +43,6 @@ private:
 	UPROPERTY()
 	AHUDLoginMap* loginMapHUD;
 
-	bool isConnected;
-
 	FTimerHandle levelTransitionTimer;
-
-	std::vector<void (APlayerControllerLoginMap::*)(std::stringstream&)> packetCallbacks;
 
 };

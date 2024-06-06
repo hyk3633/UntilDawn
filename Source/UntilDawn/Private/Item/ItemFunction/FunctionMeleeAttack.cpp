@@ -5,6 +5,9 @@
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UntilDawn/UntilDawn.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Tag/UntilDawnGameplayTags.h"
 
 FunctionMeleeAttack::FunctionMeleeAttack()
 {
@@ -18,7 +21,6 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 {
 	check(attackerController.IsValid());
 
-	FHitResult hit;
 	FVector collisionLocation = weaponMesh->GetSocketLocation(FName("CollisionSocket"));
 	TArray<AActor*> actorsToIgnore;
 	actorsToIgnore.Add(attackerController->GetPawn());
@@ -36,6 +38,17 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 		hits,
 		true
 	);
+
+	for (auto& hit : hits)
+	{
+		if (hit.bBlockingHit)
+		{
+			FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hit);
+			FGameplayEventData payloadData;
+			payloadData.TargetData.Add(targetData);
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(hit.GetActor(), UD_EVENT_CHARACTER_HITREACTION, payloadData);
+		}
+	}
 	
 	if (hits.Num())
 	{

@@ -24,8 +24,8 @@ ClientSocket::~ClientSocket()
 
 bool ClientSocket::InitSocket()
 {
-	if (isInitialized)
-		return true;
+	//if (isInitialized)
+	//	return true;
 
 	WSADATA wsaData;
 	int result;
@@ -38,7 +38,7 @@ bool ClientSocket::InitSocket()
 	}
 
 	// 소켓 생성
-	clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+	clientSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (clientSocket == INVALID_SOCKET)
 	{
 		ELOG(TEXT("[Error] : Failed to create socket!"));
@@ -51,8 +51,8 @@ bool ClientSocket::InitSocket()
 
 void ClientSocket::StartSocket()
 {
-	if (isInitialized)
-		return;
+	//if (isInitialized)
+	//	return;
 
 	// 접속하고자 하는 서버에 대한 주소 세팅
 	sockaddr_in addr;
@@ -60,13 +60,17 @@ void ClientSocket::StartSocket()
 	addr.sin_port = htons(9999);
 	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
+	GEngine->AddOnScreenDebugMessage(0, 5.f, FColor::Green, TEXT("Hello"));
+
 	// 서버에 연결 요청
 	if (connect(clientSocket, (sockaddr*)&addr, sizeof(addr)) != 0)
 	{
 		ELOG(TEXT("[Error] : Failed to connect to server!"));
 		return;
 	}
+
 	WLOG(TEXT("[Log] : Successfully connected to the server!"));
+	GEngine->AddOnScreenDebugMessage(0, 5.f, FColor::Green, TEXT("Connected"));
 
 	isInitialized = true;
 
@@ -127,12 +131,16 @@ void ClientSocket::SendOutRangeZombie(int zombieNumber)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendZombieHitsMe(int zombieNumber, bool bResult)
+void ClientSocket::SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitInfo& hitInfo)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::ZOMBIEHITSME) << "\n";
 	sendStream << zombieNumber << "\n";
 	sendStream << bResult << "\n";
+	if (bResult)
+	{
+		sendStream << hitInfo << "\n";
+	}
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -204,6 +212,18 @@ void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, cons
 	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";
 	sendStream << hittedCharacters.Num() << "\n";
 	sendStream << atkPower << "\n";
+	for (auto& hitInfo : hittedCharacters)
+	{
+		sendStream << hitInfo;
+	}
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendKickedCharacters(TArray<FHitInfo>& hittedCharacters)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::KICKEDCHARACTERS) << "\n";
+	sendStream << hittedCharacters.Num() << "\n";
 	for (auto& hitInfo : hittedCharacters)
 	{
 		sendStream << hitInfo;

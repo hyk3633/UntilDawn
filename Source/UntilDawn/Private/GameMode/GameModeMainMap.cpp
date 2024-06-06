@@ -17,6 +17,8 @@
 #include "Enums/ZombieState.h"
 #include "Enums/PoolableActorType.h"
 #include "Interface/PoolableActor.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 
 using std::string;
 
@@ -35,11 +37,19 @@ AGameModeMainMap::AGameModeMainMap()
 	PlayerControllerClass = APlayerControllerMainMap::StaticClass();
 	DefaultPawnClass = nullptr;
 	HUDClass = AHUDMainMap::StaticClass();
+
+	static ConstructorHelpers::FClassFinder<APlayerCharacter> playerCharacterRef(TEXT("/Script/Engine.Blueprint'/Game/_Assets/Blueprints/Player/BP_PlayerCharacter.BP_PlayerCharacter_C'"));
+	if (playerCharacterRef.Class)
+	{
+		playerCharacterClass = playerCharacterRef.Class;
+	}
 }
 
 void AGameModeMainMap::BeginPlay()
 {
 	Super::BeginPlay();
+
+	check(playerCharacterClass);
 	
 	packetCallbacks[EPacketType::SPAWNPLAYER]			= &AGameModeMainMap::SpawnNewPlayerCharacter;
 	packetCallbacks[EPacketType::SYNCHPLAYER]			= &AGameModeMainMap::SynchronizePlayers;
@@ -69,6 +79,7 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::ARM_WEAPON]			= &AGameModeMainMap::PlayerArmWeapon;
 	packetCallbacks[EPacketType::DISARM_WEAPON]			= &AGameModeMainMap::PlayerDisarmWeapon;
 	packetCallbacks[EPacketType::ATTACKRESULT]			= &AGameModeMainMap::ProcessAttackResult;
+	packetCallbacks[EPacketType::KICKEDCHARACTERS]		= &AGameModeMainMap::ProcessKickedCharacters;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -113,11 +124,13 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 	for (auto& initialInfo : playerInitialInfoSet.playerInitialInfoMap)
 	{
 		const int playerNumber = initialInfo.first;
-		if (playerNumber == myNumber) continue;
+		if (playerNumber == myNumber) 
+			continue;
+
 		PlayerInitialInfo& info = initialInfo.second;
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
-				APlayerCharacter::StaticClass(),
+				playerCharacterClass,
 				FVector(info.characterInfo.vectorX, info.characterInfo.vectorY, info.characterInfo.vectorZ),
 				FRotator(info.characterInfo.pitch, info.characterInfo.yaw, info.characterInfo.roll)
 			);
@@ -534,7 +547,7 @@ void AGameModeMainMap::InitializePlayerEquippedItems(std::stringstream& recvStre
 void AGameModeMainMap::PlayerSpawnAfterDelay()
 {
 	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
-	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator);
+	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(playerCharacterClass, FVector(0, 0, 0), FRotator::ZeroRotator);
 	myPlayerCharacter->SetPlayerIDAndNumber(myID, myNumber);
 	myPlayerCharacter->InitializeHealthWidget();
 	myController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
@@ -556,7 +569,7 @@ void AGameModeMainMap::ReceiveReplicatedProjectile(std::stringstream& recvStream
 
 	projectile->SetActorLocation(location);
 	projectile->SetActorRotation(rotation);
-	projectile->ActivateActor();
+	projectile->ActivateProjectile();
 }
 
 void AGameModeMainMap::PlayerUseItem(std::stringstream& recvStream)
@@ -617,6 +630,8 @@ void AGameModeMainMap::PlayerChangeWeapon(std::stringstream& recvStream)
 	check(changedWeaponActor.IsValid());
 
 	playerCharacterMap[playerNumber]->ChangeWeapon(changedWeaponActor);
+	FGameplayEventData payloadData;
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_CHARACTER_CHANGEWEAPON, payloadData);
 }
 
 void AGameModeMainMap::PlayerArmWeapon(std::stringstream& recvStream)
@@ -631,13 +646,16 @@ void AGameModeMainMap::PlayerArmWeapon(std::stringstream& recvStream)
 	check(armedWeaponActor.IsValid());
 
 	playerCharacterMap[playerNumber]->ArmWeapon(armedWeaponActor);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_CHARACTER_ARMWEAPON, FGameplayEventData());
 }
 
 void AGameModeMainMap::PlayerDisarmWeapon(std::stringstream& recvStream)
 {
 	int playerNumber = -1;
 	recvStream >> playerNumber;
+
 	playerCharacterMap[playerNumber]->DisarmWeapon();
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_CHARACTER_DISARMWEAPON, FGameplayEventData());
 }
 
 void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
@@ -649,6 +667,60 @@ void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
 	for (int i = 0; i < size; i++)
 	{
 		recvStream >> hitInfo;
+
+		FHitResult hitResult;
+		hitResult.ImpactPoint = hitInfo.hitLocation;
+		hitResult.ImpactNormal = hitInfo.hitRotation.Vector();
+
+		AActor* targetActor = nullptr;
+		if (hitInfo.isPlayer)
+		{
+			if (playerCharacterMap.Find(hitInfo.characterNumber))
+			{
+				targetActor = playerCharacterMap[hitInfo.characterNumber];
+			}
+		}
+		else
+		{
+			if (zombieCharacterMap.Find(hitInfo.characterNumber))
+			{
+				targetActor = zombieCharacterMap[hitInfo.characterNumber].Get();
+			}
+		}
+
+		if (targetActor == nullptr)
+			continue;
+
+		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hitResult);
+		FGameplayEventData payloadData;
+		payloadData.TargetData.Add(targetData);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(targetActor, UD_EVENT_CHARACTER_HITREACTION, payloadData);
+	}
+}
+
+void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
+{
+	int size = 0;
+	recvStream >> size;
+
+	FHitInfo hitInfo;
+	for (int i = 0; i < size; i++)
+	{
+		recvStream >> hitInfo;
+		ACharacter* character;
+		if (hitInfo.isPlayer && playerCharacterMap.Find(hitInfo.characterNumber))
+		{
+			character = playerCharacterMap[hitInfo.characterNumber];
+		}
+		else if(zombieCharacterMap.Find(hitInfo.characterNumber))
+		{
+			character = zombieCharacterMap[hitInfo.characterNumber].Get();
+		}
+		else
+		{
+			continue;
+		}
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(character, UD_CHARACTER_STATE_KICKED, FGameplayEventData());
 	}
 }
 

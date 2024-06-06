@@ -8,12 +8,16 @@
 #include "../Enums/EquipmentSlot.h"
 #include "../Enums/ItemType.h"
 #include "../Enums/WeaponType.h"
+#include "../Enums/InputType.h"
+#include "../Enums/AmmoType.h"
 #include "InventoryComponent.generated.h"
 
 class APlayerCharacter;
 class UItemObject;
 class AItemBase;
 class AItemWeapon;
+class UGameplayAbility;
+class UItemAmmo;
 
 DECLARE_DELEGATE(DelegateOnInventoryChanged);
 
@@ -76,6 +80,8 @@ public:
 
 	TWeakObjectPtr<AItemBase> ArmRecentWeapon();
 
+	TSubclassOf<UGameplayAbility> GetItemAbility(const EInputType inputType) const;
+
 public:
 
 	EWeaponType GetCurrentWeaponType() const;
@@ -89,6 +95,8 @@ public:
 	void SetCharacter(TWeakObjectPtr<APlayerCharacter> character);
 
 	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
+
+	TWeakObjectPtr<UItemAmmo> FindAmmo(const EAmmoType ammoType);
 
 	void UsingConsumableItemOfType(const EItemMainType itemType);
 

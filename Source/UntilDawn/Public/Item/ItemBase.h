@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "../Interface/PoolableActor.h"
 #include "../Enums/ItemType.h"
+#include "GameplayTagContainer.h"
 #include "ItemBase.generated.h"
 
 class USceneComponent;
@@ -22,11 +23,13 @@ public:
 
 	AItemBase();
 
-	FORCEINLINE TWeakObjectPtr<UItemObject> GetItemObject() const { return itemObj; };
+	FORCEINLINE TWeakObjectPtr<UItemObject> GetItemObject() const { return itemObj; }
 
 	FName GetSocketName() const;
 
 	FString GetItemID() const;
+
+	const FGameplayTagContainer& GetGameplayTags();
 
 	void SetItemObject(TWeakObjectPtr<UItemObject> newItemCore);
 
@@ -53,6 +56,8 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+
+	void AddItemTagsToCharacter();
 
 private:
 

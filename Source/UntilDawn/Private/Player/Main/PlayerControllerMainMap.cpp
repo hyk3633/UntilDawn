@@ -15,6 +15,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "Tag/UntilDawnGameplayTags.h"
+#include "Abilities/GameplayAbility.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
@@ -23,11 +26,17 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsController.IMC_DefaultsController"));
 	if (obj_DefaultContext.Succeeded()) defaultMappingContext = obj_DefaultContext.Object;
 
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClick(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClick.IA_LeftClick"));
-	if (obj_LeftClick.Succeeded()) leftClickAction = obj_LeftClick.Object;
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClickPressed(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClickPressed.IA_LeftClickPressed"));
+	if (obj_LeftClickPressed.Succeeded()) leftClickPressedAction = obj_LeftClickPressed.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClickTab(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClickTab.IA_LeftClickTab"));
+	if (obj_LeftClickTab.Succeeded()) leftClickTabAction = obj_LeftClickTab.Object;
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClickHold(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClickHold.IA_LeftClickHold"));
 	if (obj_LeftClickHold.Succeeded()) leftClickHoldAction = obj_LeftClickHold.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_LeftClickReleased(TEXT("/Game/_Assets/Inputs/Actions/IA_LeftClickReleased.IA_LeftClickReleased"));
+	if (obj_LeftClickReleased.Succeeded()) leftClickReleasedAction = obj_LeftClickReleased.Object;
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_RightClick(TEXT("/Game/_Assets/Inputs/Actions/IA_RightClick.IA_RightClick"));
 	if (obj_RightClick.Succeeded()) rightClickAction = obj_RightClick.Object;
@@ -143,30 +152,55 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) 
 	{
-		EnhancedInputComponent->BindAction(leftClickAction,			ETriggerEvent::Started,   this, &APlayerControllerMainMap::LeftClick);
-		EnhancedInputComponent->BindAction(leftClickHoldAction,		ETriggerEvent::Triggered, this, &APlayerControllerMainMap::LeftClickHold);
-		EnhancedInputComponent->BindAction(leftClickAction,			ETriggerEvent::Completed, this, &APlayerControllerMainMap::LeftClickEnd);
-		EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RightClick);
-		EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Completed, this, &APlayerControllerMainMap::RightClickEnd);
-		EnhancedInputComponent->BindAction(rKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::RKeyPressed);
-		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RKeyHold);
+		EnhancedInputComponent->BindAction(leftClickTabAction,		ETriggerEvent::Completed,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::LeftClick_Tab);
+		EnhancedInputComponent->BindAction(leftClickPressedAction,	ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::LeftClick_Pressed);
+		EnhancedInputComponent->BindAction(leftClickHoldAction,		ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::LeftClick_Hold);
+		EnhancedInputComponent->BindAction(leftClickReleasedAction,	ETriggerEvent::Completed,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::LeftClick_Released);
+
+		EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::RightClick_Pressed);
+		EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Completed,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::RightClick_Released);
+
+		EnhancedInputComponent->BindAction(rKeyAction,				ETriggerEvent::Completed,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Pressed);
+		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Hold);
+
+		//EnhancedInputComponent->BindAction(leftClickAction,		ETriggerEvent::Started,   this, &APlayerControllerMainMap::LeftClick);
+		//EnhancedInputComponent->BindAction(leftClickHoldAction,	ETriggerEvent::Triggered, this, &APlayerControllerMainMap::LeftClickHold);
+		//EnhancedInputComponent->BindAction(leftClickAction,		ETriggerEvent::Completed, this, &APlayerControllerMainMap::LeftClickEnd);
+		//EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RightClick);
+		//EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Completed, this, &APlayerControllerMainMap::RightClickEnd);
+		//EnhancedInputComponent->BindAction(rKeyAction,			ETriggerEvent::Completed, this, &APlayerControllerMainMap::RKeyPressed);
+		//EnhancedInputComponent->BindAction(rKeyHoldAction,		ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RKeyHold);
+
 		EnhancedInputComponent->BindAction(eKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::EKeyPressed);
 		EnhancedInputComponent->BindAction(iKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::IKeyPressed);
+
 		EnhancedInputComponent->BindAction(hKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::HKeyPressed);
 		EnhancedInputComponent->BindAction(wheelAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::WheelRolled);
 	}
 }
 
+void APlayerControllerMainMap::WeaponInputPressed(const EInputType inputType)
+{
+	TSubclassOf<UGameplayAbility> ability = inventoryComponent->GetItemAbility(inputType);
+	if (ability)
+	{
+		myCharacter->ActivateAbility(ability, inputType);
+
+		// 서버 전송
+	}
+}
+
+void APlayerControllerMainMap::NormalInputPressed(const EInputType inputType)
+{
+	if (myCharacter->TryActivateAbility(inputType) == false)
+	{
+		ELOG(TEXT("Try ability failed!"));
+	}
+}
+
 void APlayerControllerMainMap::LeftClick()
 {
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (weaponType != EWeaponType::NONE && inventoryComponent->IsWeaponUsable())
-	{
-		if (myCharacter->LeftClick(weaponType))
-		{
-			SendPlayerInputAction(EPlayerInputs::LeftClick, weaponType);
-		}
-	}
+	
 }
 
 void APlayerControllerMainMap::LeftClickHold()
@@ -205,13 +239,13 @@ void APlayerControllerMainMap::RightClickEnd()
 	}
 }
 
-void APlayerControllerMainMap::RKeyPressed()
+void APlayerControllerMainMap::ArmWeapon()
 {
 	const EWeaponType currentWeaponType = inventoryComponent->GetCurrentWeaponType();
 	if (currentWeaponType == EWeaponType::NONE)
 	{
 		auto itemActor = inventoryComponent->ArmRecentWeapon();
-		if (myCharacter->ArmWeapon(itemActor))
+		if (itemActor.IsValid() && myCharacter->ArmWeapon(itemActor))
 		{
 			onWeaponArmed.ExecuteIfBound(itemActor->GetItemObject().Get());
 			clientSocket->ArmWeapon(itemActor->GetItemID());
@@ -219,7 +253,7 @@ void APlayerControllerMainMap::RKeyPressed()
 	}
 }
 
-void APlayerControllerMainMap::RKeyHold()
+void APlayerControllerMainMap::DisarmWeapon()
 {
 	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
 	if (weaponType != EWeaponType::NONE && myCharacter->DisarmWeapon())
@@ -267,6 +301,10 @@ void APlayerControllerMainMap::WheelRolled()
 		{
 			onWeaponArmed.ExecuteIfBound(changedWeaponActor->GetItemObject().Get());
 			myCharacter->ChangeWeapon(changedWeaponActor);
+
+			FGameplayEventData payloadData;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(myCharacter, UD_EVENT_CHARACTER_CHANGEWEAPON, payloadData);
+
 			clientSocket->ChangeWeapon(changedWeaponActor->GetItemID());
 		}
 	}
@@ -311,7 +349,6 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	// 서버에 게임 맵에 접속했음을 알림
 	myCharacter->DZombieInRange.BindUFunction(this, FName("SendInRangeZombie"));
 	myCharacter->DZombieOutRange.BindUFunction(this, FName("SendOutRangeZombie"));
-	myCharacter->DZombieHitsMe.BindUFunction(this, FName("SendZombieHitsMe"));
 	myCharacter->UpdatePlayerInfo();
 
 	inventoryComponent->SetCharacter(myCharacter);
@@ -344,9 +381,10 @@ void APlayerControllerMainMap::SendOutRangeZombie(int zombieNumber)
 	clientSocket->SendOutRangeZombie(zombieNumber);
 }
 
-void APlayerControllerMainMap::SendZombieHitsMe(int zombieNumber, bool bResult)
+void APlayerControllerMainMap::SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitResult& hitResult)
 {
-	clientSocket->SendZombieHitsMe(zombieNumber, bResult);
+	FHitInfo hitInfo{ zombieNumber, false , hitResult.ImpactPoint, hitResult.ImpactNormal.Rotation() };
+	clientSocket->SendZombieHitsMe(zombieNumber, bResult, hitInfo);
 }
 
 void APlayerControllerMainMap::SendPlayerBlockingResult(const bool isSuccessToBlocking)
@@ -515,6 +553,37 @@ void APlayerControllerMainMap::SetRowColumn(const int r, const int c)
 {
 	inventoryComponent->SetRowColumn(r, c);
 	GetHUD<AHUDMainMap>()->StartHUD();
+}
+
+void APlayerControllerMainMap::SendHitResult(TArray<FHitResult>& hits, FGameplayTag& triggerGameplayTag)
+{
+	TArray<FHitInfo> hittedCharacters;
+	for (auto& hit : hits)
+	{
+		if (hit.bBlockingHit == false)
+			continue;
+		TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(hit.GetActor());
+		if (player.IsValid())
+		{
+			hittedCharacters.Add(FHitInfo{ player->GetPlayerNumber(), true , hit.ImpactPoint, hit.ImpactNormal.Rotation() });
+		}
+		else
+		{
+			TWeakObjectPtr<AZombieCharacter> zombie = Cast<AZombieCharacter>(hit.GetActor());
+			if (zombie.IsValid())
+			{
+				hittedCharacters.Add(FHitInfo{ zombie->GetNumber(), false , hit.ImpactPoint, hit.ImpactNormal.Rotation() });
+			}
+		}
+	}
+	if (hittedCharacters.Num())
+	{
+		if (triggerGameplayTag == UD_CHARACTER_STATE_KICKED)
+		{
+			clientSocket->SendKickedCharacters(hittedCharacters);
+		}
+	}
+	
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

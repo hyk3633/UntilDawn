@@ -88,3 +88,12 @@ void UItemObject::ResetOwner()
 	ownerController.Reset();
 	ownerCharacter.Reset();
 }
+
+TSubclassOf<UGameplayAbility> UItemObject::GetAbility(const EInputType inputType)
+{
+	if (itemAsset.abilities.Find(inputType))
+	{
+		return itemAsset.abilities[inputType];
+	}
+	return nullptr;
+}

@@ -41,7 +41,7 @@ void UAnimNotifyState_ZombieAttack::NotifyEnd(USkeletalMeshComponent* MeshComp, 
 	{
 		if (zombie->GetAttackActivated())
 		{
-			zombie->SetAttackToPlayerResult(false);
+			zombie->AttackFailed();
 		}
 		zombie->EndAttack();
 	}

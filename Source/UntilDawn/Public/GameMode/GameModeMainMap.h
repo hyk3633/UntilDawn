@@ -11,6 +11,8 @@
 #include "Structs/PlayerStatus.h"
 #include "Structs/HitInfo.h"
 #include "Enums/PacketType.h"
+#include "Enums/InputType.h"
+#include "Tag/UntilDawnGameplayTags.h"
 #include <unordered_map>
 #include <sstream>
 #include <string>
@@ -104,6 +106,8 @@ protected:
 
 	void ProcessAttackResult(std::stringstream& recvStream);
 
+	void ProcessKickedCharacters(std::stringstream& recvStream);
+
 public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);
@@ -124,6 +128,9 @@ private:
 	UItemManager* itemManager;
 	
 	ClientSocket* clientSocket;
+
+	UPROPERTY()
+	TSubclassOf<APlayerCharacter> playerCharacterClass;
 	
 	TMap<int, APlayerCharacter*> playerCharacterMap;
 

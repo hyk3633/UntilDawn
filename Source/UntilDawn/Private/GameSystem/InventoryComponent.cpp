@@ -8,6 +8,7 @@
 #include "Item/ItemObject/ItemPermanent.h"
 #include "Item/ItemObject/ItemConsumable.h"
 #include "Item/ItemObject/ItemProjectileWeapon.h"
+#include "Item/ItemObject/ItemAmmo.h"
 #include "GameMode/GameModeMainMap.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -236,6 +237,18 @@ TWeakObjectPtr<AItemBase> UInventoryComponent::ArmRecentWeapon()
 	return nullptr;
 }
 
+TSubclassOf<UGameplayAbility> UInventoryComponent::GetItemAbility(const EInputType inputType) const
+{
+	if (armedWeapon.IsValid())
+	{
+		return armedWeapon->GetItemObject()->GetAbility(inputType);
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 EWeaponType UInventoryComponent::GetCurrentWeaponType() const
 {
 	if (armedWeapon.IsValid())
@@ -281,6 +294,22 @@ TWeakObjectPtr<UItemObject> UInventoryComponent::GetItemObjectOfType(const EItem
 	return nullptr;
 }
 
+TWeakObjectPtr<UItemAmmo> UInventoryComponent::FindAmmo(const EAmmoType ammoType)
+{
+	for (auto& pair : items)
+	{
+		if (pair.Key->GetItemType() == EItemMainType::AmmoItem)
+		{
+			TWeakObjectPtr<UItemAmmo> ammoItem = Cast<UItemAmmo>(pair.Key);
+			if (ammoItem->GetAmmoType() == ammoType)
+			{
+				return ammoItem;
+			}
+		}
+	}
+	return nullptr;
+}
+
 void UInventoryComponent::UsingConsumableItemOfType(const EItemMainType itemType)
 {
 	TWeakObjectPtr<UItemConsumable> consuambleItemObj = Cast<UItemConsumable>(GetItemObjectOfType(itemType));
@@ -307,7 +336,7 @@ TWeakObjectPtr<AItemBase> UInventoryComponent::ChangeWeapon()
 	{
 		++count;
 		nextIndex = (nextIndex + 1) % size;
-		if (equippedItems[nextIndex].IsValid())
+		if (equippedItems[nextIndex].IsValid() && (equippedItems[nextIndex]->GetItemType() == EItemMainType::RangedWeapon || equippedItems[nextIndex]->GetItemType() == EItemMainType::MeleeWeapon))
 		{
 			recentWeaponSlot = nextIndex;
 			armedWeapon = equippedItems[nextIndex];

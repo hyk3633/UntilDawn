@@ -11,11 +11,14 @@ UAnimNotifyState_PlayerAttack::UAnimNotifyState_PlayerAttack()
 void UAnimNotifyState_PlayerAttack::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-	auto player = Cast<APlayerCharacter>(MeshComp->GetOwner());
-	playerController = Cast<APlayerControllerMainMap>(player->GetController());
-	if (playerController.IsValid())
+	TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(MeshComp->GetOwner());
+	if (player.IsValid())
 	{
-		playerController->StartAttack();
+		playerController = Cast<APlayerControllerMainMap>(player->GetController());
+		if (playerController.IsValid())
+		{
+			playerController->StartAttack();
+		}
 	}
 }
 
@@ -25,11 +28,6 @@ void UAnimNotifyState_PlayerAttack::NotifyTick(USkeletalMeshComponent* MeshComp,
 	elapsedTime += FrameDeltaTime;
 	if (elapsedTime >= tickInterval)
 	{
-		//APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner());
-		//if (IsValid(player) && player->GetAttackActivated())
-		//{
-		//	player->StartAttack();
-		//}
 		if (playerController.IsValid())
 		{
 			playerController->StartAttack();

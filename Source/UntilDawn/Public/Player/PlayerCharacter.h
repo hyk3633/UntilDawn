@@ -7,10 +7,13 @@
 #include "InputActionValue.h"
 #include "../Enums/WeaponType.h"
 #include "../Enums/ArmourSlot.h"
+#include "../Enums/InputType.h"
 #include "Structs/CharacterInfo.h"
 #include "Structs/Tile.h"
+#include "AbilitySystemInterface.h"
 #include "PlayerCharacter.generated.h"
 
+class UAbilitySystemComponent;
 class APlayerControllerMainMap;
 class AHUDMainMap;
 class UPlayerAnimInst;
@@ -27,10 +30,10 @@ class AItemMeleeWeapon;
 class UWidgetComponent;
 class UWidgetPlayerHealth;
 class UItemPermanent;
+class UGameplayAbility;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
-DECLARE_DELEGATE_TwoParams(DelegateZombieHitsMe, int zombieNumber, bool bResult);
 
 enum class EBowStatus : uint8
 {
@@ -41,7 +44,7 @@ enum class EBowStatus : uint8
 
 
 UCLASS()
-class UNTILDAWN_API APlayerCharacter : public ACharacter
+class UNTILDAWN_API APlayerCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -51,9 +54,10 @@ public:
 
 	DelegateZombieInRange DZombieInRange;
 	DelegateZombieInRange DZombieOutRange;
-	DelegateZombieHitsMe DZombieHitsMe;
 
 protected:
+
+	virtual void PostInitializeComponents() override;
 
 	virtual void BeginPlay() override;
 
@@ -101,6 +105,8 @@ protected:
 
 public:	
 
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 	virtual void Tick(float deltaTime) override;
 
 	void UpdatePlayerInfo();
@@ -116,6 +122,7 @@ public:
 
 	FORCEINLINE const float GetDirection() const { return direction; }
 	FORCEINLINE const float GetPitch() const { return pitch; }
+	FORCEINLINE const float GetYaw() const { return yaw; }
 
 	FORCEINLINE const bool GetTurnRight() const { return turnRight; }
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
@@ -123,16 +130,14 @@ public:
 
 	EWeaponType GetCurrentWeaponType() const;
 
-	void SetCurrentWeaponType(const EWeaponType weaponType);
-
 	FORCEINLINE CharacterInfo& GetPlayerInfo() { return myInfo; }
 
 	void DoPlayerInputAction(const int inputType, const int weaponType);
 
-	void SetAttackResult(const bool result, const int zombieNumber);
+	void SetAttackResult(const int zombieNumber, const FHitResult& hitResult);
 
-	FORCEINLINE void SetWrestlingOn();
-	FORCEINLINE void SetWrestlingOff();
+	void SetWrestlingOn();
+	void SetWrestlingOff();
 	FORCEINLINE bool GetWrestling() { return bWrestling; }
 	FORCEINLINE uint8 GetBowStatus() const { return bowStatus; }
 
@@ -160,6 +165,8 @@ public:
 
 	void EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber);
 
+public:
+
 	void AttachItemActor(TWeakObjectPtr<AItemBase> item);
 
 	void UnEquipItem(TWeakObjectPtr<AItemBase> item);
@@ -179,11 +186,28 @@ public:
 
 	TWeakObjectPtr<AItemBase> GetArmedWeapon() const;
 
+	void ActivateAbility(TSubclassOf<UGameplayAbility> ability, const EInputType inputType);
+
+	bool TryActivateAbility(const EInputType inputType);
+
+	void ActivateInputInterval();
+	void DeactivateInputInterval();
+	bool IsInputInterval() const { return bInputInterval; };
+
+	void ActivateAiming();
+	void DeactivateAiming();
+
+	UFUNCTION(BlueprintCallable)
+	bool GetAiming() const { return bAiming; };
+
 protected:
 
 	void HideHealthWidget();
 
 private:
+
+	UPROPERTY(EditAnywhere, Category = GAS)
+	TObjectPtr<UAbilitySystemComponent> asc;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* cameraBoom;
@@ -208,6 +232,12 @@ private:
 
 	UPROPERTY()
 	USkeletalMeshComponent* FootMeshComponent;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Abilities", meta = (AllowPrivateAccess = "true"))
+	TMap<EInputType, TSubclassOf<UGameplayAbility>> inputAbilities;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Abilities", meta = (AllowPrivateAccess = "true"))
+	TArray<TSubclassOf<UGameplayAbility>> defaultAbilities;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* defaultMappingContext;
@@ -235,10 +265,11 @@ private:
 
 	FVector velocity;
 
-	float speed, direction, pitch;
+	float speed, direction, pitch, yaw;
 
 	bool turnRight, turnLeft, rightClick;
 
+	UPROPERTY(VisibleAnywhere, Category = "Status")
 	uint8 bowStatus;
 
 	float shootPower;
@@ -260,5 +291,9 @@ private:
 	FTimerHandle healthWidgetDeacitvateTimer;
 
 	TWeakObjectPtr<AItemBase> armedWeapon;
+
+	bool bInputInterval = false;
+
+	bool bAiming = false;
 
 };

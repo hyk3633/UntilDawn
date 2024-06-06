@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Item/ItemObject/ItemPermanent.h"
 #include "../../Structs/ItemInfo.h"
+#include "../../Enums/AmmoType.h"
 #include "ItemProjectileWeapon.generated.h"
 
 /**
@@ -42,6 +43,8 @@ public:
 	virtual void Using(USkeletalMeshComponent* itemMesh = nullptr) override;
 
 	uint16 GetMagazineAmount() const { return concreteInfo.magazine; }
+
+	EAmmoType GetAmmoType() const { return concreteInfo.ammoType; };
 
 	uint16 GetLoadedAmmoAmount() const { return loadedAmmoAmount; }
 

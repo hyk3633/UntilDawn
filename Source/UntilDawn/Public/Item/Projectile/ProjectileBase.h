@@ -24,6 +24,8 @@ public:
 
 	virtual bool IsActorActivated() override;
 
+	void ActivateProjectile();
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -38,6 +40,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void SetAttackPower(const float atkPower);
+
+	USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
 
 private:
 

@@ -8,6 +8,7 @@
 #include "../Structs/ItemInfo.h"
 #include "../Structs/Tile.h"
 #include "Serialization/BufferArchive.h"
+#include "GameplayTagContainer.h"
 #include "ItemObject.generated.h"
 
 /**
@@ -19,6 +20,7 @@ DECLARE_DELEGATE_OneParam(DelegateUpdateItemQuantity, uint8 quantity);
 class AItemBase;
 class APlayerControllerMainMap;
 class APlayerCharacter;
+class UGameplayAbility;
 
 UCLASS(Abstract)
 class UNTILDAWN_API UItemObject : public UObject
@@ -41,6 +43,8 @@ public:
 	UStaticMesh* GetStaticMesh() const { return itemAsset.staticMesh; }
 
 	FName GetSocketName() const { return itemAsset.socketName; }
+
+	const FGameplayTagContainer& GetGameplayTags() { return itemAsset.gameplayTags; };
 
 	FIntPoint GetDimensions() const;
 
@@ -79,6 +83,10 @@ public:
 	FORCEINLINE TWeakObjectPtr<APlayerControllerMainMap> GetOwnerController() const { return ownerController; }
 
 	FORCEINLINE TWeakObjectPtr<APlayerCharacter> GetOwnerCharacter() const { return ownerCharacter; }
+
+	TSubclassOf<UGameplayAbility> GetAbility(const EInputType inputType);
+
+
 
 protected:
 
