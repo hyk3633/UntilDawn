@@ -11,6 +11,7 @@
 #include "UntilDawn/UntilDawn.h"
 #include "Structs/CharacterInfo.h"
 #include "Structs/HitInfo.h"
+#include "../Enums/InputType.h"
 #include "CoreMinimal.h"
 
 /**
@@ -57,9 +58,9 @@ public:
 
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const float atkPower);
+	void SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const FString& itemID);
 
-	void SendKickedCharacters(TArray<FHitInfo>& hittedCharacters);
+	void SendKickedCharacters(TArray<TPair<int, int>>& kickedCharacters);
 
 	void SendRespawnRequest();
 
@@ -72,6 +73,8 @@ public:
 	void ArmWeapon(const FString& itemID);
 
 	void DisarmWeapon();
+
+	void SendActivateWeaponAbility(const int32 inputType);
 
 	// FRunnable 가상 함수
 

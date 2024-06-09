@@ -4,6 +4,7 @@
 #include "Player/AnimNotify/AnimNotify_EventTrigger.h"
 #include "Player/PlayerCharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Tag/UntilDawnGameplayTags.h"
 
 UAnimNotify_EventTrigger::UAnimNotify_EventTrigger()
 {
@@ -15,7 +16,6 @@ void UAnimNotify_EventTrigger::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(MeshComp->GetOwner());
 	if (player.IsValid() && player->GetController())
 	{
-		FGameplayEventData payloadData;
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(MeshComp->GetOwner(), triggerGameplayTag, payloadData);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(player.Get(), UD_EVENT_CHARACTER_HITCHECK, FGameplayEventData());
 	}
 }

@@ -4,24 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "GA_MeleeAttack.generated.h"
+#include "GA_Wrestling.generated.h"
 
 /**
  * 
  */
-
-class UAnimMontage;
-class APlayerCharacter;
-class APlayerControllerMainMap;
-
 UCLASS()
-class UNTILDAWN_API UGA_MeleeAttack : public UGameplayAbility
+class UNTILDAWN_API UGA_Wrestling : public UGameplayAbility
 {
 	GENERATED_BODY()
-	
+
 public:
 
-	UGA_MeleeAttack();
+	UGA_Wrestling();
 
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
@@ -37,15 +32,9 @@ protected:
 	UFUNCTION()
 	void OnInterruptedCallback();
 
-	void SendAbilityActivationToController();
-
 private:
 
-	UPROPERTY(EditAnywhere, Category = "GAS | Animation")
-	UAnimMontage* meleeAttackMontage;
-
-	TWeakObjectPtr<APlayerCharacter> character;
-
-	TWeakObjectPtr<APlayerControllerMainMap> controller;
-
+	UPROPERTY(EditAnywhere, Category = "GAS | Animations")
+	UAnimMontage* wrestlingMontage;
+	
 };

@@ -4,6 +4,7 @@
 #include "GAS/GA/GA_ArmWeapon.h"
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
+#include "Item/ItemBase.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "UntilDawn.h"
 
@@ -17,6 +18,11 @@ UGA_ArmWeapon::UGA_ArmWeapon()
 void UGA_ArmWeapon::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	TWeakObjectPtr<APlayerCharacter> character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
+	if (character->GetArmedWeapon().IsValid())
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+	}
+
 	TWeakObjectPtr<APlayerControllerMainMap> controller = Cast<APlayerControllerMainMap>(character->GetController());
 	if (controller.IsValid())
 	{

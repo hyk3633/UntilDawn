@@ -21,5 +21,5 @@ uint8 UItemMeleeWeapon::GetItemSubType() const
 
 void UItemMeleeWeapon::Using(USkeletalMeshComponent* itemMesh)
 {
-	meleeAttackFunction->MeleeAttack(GetOwnerController(), itemMesh, concreteInfo.attackPower);
+	meleeAttackFunction->MeleeAttack(GetOwnerController(), itemMesh, GetItemID());
 }

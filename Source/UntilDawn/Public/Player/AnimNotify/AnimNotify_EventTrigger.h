@@ -25,7 +25,6 @@ private:
 	
 private:
 
-	UPROPERTY(EditAnywhere)
-	FGameplayTag triggerGameplayTag;
+	
 
 };

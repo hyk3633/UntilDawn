@@ -3,7 +3,9 @@
 
 #include "GAS/GA/GA_JustPlayMontage.h"
 #include "Player/PlayerCharacter.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "AbilitySystemComponent.h"
 
 UGA_JustPlayMontage::UGA_JustPlayMontage()
 {
@@ -12,21 +14,35 @@ UGA_JustPlayMontage::UGA_JustPlayMontage()
 	bRetriggerInstancedAbility = true;
 }
 
-void UGA_JustPlayMontage::InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
-{
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
-}
-
 void UGA_JustPlayMontage::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	TWeakObjectPtr<APlayerCharacter> character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
-	UAnimMontage* montage = *montages.Find(character->GetCurrentWeaponType());
+
+	UAnimMontage* montage = nullptr;
+	if (bNeedWeapon)
+	{
+		montage = *montages.Find(character->GetCurrentWeaponType());
+	}
+	else
+	{
+		montage = montages[EWeaponType::NONE];
+	}
 	if (montage)
 	{
 		UAbilityTask_PlayMontageAndWait* playMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, TEXT("PlayMontage"), montage, 1.f);
 		playMontageTask->OnCompleted.AddDynamic(this, &UGA_JustPlayMontage::OnCompleteCallback);
 		playMontageTask->OnInterrupted.AddDynamic(this, &UGA_JustPlayMontage::OnInterruptedCallback);
 		playMontageTask->ReadyForActivation();
+
+		if (bShouldReplicate)
+		{
+			TWeakObjectPtr<APlayerControllerMainMap> controller = Cast<APlayerControllerMainMap>(character->GetController());
+			if (controller.IsValid())
+			{
+				FGameplayAbilitySpec* specPtr = character->GetAbilitySystemComponent()->FindAbilitySpecFromHandle(CurrentSpecHandle);
+				controller->SendActivatedWeaponAbility(specPtr->InputID);
+			}
+		}
 	}
 	else
 	{

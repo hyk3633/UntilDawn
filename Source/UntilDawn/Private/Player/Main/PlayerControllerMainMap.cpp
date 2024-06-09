@@ -58,6 +58,9 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Wheel(TEXT("/Game/_Assets/Inputs/Actions/IA_Wheel.IA_Wheel"));
 	if (obj_Wheel.Succeeded()) wheelAction = obj_Wheel.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_MouseSide(TEXT("/Game/_Assets/Inputs/Actions/IA_MouseSide.IA_MouseSide"));
+	if (obj_MouseSide.Succeeded()) mouseSideAction = obj_MouseSide.Object;
 }
 
 void APlayerControllerMainMap::BeginPlay()
@@ -160,16 +163,10 @@ void APlayerControllerMainMap::SetupInputComponent()
 		EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::RightClick_Pressed);
 		EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Completed,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::RightClick_Released);
 
+		EnhancedInputComponent->BindAction(mouseSideAction,			ETriggerEvent::Completed,	this, &APlayerControllerMainMap::WeaponInputPressed, EInputType::MouseSide_Pressed);
+
 		EnhancedInputComponent->BindAction(rKeyAction,				ETriggerEvent::Completed,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Pressed);
 		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Hold);
-
-		//EnhancedInputComponent->BindAction(leftClickAction,		ETriggerEvent::Started,   this, &APlayerControllerMainMap::LeftClick);
-		//EnhancedInputComponent->BindAction(leftClickHoldAction,	ETriggerEvent::Triggered, this, &APlayerControllerMainMap::LeftClickHold);
-		//EnhancedInputComponent->BindAction(leftClickAction,		ETriggerEvent::Completed, this, &APlayerControllerMainMap::LeftClickEnd);
-		//EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RightClick);
-		//EnhancedInputComponent->BindAction(rightClickAction,		ETriggerEvent::Completed, this, &APlayerControllerMainMap::RightClickEnd);
-		//EnhancedInputComponent->BindAction(rKeyAction,			ETriggerEvent::Completed, this, &APlayerControllerMainMap::RKeyPressed);
-		//EnhancedInputComponent->BindAction(rKeyHoldAction,		ETriggerEvent::Triggered, this, &APlayerControllerMainMap::RKeyHold);
 
 		EnhancedInputComponent->BindAction(eKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::EKeyPressed);
 		EnhancedInputComponent->BindAction(iKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::IKeyPressed);
@@ -181,18 +178,12 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 void APlayerControllerMainMap::WeaponInputPressed(const EInputType inputType)
 {
-	TSubclassOf<UGameplayAbility> ability = inventoryComponent->GetItemAbility(inputType);
-	if (ability)
-	{
-		myCharacter->ActivateAbility(ability, inputType);
-
-		// 서버 전송
-	}
+	myCharacter->TryActivateWeaponAbility(inputType);
 }
 
 void APlayerControllerMainMap::NormalInputPressed(const EInputType inputType)
 {
-	if (myCharacter->TryActivateAbility(inputType) == false)
+	if (myCharacter->TryActivateInputAbility(inputType) == false)
 	{
 		ELOG(TEXT("Try ability failed!"));
 	}
@@ -267,7 +258,7 @@ void APlayerControllerMainMap::DisarmWeapon()
 void APlayerControllerMainMap::EKeyPressed()
 {
 	check(myCharacter);
-	if (myCharacter->GetWrestling())
+	if (myCharacter->IsWrestling())
 	{
 		DEKeyPressed.ExecuteIfBound();
 	}
@@ -312,8 +303,6 @@ void APlayerControllerMainMap::WheelRolled()
 
 void APlayerControllerMainMap::WrestlingStart()
 {
-	check(myCharacter);
-	myCharacter->SetWrestlingOn();
 	DWrestlingStart.ExecuteIfBound();
 }
 
@@ -332,11 +321,13 @@ void APlayerControllerMainMap::WrestlingEnd(const bool wrestlingResult)
 
 void APlayerControllerMainMap::SuccessToBlocking()
 {
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(myCharacter, UD_EVENT_WRESTLING_BLOCKED, FGameplayEventData());
 	SendPlayerBlockingResult(true);
 }
 
 void APlayerControllerMainMap::FailedToBlocking()
 {
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(myCharacter, UD_EVENT_WRESTLING_BITED, FGameplayEventData());
 	SendPlayerBlockingResult(false);
 }
 
@@ -479,7 +470,7 @@ void APlayerControllerMainMap::DropInventoryItem(const FString itemID)
 	clientSocket->DropInventoryItem(itemID);
 }
 
-void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits, const float atkPower)
+void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits, const FString& itemID)
 {
 	check(clientSocket);
 	TArray<FHitInfo> hittedCharacters;
@@ -503,7 +494,7 @@ void APlayerControllerMainMap::SendHittedCharacters(TArray<FHitResult>& hits, co
 	}
 	if (hittedCharacters.Num())
 	{
-		clientSocket->SendHittedCharacters(hittedCharacters, atkPower);
+		clientSocket->SendHittedCharacters(hittedCharacters, itemID);
 	}
 }
 
@@ -517,7 +508,22 @@ void APlayerControllerMainMap::PlayerDead()
 
 void APlayerControllerMainMap::StartAttack()
 {
+	bAttacking = true;
+}
+
+void APlayerControllerMainMap::Attack()
+{
 	inventoryComponent->Attack();
+}
+
+void APlayerControllerMainMap::EndAttack()
+{
+	bAttacking = false;
+}
+
+bool APlayerControllerMainMap::IsAttacking()
+{
+	return bAttacking;
 }
 
 void APlayerControllerMainMap::ReplicateProjectile(const FVector& location, const FRotator& rotation)
@@ -555,9 +561,9 @@ void APlayerControllerMainMap::SetRowColumn(const int r, const int c)
 	GetHUD<AHUDMainMap>()->StartHUD();
 }
 
-void APlayerControllerMainMap::SendHitResult(TArray<FHitResult>& hits, FGameplayTag& triggerGameplayTag)
+void APlayerControllerMainMap::SendHitResult(TArray<FHitResult>& hits, const FString& itemID)
 {
-	TArray<FHitInfo> hittedCharacters;
+	TArray<TPair<int, int>> kickedCharacters;
 	for (auto& hit : hits)
 	{
 		if (hit.bBlockingHit == false)
@@ -565,25 +571,27 @@ void APlayerControllerMainMap::SendHitResult(TArray<FHitResult>& hits, FGameplay
 		TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(hit.GetActor());
 		if (player.IsValid())
 		{
-			hittedCharacters.Add(FHitInfo{ player->GetPlayerNumber(), true , hit.ImpactPoint, hit.ImpactNormal.Rotation() });
+			kickedCharacters.Add({ player->GetPlayerNumber(), true });
 		}
 		else
 		{
 			TWeakObjectPtr<AZombieCharacter> zombie = Cast<AZombieCharacter>(hit.GetActor());
 			if (zombie.IsValid())
 			{
-				hittedCharacters.Add(FHitInfo{ zombie->GetNumber(), false , hit.ImpactPoint, hit.ImpactNormal.Rotation() });
+				kickedCharacters.Add({ zombie->GetNumber(), false });
 			}
 		}
 	}
-	if (hittedCharacters.Num())
+	if (kickedCharacters.Num())
 	{
-		if (triggerGameplayTag == UD_CHARACTER_STATE_KICKED)
-		{
-			clientSocket->SendKickedCharacters(hittedCharacters);
-		}
+		clientSocket->SendKickedCharacters(kickedCharacters);
 	}
 	
+}
+
+void APlayerControllerMainMap::SendActivatedWeaponAbility(const int32 inputType)
+{
+	clientSocket->SendActivateWeaponAbility(inputType);
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

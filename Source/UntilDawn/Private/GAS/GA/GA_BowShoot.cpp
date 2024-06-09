@@ -2,7 +2,6 @@
 
 
 #include "GAS/GA/GA_BowShoot.h"
-#include "GAS/AT/AT_AmmoCheck.h"
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Item/ItemBase.h"
@@ -29,6 +28,7 @@ UGA_BowShoot::UGA_BowShoot()
 
 void UGA_BowShoot::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
+	character->DeactivateAiming();
 	ProcessReleased();
 }
 
@@ -43,12 +43,19 @@ void UGA_BowShoot::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	controller = Cast<APlayerControllerMainMap>(character->GetController());
 	weaponObject = Cast<UItemPermanent>(character->GetArmedWeapon()->GetItemObject());
 
-	if (controller.IsValid() && IsAbleShoot() == false)
+	if (controller.IsValid())
 	{
-		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
-		return;
+		if (IsAbleShoot())
+		{
+			SendAbilityActivationToController();
+		}
+		else
+		{
+			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+			return;
+		}
 	}
-	
+
 	bowMesh = character->GetArmedWeapon()->GetSkeletalMesh();
 	if (bowAnimInstClass)
 	{
@@ -133,21 +140,6 @@ bool UGA_BowShoot::IsAbleShoot()
 	}
 }
 
-void UGA_BowShoot::ShootArrow()
-{
-	if (controller.IsValid())
-	{
-		if (IsAbleShoot())
-		{
-			weaponObject->Using(bowMesh);
-		}
-		else
-		{
-			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
-		}
-	}
-}
-
 void UGA_BowShoot::OnCompleteCallback()
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
@@ -169,11 +161,11 @@ void UGA_BowShoot::ProcessReleased()
 		}
 		case EBowState::Aiming:
 		{
+			SendAbilityActivationToController();
 			bowState = EBowState::ShootToIdle;
 			arrow->SetActorHiddenInGame(true);
 			AbilityTags.RemoveTag(UD_CHARACTER_STATE_AIMING);
 			PlayMontage();
-			ShootArrow();
 			break;
 		}
 		case EBowState::ShootToIdle:
@@ -198,6 +190,7 @@ void UGA_BowShoot::ProcessPressed()
 	{
 		case EBowState::IdleToAim:
 		{
+			SendAbilityActivationToController();
 			bowState = EBowState::Aiming;
 			AbilityTags.AddTag(UD_CHARACTER_STATE_AIMING);
 			break;
@@ -210,6 +203,7 @@ void UGA_BowShoot::ProcessPressed()
 		{
 			if (character->IsInputInterval())
 			{
+				SendAbilityActivationToController();
 				bowState = EBowState::ShootToAim;
 				arrow->SetActorHiddenInGame(false);
 				PlayMontage();
@@ -219,6 +213,7 @@ void UGA_BowShoot::ProcessPressed()
 		}
 		case EBowState::ShootToAim:
 		{
+			SendAbilityActivationToController();
 			bowState = EBowState::Aiming;
 			arrow->SetActorHiddenInGame(false);
 			AbilityTags.AddTag(UD_CHARACTER_STATE_AIMING);
@@ -227,6 +222,7 @@ void UGA_BowShoot::ProcessPressed()
 		}
 		case EBowState::AimToIdle:
 		{
+			SendAbilityActivationToController();
 			bowState = EBowState::IdleToAim;
 			arrow->SetActorHiddenInGame(true);
 			PlayMontage();
@@ -239,6 +235,7 @@ void UGA_BowShoot::ProcessPressed()
 void UGA_BowShoot::SetAbleShoot()
 {
 	bowState = EBowState::Aiming;
+	character->ActivateAiming();
 	AbilityTags.AddTag(UD_CHARACTER_STATE_AIMING);
 }
 
@@ -248,5 +245,14 @@ void UGA_BowShoot::PlayMontage()
 	MontageJumpToSection(sectionName);
 	bowMesh->GetAnimInstance()->Montage_Play(bowMeshMontage);
 	bowMesh->GetAnimInstance()->Montage_JumpToSection(sectionName);
+}
+
+void UGA_BowShoot::SendAbilityActivationToController()
+{
+	if (controller.IsValid())
+	{
+		FGameplayAbilitySpec* specPtr = character->GetAbilitySystemComponent()->FindAbilitySpecFromHandle(CurrentSpecHandle);
+		controller->SendActivatedWeaponAbility(specPtr->InputID);
+	}
 }
 

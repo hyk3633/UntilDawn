@@ -27,7 +27,6 @@ void UPlayerAnimInst::UpdateValue()
 		bAiming = myCharacter->GetAiming();
 		isAbleShoot = myCharacter->GetBowStatus() ? true : false;
 		currentWeaponType = myCharacter->GetCurrentWeaponType();
-		isWrestling = myCharacter->GetWrestling();
 	}
 }
 

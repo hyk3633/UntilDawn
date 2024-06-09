@@ -27,6 +27,7 @@
 #include "Item/ItemObject/ItemPermanent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "AbilitySystemComponent.h"
+#include "Tag/UntilDawnGameplayTags.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -402,12 +403,12 @@ void APlayerCharacter::Tick(float deltaTime)
 	velocity = GetVelocity();
 
 	direction = UKismetAnimationLibrary::CalculateDirection(velocity, GetActorForwardVector().Rotation());
-	pitch = GetBaseAimRotation().Pitch;
+	pitch = GetControlRotation().Pitch;
 	if (pitch >= 180.f)
 	{
 		pitch -= 360.f;
 	}
-	yaw = GetBaseAimRotation().Yaw;
+	yaw = GetControlRotation().Yaw;
 	if (yaw >= 180.f)
 	{
 		yaw -= 360.f;
@@ -507,6 +508,11 @@ void APlayerCharacter::FailedToResist()
 {
 	SetWrestlingOff();
 	PlayPushingZombieMontage(false);
+}
+
+bool APlayerCharacter::IsWrestling()
+{
+	return asc->HasMatchingGameplayTag(UD_CHARACTER_STATE_WRESTLING);
 }
 
 void APlayerCharacter::WrestlingEnd()
@@ -684,42 +690,51 @@ void APlayerCharacter::HideHealthWidget()
 	healthWidget->SetVisibility(false);
 }
 
-void APlayerCharacter::ActivateAbility(TSubclassOf<UGameplayAbility> ability, const EInputType inputType)
+bool APlayerCharacter::TryActivateWeaponAbility(const EInputType inputType)
 {
-	FGameplayAbilitySpec* specPtr = asc->FindAbilitySpecFromClass(ability);
-	if (specPtr)
+	if (armedWeapon.IsValid())
 	{
-		specPtr->InputID = StaticCast<uint8>(inputType);
-		if (specPtr->IsActive())
+		TSubclassOf<UGameplayAbility> ability = armedWeapon->GetItemObject()->GetAbility(inputType);
+		if (ability)
 		{
-			if (inputType == EInputType::LeftClick_Released || inputType == EInputType::RightClick_Released)
+			FGameplayAbilitySpec* specPtr = asc->FindAbilitySpecFromClass(ability);
+			if (specPtr)
 			{
-				asc->AbilitySpecInputReleased(*specPtr);
+				specPtr->InputID = StaticCast<uint8>(inputType);
+				if (specPtr->IsActive())
+				{
+					if (inputType == EInputType::LeftClick_Released || inputType == EInputType::RightClick_Released)
+					{
+						asc->AbilitySpecInputReleased(*specPtr);
+					}
+					else
+					{
+						specPtr->InputPressed = true;
+						asc->AbilitySpecInputPressed(*specPtr);
+					}
+				}
+				else
+				{
+					if (inputType != EInputType::LeftClick_Released && inputType != EInputType::RightClick_Released)
+					{
+						asc->TryActivateAbility(specPtr->Handle);
+					}
+				}
 			}
 			else
 			{
-				specPtr->InputPressed = true;
-				asc->AbilitySpecInputPressed(*specPtr);
+				FGameplayAbilitySpec spec(ability);
+				spec.InputID = StaticCast<uint8>(inputType);
+				asc->GiveAbility(spec);
+				asc->TryActivateAbilityByClass(ability);
 			}
-		}
-		else
-		{
-			if (inputType != EInputType::LeftClick_Released && inputType != EInputType::RightClick_Released)
-			{
-				asc->TryActivateAbility(specPtr->Handle);
-			}
+			return true;
 		}
 	}
-	else
-	{
-		FGameplayAbilitySpec spec(ability);
-		spec.InputID = StaticCast<uint8>(inputType);
-		asc->GiveAbility(spec);
-		asc->TryActivateAbilityByClass(ability);
-	}
+	return false;
 }
 
-bool APlayerCharacter::TryActivateAbility(const EInputType inputType)
+bool APlayerCharacter::TryActivateInputAbility(const EInputType inputType)
 {
 	FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromInputID(StaticCast<uint8>(inputType));
 	if (spec)

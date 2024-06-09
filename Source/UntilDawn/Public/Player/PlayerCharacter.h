@@ -138,7 +138,7 @@ public:
 
 	void SetWrestlingOn();
 	void SetWrestlingOff();
-	FORCEINLINE bool GetWrestling() { return bWrestling; }
+	bool IsWrestling();
 	FORCEINLINE uint8 GetBowStatus() const { return bowStatus; }
 
 	void PlayPushingZombieMontage(const bool isBlocking);
@@ -186,9 +186,9 @@ public:
 
 	TWeakObjectPtr<AItemBase> GetArmedWeapon() const;
 
-	void ActivateAbility(TSubclassOf<UGameplayAbility> ability, const EInputType inputType);
+	bool TryActivateWeaponAbility(const EInputType inputType);
 
-	bool TryActivateAbility(const EInputType inputType);
+	bool TryActivateInputAbility(const EInputType inputType);
 
 	void ActivateInputInterval();
 	void DeactivateInputInterval();
@@ -294,6 +294,7 @@ private:
 
 	bool bInputInterval = false;
 
+	UPROPERTY(VisibleAnywhere, Category = "Status")
 	bool bAiming = false;
 
 };

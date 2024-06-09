@@ -7,6 +7,8 @@
 #include "GameFramework/Character.h"
 #include "Components/SphereComponent.h"
 #include "Player/Main/PlayerControllerMainMap.h"
+#include "Player/PlayerCharacter.h"
+#include "Item/ItemBase.h"
 #include "../../UntilDawn/UntilDawn.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Tag/UntilDawnGameplayTags.h"
@@ -89,10 +91,11 @@ void AProjectileBase::BeginPlay()
 
 void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	check(attackPower >= 0.f);
 	TWeakObjectPtr<APlayerControllerMainMap> owner = Cast<APlayerControllerMainMap>(GetOwner());
 	if (owner.IsValid())
 	{		
+		TWeakObjectPtr<APlayerCharacter> shooter = Cast<APlayerCharacter>(owner->GetPawn());
+
 		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
 
 		TWeakObjectPtr<ACharacter> character = Cast<ACharacter>(Hit.GetActor());
@@ -101,7 +104,7 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 
 		TArray<FHitResult> hits;
 		hits.Add(Hit);
-		owner->SendHittedCharacters(hits, attackPower);
+		owner->SendHittedCharacters(hits, shooter->GetArmedWeapon()->GetItemID());
 
 		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(Hit);
 		FGameplayEventData payloadData;

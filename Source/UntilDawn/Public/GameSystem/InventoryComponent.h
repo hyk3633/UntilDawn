@@ -80,8 +80,6 @@ public:
 
 	TWeakObjectPtr<AItemBase> ArmRecentWeapon();
 
-	TSubclassOf<UGameplayAbility> GetItemAbility(const EInputType inputType) const;
-
 public:
 
 	EWeaponType GetCurrentWeaponType() const;

@@ -206,12 +206,12 @@ void ClientSocket::DropInventoryItem(const FString itemID)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const float atkPower)
+void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const FString& itemID)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << hittedCharacters.Num() << "\n";
-	sendStream << atkPower << "\n";
 	for (auto& hitInfo : hittedCharacters)
 	{
 		sendStream << hitInfo;
@@ -219,14 +219,15 @@ void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, cons
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendKickedCharacters(TArray<FHitInfo>& hittedCharacters)
+void ClientSocket::SendKickedCharacters(TArray<TPair<int, int>>& kickedCharacters)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::KICKEDCHARACTERS) << "\n";
-	sendStream << hittedCharacters.Num() << "\n";
-	for (auto& hitInfo : hittedCharacters)
+	sendStream << kickedCharacters.Num() << "\n";
+	for (auto& kickedCharacter : kickedCharacters)
 	{
-		sendStream << hitInfo;
+		sendStream << kickedCharacter.Key << "\n";
+		sendStream << kickedCharacter.Value << "\n";
 	}
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
@@ -276,6 +277,14 @@ void ClientSocket::DisarmWeapon()
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::DISARM_WEAPON) << "\n";
+	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+}
+
+void ClientSocket::SendActivateWeaponAbility(const int32 inputType)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ACTIVATE_WEAPON_ABILITY) << "\n";
+	sendStream << static_cast<int>(inputType) << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 

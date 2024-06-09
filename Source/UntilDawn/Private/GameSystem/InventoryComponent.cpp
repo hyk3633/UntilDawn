@@ -237,18 +237,6 @@ TWeakObjectPtr<AItemBase> UInventoryComponent::ArmRecentWeapon()
 	return nullptr;
 }
 
-TSubclassOf<UGameplayAbility> UInventoryComponent::GetItemAbility(const EInputType inputType) const
-{
-	if (armedWeapon.IsValid())
-	{
-		return armedWeapon->GetItemObject()->GetAbility(inputType);
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
 EWeaponType UInventoryComponent::GetCurrentWeaponType() const
 {
 	if (armedWeapon.IsValid())

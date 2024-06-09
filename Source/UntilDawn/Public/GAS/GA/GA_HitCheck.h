@@ -39,8 +39,5 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "GAS | Option")
 	float sphereRadius;
-
-	UPROPERTY(EditAnywhere, Category = "GAS | Option")
-	FGameplayTag triggerGameplayTag;
 	
 };

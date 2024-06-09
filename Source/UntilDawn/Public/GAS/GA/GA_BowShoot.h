@@ -52,8 +52,6 @@ protected:
 
 	bool IsAbleShoot();
 
-	void ShootArrow();
-
 	UFUNCTION()
 	void OnCompleteCallback();
 
@@ -67,6 +65,8 @@ protected:
 	void SetAbleShoot();
 
 	void PlayMontage();
+
+	void SendAbilityActivationToController();
 
 private:
 

@@ -5,6 +5,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Zombie/ZombieCharacter.h"
+#include "Item/ItemBase.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UntilDawn/UntilDawn.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -23,6 +24,13 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 	}
+
+	FString itemID = TEXT("");
+	if (player->GetArmedWeapon().IsValid())
+	{
+		itemID = player->GetArmedWeapon()->GetItemID();
+	}
+
 	TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(player->GetController());
 	if (playerController.IsValid() == false)
 	{
@@ -46,8 +54,8 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 		hits,
 		true
 	);
-
-	playerController->SendHitResult(hits, triggerGameplayTag);
+	
+	playerController->SendHitResult(hits, itemID);
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }

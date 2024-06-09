@@ -18,6 +18,7 @@ void UAnimNotifyState_PlayerAttack::NotifyBegin(USkeletalMeshComponent* MeshComp
 		if (playerController.IsValid())
 		{
 			playerController->StartAttack();
+			playerController->Attack();
 		}
 	}
 }
@@ -28,9 +29,9 @@ void UAnimNotifyState_PlayerAttack::NotifyTick(USkeletalMeshComponent* MeshComp,
 	elapsedTime += FrameDeltaTime;
 	if (elapsedTime >= tickInterval)
 	{
-		if (playerController.IsValid())
+		if (playerController.IsValid() && playerController->IsAttacking())
 		{
-			playerController->StartAttack();
+			playerController->Attack();
 		}
 		elapsedTime = 0.f;
 	}
@@ -41,7 +42,7 @@ void UAnimNotifyState_PlayerAttack::NotifyEnd(USkeletalMeshComponent* MeshComp, 
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 	if (playerController.IsValid())
 	{
-		//playerController->EndAttack();
+		playerController->EndAttack();
 	}
 	playerController.Reset();
 	elapsedTime = 0.f;

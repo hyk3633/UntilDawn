@@ -153,11 +153,17 @@ public:
 
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacters(TArray<FHitResult>& hits, const float atkPower);
+	void SendHittedCharacters(TArray<FHitResult>& hits, const FString& itemID);
 
 	void PlayerDead();
 
 	void StartAttack();
+
+	void Attack();
+
+	void EndAttack();
+
+	bool IsAttacking();
 
 	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
 
@@ -171,7 +177,9 @@ public:
 
 	void SetRowColumn(const int r, const int c);
 
-	void SendHitResult(TArray<FHitResult>& hits, FGameplayTag& triggerGameplayTag);
+	void SendHitResult(TArray<FHitResult>& hits, const FString& itemID);
+
+	void SendActivatedWeaponAbility(const int32 inputType);
 
 protected:
 
@@ -229,8 +237,13 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* wheelAction;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* mouseSideAction;
+
 	FHitResult itemHit, characterHit;
 
 	TWeakObjectPtr<AItemBase> lookingItem;
+
+	bool bAttacking;
 
 };

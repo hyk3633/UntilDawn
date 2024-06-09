@@ -17,7 +17,7 @@ FunctionMeleeAttack::~FunctionMeleeAttack()
 {
 }
 
-void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh, const float stkPower)
+void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> attackerController, USkeletalMeshComponent* weaponMesh, const FString& itemID)
 {
 	check(attackerController.IsValid());
 
@@ -52,6 +52,7 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 	
 	if (hits.Num())
 	{
-		attackerController->SendHittedCharacters(hits, stkPower);
+		attackerController->EndAttack();
+		attackerController->SendHittedCharacters(hits, itemID);
 	}
 }

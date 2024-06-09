@@ -262,8 +262,11 @@ TWeakObjectPtr<AItemBase> UItemManager::DropItem(TWeakObjectPtr<UItemObject> dro
 
 void UItemManager::DestroyItem(const FString& itemID)
 {
-	itemObjectMap[itemID]->MarkAsGarbage();
-	itemObjectMap.Remove(itemID);
+	if (itemObjectMap.Find(itemID))
+	{
+		itemObjectMap[itemID]->MarkAsGarbage();
+		itemObjectMap.Remove(itemID);
+	}
 }
 
 void UItemManager::OtherPlayerUseItem(TWeakObjectPtr<APlayerCharacter> player, const FString& itemID, const int consumedAmount)

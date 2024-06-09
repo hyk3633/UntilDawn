@@ -2,7 +2,10 @@
 
 
 #include "GAS/GA/GA_MeleeAttack.h"
+#include "Player/PlayerCharacter.h"
+#include "Player/Main/PlayerControllerMainMap.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "AbilitySystemComponent.h"
 
 UGA_MeleeAttack::UGA_MeleeAttack()
 {
@@ -13,6 +16,9 @@ UGA_MeleeAttack::UGA_MeleeAttack()
 
 void UGA_MeleeAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
+	character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
+	controller = Cast<APlayerControllerMainMap>(character->GetController());
+	SendAbilityActivationToController();
 	if (meleeAttackMontage == nullptr)
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
@@ -44,4 +50,13 @@ void UGA_MeleeAttack::OnCompleteCallback()
 void UGA_MeleeAttack::OnInterruptedCallback()
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+}
+
+void UGA_MeleeAttack::SendAbilityActivationToController()
+{
+	if (controller.IsValid())
+	{
+		FGameplayAbilitySpec* specPtr = character->GetAbilitySystemComponent()->FindAbilitySpecFromHandle(CurrentSpecHandle);
+		controller->SendActivatedWeaponAbility(specPtr->InputID);
+	}
 }

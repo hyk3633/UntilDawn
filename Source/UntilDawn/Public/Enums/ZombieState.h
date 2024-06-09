@@ -9,5 +9,6 @@ enum class EZombieState : uint8
 	GRAB,
 	BITE,
 	BLOCKED,
-	WAIT
+	WAIT,
+	Kicked
 };

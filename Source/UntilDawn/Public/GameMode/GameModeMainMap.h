@@ -108,6 +108,10 @@ protected:
 
 	void ProcessKickedCharacters(std::stringstream& recvStream);
 
+	void CanceledPlayerWrestling(std::stringstream& recvStream);
+
+	void ActivateWeaponAbility(std::stringstream& recvStream);
+
 public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);

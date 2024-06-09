@@ -19,8 +19,6 @@ public:
 
 	UGA_JustPlayMontage();
 
-	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
-
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility) override;
@@ -39,5 +37,11 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "GAS | Animations")
 	TMap<EWeaponType, UAnimMontage*> montages;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Option")
+	bool bNeedWeapon;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Option")
+	bool bShouldReplicate;
 
 };

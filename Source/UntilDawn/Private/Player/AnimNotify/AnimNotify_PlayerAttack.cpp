@@ -14,7 +14,7 @@ void UAnimNotify_PlayerAttack::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 		TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(player->GetController());
 		if (playerController.IsValid())
 		{
-			playerController->StartAttack();
+			playerController->Attack();
 		}
 	}
 }

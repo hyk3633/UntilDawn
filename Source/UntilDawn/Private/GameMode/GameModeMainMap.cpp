@@ -19,6 +19,7 @@
 #include "Interface/PoolableActor.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
 
 using std::string;
 
@@ -51,35 +52,37 @@ void AGameModeMainMap::BeginPlay()
 
 	check(playerCharacterClass);
 	
-	packetCallbacks[EPacketType::SPAWNPLAYER]			= &AGameModeMainMap::SpawnNewPlayerCharacter;
-	packetCallbacks[EPacketType::SYNCHPLAYER]			= &AGameModeMainMap::SynchronizePlayers;
-	packetCallbacks[EPacketType::SYNCHZOMBIE]			= &AGameModeMainMap::SynchronizeZombies;
-	packetCallbacks[EPacketType::PICKUP_ITEM]			= &AGameModeMainMap::PlayerItemPickUp;
-	packetCallbacks[EPacketType::ITEMGRIDPOINTUPDATE]	= &AGameModeMainMap::PlayerItemGridPointUpdate;
-	packetCallbacks[EPacketType::EQUIP_ITEM]			= &AGameModeMainMap::PlayerItemEquip;
-	packetCallbacks[EPacketType::UNEQUIP_ITEM]			= &AGameModeMainMap::PlayerUnequipItem;
-	packetCallbacks[EPacketType::DROP_ITEM]				= &AGameModeMainMap::PlayerItemDrop;
-	packetCallbacks[EPacketType::DROP_EQUIPPED_ITEM]	= &AGameModeMainMap::PlayerDropEquippedItem;
-	packetCallbacks[EPacketType::WORLDINITIALINFO]		= &AGameModeMainMap::InitializeWorld;
-	packetCallbacks[EPacketType::PLAYERINPUTACTION]		= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
-	packetCallbacks[EPacketType::WRESTLINGRESULT]		= &AGameModeMainMap::PlayWrestlingResultAction;
-	packetCallbacks[EPacketType::WRESTLINGSTART]		= &AGameModeMainMap::StartPlayerWrestling;
-	packetCallbacks[EPacketType::PLAYERDISCONNECTED]	= &AGameModeMainMap::ProcessDisconnectedPlayer;
-	packetCallbacks[EPacketType::PLAYERDEAD]			= &AGameModeMainMap::ProcessPlayerDead;
-	packetCallbacks[EPacketType::PLAYERRESPAWN]			= &AGameModeMainMap::RespawnPlayer;
-	packetCallbacks[EPacketType::ZOMBIEDEAD]			= &AGameModeMainMap::ProcessZombieDead;
-	packetCallbacks[EPacketType::SPAWNITEM]				= &AGameModeMainMap::SpawnItems;
-	packetCallbacks[EPacketType::PLAYERINVENTORY]		= &AGameModeMainMap::InitializePlayerPossessedItems;
-	packetCallbacks[EPacketType::PLAYEREQUIPMENT]		= &AGameModeMainMap::InitializePlayerEquippedItems;
-	packetCallbacks[EPacketType::PROJECTILE]			= &AGameModeMainMap::ReceiveReplicatedProjectile;
-	packetCallbacks[EPacketType::USINGITEM]				= &AGameModeMainMap::PlayerUseItem;
-	packetCallbacks[EPacketType::HEALTH_CHANGED]		= &AGameModeMainMap::UpdateCharacterHealth;
-	packetCallbacks[EPacketType::PLAYERINITIALINFO]		= &AGameModeMainMap::InitializePlayerInitialInfo;
-	packetCallbacks[EPacketType::CHANGE_WEAPON]			= &AGameModeMainMap::PlayerChangeWeapon;
-	packetCallbacks[EPacketType::ARM_WEAPON]			= &AGameModeMainMap::PlayerArmWeapon;
-	packetCallbacks[EPacketType::DISARM_WEAPON]			= &AGameModeMainMap::PlayerDisarmWeapon;
-	packetCallbacks[EPacketType::ATTACKRESULT]			= &AGameModeMainMap::ProcessAttackResult;
-	packetCallbacks[EPacketType::KICKEDCHARACTERS]		= &AGameModeMainMap::ProcessKickedCharacters;
+	packetCallbacks[EPacketType::SPAWNPLAYER]					= &AGameModeMainMap::SpawnNewPlayerCharacter;
+	packetCallbacks[EPacketType::SYNCHPLAYER]					= &AGameModeMainMap::SynchronizePlayers;
+	packetCallbacks[EPacketType::SYNCHZOMBIE]					= &AGameModeMainMap::SynchronizeZombies;
+	packetCallbacks[EPacketType::PICKUP_ITEM]					= &AGameModeMainMap::PlayerItemPickUp;
+	packetCallbacks[EPacketType::ITEMGRIDPOINTUPDATE]			= &AGameModeMainMap::PlayerItemGridPointUpdate;
+	packetCallbacks[EPacketType::EQUIP_ITEM]					= &AGameModeMainMap::PlayerItemEquip;
+	packetCallbacks[EPacketType::UNEQUIP_ITEM]					= &AGameModeMainMap::PlayerUnequipItem;
+	packetCallbacks[EPacketType::DROP_ITEM]						= &AGameModeMainMap::PlayerItemDrop;
+	packetCallbacks[EPacketType::DROP_EQUIPPED_ITEM]			= &AGameModeMainMap::PlayerDropEquippedItem;
+	packetCallbacks[EPacketType::WORLDINITIALINFO]				= &AGameModeMainMap::InitializeWorld;
+	packetCallbacks[EPacketType::PLAYERINPUTACTION]				= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
+	packetCallbacks[EPacketType::WRESTLINGRESULT]				= &AGameModeMainMap::PlayWrestlingResultAction;
+	packetCallbacks[EPacketType::WRESTLINGSTART]				= &AGameModeMainMap::StartPlayerWrestling;
+	packetCallbacks[EPacketType::PLAYERDISCONNECTED]			= &AGameModeMainMap::ProcessDisconnectedPlayer;
+	packetCallbacks[EPacketType::PLAYERDEAD]					= &AGameModeMainMap::ProcessPlayerDead;
+	packetCallbacks[EPacketType::PLAYERRESPAWN]					= &AGameModeMainMap::RespawnPlayer;
+	packetCallbacks[EPacketType::ZOMBIEDEAD]					= &AGameModeMainMap::ProcessZombieDead;
+	packetCallbacks[EPacketType::SPAWNITEM]						= &AGameModeMainMap::SpawnItems;
+	packetCallbacks[EPacketType::PLAYERINVENTORY]				= &AGameModeMainMap::InitializePlayerPossessedItems;
+	packetCallbacks[EPacketType::PLAYEREQUIPMENT]				= &AGameModeMainMap::InitializePlayerEquippedItems;
+	packetCallbacks[EPacketType::PROJECTILE]					= &AGameModeMainMap::ReceiveReplicatedProjectile;
+	packetCallbacks[EPacketType::USINGITEM]						= &AGameModeMainMap::PlayerUseItem;
+	packetCallbacks[EPacketType::HEALTH_CHANGED]				= &AGameModeMainMap::UpdateCharacterHealth;
+	packetCallbacks[EPacketType::PLAYERINITIALINFO]				= &AGameModeMainMap::InitializePlayerInitialInfo;
+	packetCallbacks[EPacketType::CHANGE_WEAPON]					= &AGameModeMainMap::PlayerChangeWeapon;
+	packetCallbacks[EPacketType::ARM_WEAPON]					= &AGameModeMainMap::PlayerArmWeapon;
+	packetCallbacks[EPacketType::DISARM_WEAPON]					= &AGameModeMainMap::PlayerDisarmWeapon;
+	packetCallbacks[EPacketType::ATTACKRESULT]					= &AGameModeMainMap::ProcessAttackResult;
+	packetCallbacks[EPacketType::KICKEDCHARACTERS]				= &AGameModeMainMap::ProcessKickedCharacters;
+	packetCallbacks[EPacketType::PLAYER_WRESTLING_CANCELED]		= &AGameModeMainMap::CanceledPlayerWrestling;
+	packetCallbacks[EPacketType::ACTIVATE_WEAPON_ABILITY]		= &AGameModeMainMap::ActivateWeaponAbility;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -135,6 +138,7 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 				FRotator(info.characterInfo.pitch, info.characterInfo.yaw, info.characterInfo.roll)
 			);
 
+		newPlayerCharacter->SpawnDefaultController();
 		newPlayerCharacter->SetPlayerIDAndNumber(FString(UTF8_TO_TCHAR(info.playerID.c_str())), playerNumber);
 		newPlayerCharacter->InitializeHealthWidget();
 		newPlayerCharacter->SetHealth(info.playerStatus.health);
@@ -401,21 +405,13 @@ void AGameModeMainMap::PlayWrestlingResultAction(std::stringstream& recvStream)
 
 	if (playerCharacterMap.Find(playerNumber))
 	{
-		if (playerNumber == myNumber)
+		if (wrestlingResult)
 		{
-			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-			myPlayerController->WrestlingEnd(wrestlingResult);
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_WRESTLING_BLOCKED, FGameplayEventData());
 		}
 		else
 		{
-			if (wrestlingResult)
-			{
-				playerCharacterMap[playerNumber]->SuccessToBlocking();
-			}
-			else
-			{
-				playerCharacterMap[playerNumber]->FailedToResist();
-			}
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_WRESTLING_BITED, FGameplayEventData());
 		}
 	}
 }
@@ -427,15 +423,7 @@ void AGameModeMainMap::StartPlayerWrestling(std::stringstream& recvStream)
 
 	if (playerCharacterMap.Find(playerNumber))
 	{
-		if (playerNumber == myNumber)
-		{
-			APlayerControllerMainMap* myPlayerController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-			myPlayerController->WrestlingStart();
-		}
-		else
-		{
-			playerCharacterMap[playerNumber]->SetWrestlingOn();
-		}
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_WRESTLING_START, FGameplayEventData());
 	}
 }
 
@@ -700,27 +688,60 @@ void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
 
 void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 {
-	int size = 0;
-	recvStream >> size;
+	int kickerNumber = 0 , size = 0;
+	recvStream >> kickerNumber >> size;
 
-	FHitInfo hitInfo;
+	int number = 0;
+	bool isPlayer = false;
 	for (int i = 0; i < size; i++)
 	{
-		recvStream >> hitInfo;
-		ACharacter* character;
-		if (hitInfo.isPlayer && playerCharacterMap.Find(hitInfo.characterNumber))
+		recvStream >> number >> isPlayer;
+
+		ACharacter* kickedCharacter = nullptr;
+		if (isPlayer && playerCharacterMap.Find(number))
 		{
-			character = playerCharacterMap[hitInfo.characterNumber];
+			kickedCharacter = playerCharacterMap[number];
 		}
-		else if(zombieCharacterMap.Find(hitInfo.characterNumber))
+		else if(zombieCharacterMap.Find(number))
 		{
-			character = zombieCharacterMap[hitInfo.characterNumber].Get();
+			kickedCharacter = zombieCharacterMap[number].Get();
 		}
 		else
 		{
 			continue;
 		}
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(character, UD_CHARACTER_STATE_KICKED, FGameplayEventData());
+
+		if (playerCharacterMap.Find(kickerNumber))
+		{
+			FHitResult kickResult;
+			kickResult.ImpactPoint = playerCharacterMap[kickerNumber]->GetActorLocation();
+			FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(kickResult);
+			FGameplayEventData payloadData;
+			payloadData.TargetData.Add(targetData);
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, payloadData);
+		}
+		else
+		{
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, FGameplayEventData());
+		}
+	}
+}
+
+void AGameModeMainMap::CanceledPlayerWrestling(std::stringstream& recvStream)
+{
+	int playerNumber = -1;
+	recvStream >> playerNumber;
+	//a
+}
+
+void AGameModeMainMap::ActivateWeaponAbility(std::stringstream& recvStream)
+{
+	int playerNumber = 0, inputType = 0;
+	recvStream >> playerNumber >> inputType;
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		playerCharacterMap[playerNumber]->TryActivateWeaponAbility(StaticCast<EInputType>(inputType));
+		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_CHARACTER_KICK, FGameplayEventData());
 	}
 }
 
