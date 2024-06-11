@@ -106,15 +106,6 @@ void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendPlayerInputAction(const int inputType, const int weaponType)
-{
-	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::PLAYERINPUTACTION) << "\n";
-	sendStream << inputType << "\n";
-	sendStream << weaponType << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
-}
-
 void ClientSocket::SendInRangeZombie(int zombieNumber)
 {
 	std::stringstream sendStream;

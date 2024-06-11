@@ -16,6 +16,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Enums/ZombieState.h"
 #include "Enums/PoolableActorType.h"
+#include "Engine/DataTable.h"
+#include "Components/CapsuleComponent.h"
 #include "Interface/PoolableActor.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -31,6 +33,9 @@ AGameModeMainMap::AGameModeMainMap()
 
 	zombiePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Zombie Pooler"));
 	zombiePooler->SetActorClass(AZombieCharacter::StaticClass());
+
+	static ConstructorHelpers::FObjectFinder<UDataTable> zombieAssetDataTableRef(TEXT("DataTable'/Game/_Assets/DataTable/DT_ZombieAsset.DT_ZombieAsset'"));
+	if (zombieAssetDataTableRef.Succeeded()) zombieAssetDataTable = zombieAssetDataTableRef.Object;
 
 	projectilePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Projectile Pooler"));
 	projectilePooler->SetActorClass(AProjectileBase::StaticClass());
@@ -62,7 +67,6 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::DROP_ITEM]						= &AGameModeMainMap::PlayerItemDrop;
 	packetCallbacks[EPacketType::DROP_EQUIPPED_ITEM]			= &AGameModeMainMap::PlayerDropEquippedItem;
 	packetCallbacks[EPacketType::WORLDINITIALINFO]				= &AGameModeMainMap::InitializeWorld;
-	packetCallbacks[EPacketType::PLAYERINPUTACTION]				= &AGameModeMainMap::SynchronizeOtherPlayerInputAction;
 	packetCallbacks[EPacketType::WRESTLINGRESULT]				= &AGameModeMainMap::PlayWrestlingResultAction;
 	packetCallbacks[EPacketType::WRESTLINGSTART]				= &AGameModeMainMap::StartPlayerWrestling;
 	packetCallbacks[EPacketType::PLAYERDISCONNECTED]			= &AGameModeMainMap::ProcessDisconnectedPlayer;
@@ -139,8 +143,10 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 			);
 
 		newPlayerCharacter->SpawnDefaultController();
+		newPlayerCharacter->GetCapsuleComponent()->SetCollisionProfileName(FName("RemotePlayer"));
 		newPlayerCharacter->SetPlayerIDAndNumber(FString(UTF8_TO_TCHAR(info.playerID.c_str())), playerNumber);
 		newPlayerCharacter->InitializeHealthWidget();
+		newPlayerCharacter->SetMaxHealth(info.playerStatus.health);
 		newPlayerCharacter->SetHealth(info.playerStatus.health);
 
 		for (auto& equipped : info.equippedItems)
@@ -198,6 +204,7 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 			zombie = Cast<AZombieCharacter>(actor);
 			zombie->SetNumber(info.first);
 			zombie->ActivateActor();
+			zombie->GetMesh()->SetSkeletalMesh(GetZombieMesh(info.first));
 			zombieCharacterMap.Add(info.first, zombie);
 		}
 		else
@@ -215,6 +222,12 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 		}
 		zombie->SetZombieInfo(info.second);
 	}
+}
+
+USkeletalMesh* AGameModeMainMap::GetZombieMesh(const int32 zombieNumber)
+{
+	FZombieAsset* zombieAsset = zombieAssetDataTable->FindRow<FZombieAsset>(*FString::FromInt(zombieNumber % 4), TEXT(""));
+	return zombieAsset->skeletalMesh;
 }
 
 void AGameModeMainMap::PlayerItemPickUp(std::stringstream& recvStream)
@@ -384,16 +397,6 @@ void AGameModeMainMap::InitializeWorld(std::stringstream& recvStream)
 		{
 			(this->*packetCallbacks[static_cast<EPacketType>(packetType)])(recvStream);
 		}
-	}
-}
-
-void AGameModeMainMap::SynchronizeOtherPlayerInputAction(std::stringstream& recvStream)
-{
-	int playerNumber = -1, inputType = -1, weaponType = -1;
-	recvStream >> playerNumber >> inputType;
-	if (playerCharacterMap.Find(playerNumber))
-	{
-		playerCharacterMap[playerNumber]->DoPlayerInputAction(inputType, weaponType);
 	}
 }
 
@@ -572,37 +575,34 @@ void AGameModeMainMap::PlayerUseItem(std::stringstream& recvStream)
 
 void AGameModeMainMap::UpdateCharacterHealth(std::stringstream& recvStream)
 {
-	int size = 0, characterNumber = -1;
+	int characterNumber = -1;
 	bool isPlayer = false;
 	float health = 0;
-	recvStream >> size;
 
-	for (int i = 0; i < size; i++)
+	recvStream >> characterNumber >> health >> isPlayer;
+	if (isPlayer)
 	{
-		recvStream >> characterNumber >> isPlayer >> health;
-		if (isPlayer)
+		if (characterNumber == myNumber)
 		{
-			if (characterNumber == myNumber)
-			{
-				myController->UpdateHealth(health);
-			}
-			else
-			{
-				playerCharacterMap[characterNumber]->SetHealth(health);
-			}
+			myController->UpdateHealth(health);
 		}
 		else
 		{
-			zombieCharacterMap[characterNumber]->UpdateHealth(health);
+			playerCharacterMap[characterNumber]->SetHealth(health);
 		}
+	}
+	else
+	{
+		zombieCharacterMap[characterNumber]->UpdateHealth(health);
 	}
 }
 
 void AGameModeMainMap::InitializePlayerInitialInfo(std::stringstream& recvStream)
 {
-	int health = 0, rows = 0, columns = 0;
-	recvStream >> health >> rows >> columns;
+	int health = 0, stamina = 0, rows = 0, columns = 0;
+	recvStream >> health >> stamina >> rows >> columns;
 	playerCharacterMap[myNumber]->SetMaxHealth(health);
+	myController->SetStamina(stamina);
 	myController->SetRowColumn(rows, columns);
 }
 
@@ -691,6 +691,15 @@ void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 	int kickerNumber = 0 , size = 0;
 	recvStream >> kickerNumber >> size;
 
+	FGameplayEventData payloadData;
+	if (playerCharacterMap.Find(kickerNumber))
+	{
+		FHitResult kickResult;
+		kickResult.ImpactPoint = playerCharacterMap[kickerNumber]->GetActorLocation();
+		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(kickResult);
+		payloadData.TargetData.Add(targetData);
+	}
+
 	int number = 0;
 	bool isPlayer = false;
 	for (int i = 0; i < size; i++)
@@ -701,6 +710,10 @@ void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 		if (isPlayer && playerCharacterMap.Find(number))
 		{
 			kickedCharacter = playerCharacterMap[number];
+			if (number == myNumber && playerCharacterMap[number]->IsWrestling())
+			{
+				myController->CancelWrestling();
+			}
 		}
 		else if(zombieCharacterMap.Find(number))
 		{
@@ -711,19 +724,7 @@ void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 			continue;
 		}
 
-		if (playerCharacterMap.Find(kickerNumber))
-		{
-			FHitResult kickResult;
-			kickResult.ImpactPoint = playerCharacterMap[kickerNumber]->GetActorLocation();
-			FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(kickResult);
-			FGameplayEventData payloadData;
-			payloadData.TargetData.Add(targetData);
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, payloadData);
-		}
-		else
-		{
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, FGameplayEventData());
-		}
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, payloadData);
 	}
 }
 
@@ -741,7 +742,6 @@ void AGameModeMainMap::ActivateWeaponAbility(std::stringstream& recvStream)
 	if (playerCharacterMap.Find(playerNumber))
 	{
 		playerCharacterMap[playerNumber]->TryActivateWeaponAbility(StaticCast<EInputType>(inputType));
-		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_CHARACTER_KICK, FGameplayEventData());
 	}
 }
 

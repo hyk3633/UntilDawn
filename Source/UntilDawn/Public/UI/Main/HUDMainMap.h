@@ -40,6 +40,7 @@ protected:
 	UFUNCTION()
 	void StartWrestlingProgressBar();
 
+	UFUNCTION()
 	void EndWrestlingProgressBar();
 
 private:

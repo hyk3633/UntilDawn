@@ -17,10 +17,14 @@
 #include "InputMappingContext.h"
 #include "Tag/UntilDawnGameplayTags.h"
 #include "Abilities/GameplayAbility.h"
+#include "GAS/AttributeSet/PlayerAttributeSet.h"
 #include "AbilitySystemBlueprintLibrary.h"
 
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
+	asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	playerAttributeSet = CreateDefaultSubobject<UPlayerAttributeSet>(TEXT("Player Attribute Set"));
+
 	inventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory Component"));
 
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> obj_DefaultContext(TEXT("/Game/_Assets/Inputs/IMC_DefaultsController.IMC_DefaultsController"));
@@ -61,6 +65,17 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_MouseSide(TEXT("/Game/_Assets/Inputs/Actions/IA_MouseSide.IA_MouseSide"));
 	if (obj_MouseSide.Succeeded()) mouseSideAction = obj_MouseSide.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_ShiftPressed(TEXT("/Game/_Assets/Inputs/Actions/IA_ShiftPressed.IA_ShiftPressed"));
+	if (obj_ShiftPressed.Succeeded()) shiftPressedAction = obj_ShiftPressed.Object;
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> obj_ShiftReleased(TEXT("/Game/_Assets/Inputs/Actions/IA_ShiftReleased.IA_ShiftReleased"));
+	if (obj_ShiftReleased.Succeeded()) shiftReleasedAction = obj_ShiftReleased.Object;
+}
+
+UAbilitySystemComponent* APlayerControllerMainMap::GetAbilitySystemComponent() const
+{
+	return asc;
 }
 
 void APlayerControllerMainMap::BeginPlay()
@@ -74,6 +89,8 @@ void APlayerControllerMainMap::BeginPlay()
 void APlayerControllerMainMap::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
+
+	RecoverStamina(deltaTime);
 
 	Trace();
 }
@@ -167,6 +184,9 @@ void APlayerControllerMainMap::SetupInputComponent()
 
 		EnhancedInputComponent->BindAction(rKeyAction,				ETriggerEvent::Completed,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Pressed);
 		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Hold);
+		EnhancedInputComponent->BindAction(rKeyHoldAction,			ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::R_Hold);
+		EnhancedInputComponent->BindAction(shiftPressedAction,		ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::Shift_Pressed);
+		EnhancedInputComponent->BindAction(shiftReleasedAction,		ETriggerEvent::Triggered,	this, &APlayerControllerMainMap::NormalInputPressed, EInputType::Shift_Released);
 
 		EnhancedInputComponent->BindAction(eKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::EKeyPressed);
 		EnhancedInputComponent->BindAction(iKeyAction,				ETriggerEvent::Completed, this, &APlayerControllerMainMap::IKeyPressed);
@@ -183,51 +203,7 @@ void APlayerControllerMainMap::WeaponInputPressed(const EInputType inputType)
 
 void APlayerControllerMainMap::NormalInputPressed(const EInputType inputType)
 {
-	if (myCharacter->TryActivateInputAbility(inputType) == false)
-	{
-		ELOG(TEXT("Try ability failed!"));
-	}
-}
-
-void APlayerControllerMainMap::LeftClick()
-{
-	
-}
-
-void APlayerControllerMainMap::LeftClickHold()
-{
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (myCharacter->LeftClickHold(weaponType))
-	{
-		SendPlayerInputAction(EPlayerInputs::LeftClickHold, weaponType);
-	}
-}
-
-void APlayerControllerMainMap::LeftClickEnd()
-{
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (myCharacter->LeftClickEnd(weaponType))
-	{
-		SendPlayerInputAction(EPlayerInputs::LeftClickEnd, weaponType);
-	}
-}
-
-void APlayerControllerMainMap::RightClick()
-{
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (myCharacter->RightClick(weaponType))
-	{
-		SendPlayerInputAction(EPlayerInputs::RightClick, weaponType);
-	}
-}
-
-void APlayerControllerMainMap::RightClickEnd()
-{
-	const EWeaponType weaponType = inventoryComponent->GetCurrentWeaponType();
-	if (myCharacter->RightClickEnd(weaponType))
-	{
-		SendPlayerInputAction(EPlayerInputs::RightClickEnd, weaponType);
-	}
+	myCharacter->TryActivateInputAbility(inputType);
 }
 
 void APlayerControllerMainMap::ArmWeapon()
@@ -306,17 +282,9 @@ void APlayerControllerMainMap::WrestlingStart()
 	DWrestlingStart.ExecuteIfBound();
 }
 
-void APlayerControllerMainMap::WrestlingEnd(const bool wrestlingResult)
+void APlayerControllerMainMap::CancelWrestling()
 {
-	check(myCharacter);
-	if (wrestlingResult)
-	{
-		myCharacter->SuccessToBlocking();
-	}
-	else
-	{
-		myCharacter->FailedToResist();
-	}
+	DWrestlingEnd.ExecuteIfBound();
 }
 
 void APlayerControllerMainMap::SuccessToBlocking()
@@ -355,11 +323,6 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	check(clientSocket);
 	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo());
 	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
-}
-
-void APlayerControllerMainMap::SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType)
-{
-	clientSocket->SendPlayerInputAction(static_cast<int>(inputType), static_cast<int>(weaponType));
 }
 
 void APlayerControllerMainMap::SendInRangeZombie(int zombieNumber)
@@ -594,6 +557,18 @@ void APlayerControllerMainMap::SendActivatedWeaponAbility(const int32 inputType)
 	clientSocket->SendActivateWeaponAbility(inputType);
 }
 
+void APlayerControllerMainMap::SetStamina(const int newStamina)
+{
+	maxStamina = newStamina;
+	playerAttributeSet->InitStamina(newStamina);
+}
+
+void APlayerControllerMainMap::StaminaChanged(const float newStamina)
+{
+	ensure(maxStamina > 0);
+	DStaminaChanged.ExecuteIfBound(newStamina / maxStamina);
+}
+
 void APlayerControllerMainMap::SynchronizePlayerInfo()
 {
 	check(myCharacter);
@@ -606,4 +581,16 @@ void APlayerControllerMainMap::respawnRequestAfterDelay()
 {
 	check(clientSocket);
 	clientSocket->SendRespawnRequest();
+}
+
+void APlayerControllerMainMap::RecoverStamina(float deltaTime)
+{
+	if (asc->HasMatchingGameplayTag(UD_CHARACTER_STATE_BLOCKSTAMINARECOVERY) == false)
+	{
+		if (playerAttributeSet->GetStamina() < maxStamina)
+		{
+			playerAttributeSet->RecoverStamina(25 * deltaTime);
+			StaminaChanged(playerAttributeSet->GetStamina());
+		}
+	}
 }

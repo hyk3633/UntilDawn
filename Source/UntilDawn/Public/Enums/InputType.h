@@ -14,4 +14,6 @@ enum class EInputType : uint8
 	R_Pressed,
 	R_Hold,
 	MouseSide_Pressed,
+	Shift_Pressed,
+	Shift_Released,
 };

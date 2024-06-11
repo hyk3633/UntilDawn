@@ -21,6 +21,7 @@ void UWidgetMainInterface::InitializeWidget()
 
 	playerController = Cast<APlayerControllerMainMap>(GetOwningPlayer());
 	playerController->DHealthChanged.BindUFunction(this, FName("OnCharacterHealthChanged"));
+	playerController->DStaminaChanged.BindUFunction(this, FName("OnCharacterStaminaChanged"));
 	playerController->onWeaponArmed.BindUFunction(this, FName("OnChangeEquippedWeapon"));
 
 	HealthProgressBar->SetPercent(1.f);
@@ -52,6 +53,11 @@ void UWidgetMainInterface::ToggleInventoryUI()
 void UWidgetMainInterface::OnCharacterHealthChanged(const float percentage)
 {
 	HealthProgressBar->SetPercent(percentage);
+}
+
+void UWidgetMainInterface::OnCharacterStaminaChanged(const float percentage)
+{
+	StaminaProgressBar->SetPercent(percentage);
 }
 
 void UWidgetMainInterface::OnChangeEquippedWeapon(UItemObject* itemObj)

@@ -37,6 +37,9 @@ protected:
 	void OnCharacterHealthChanged(const float percentage);
 
 	UFUNCTION()
+	void OnCharacterStaminaChanged(const float percentage);
+
+	UFUNCTION()
 	void OnChangeEquippedWeapon(UItemObject* itemObj);
 
 	void SetRangedWeaponUI(TWeakObjectPtr<UItemObject> itemObj);
@@ -51,6 +54,9 @@ private:
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	UProgressBar* HealthProgressBar;
+
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
+	UProgressBar* StaminaProgressBar;
 
 	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget))
 	UImage* EquipmentQuickSlotImage;

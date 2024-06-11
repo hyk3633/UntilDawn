@@ -39,9 +39,15 @@ private:
 	TMap<EWeaponType, UAnimMontage*> montages;
 
 	UPROPERTY(EditAnywhere, Category = "GAS | Option")
+	bool isPlayer = true;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Option", meta = (EditCondition = "isPlayer"))
 	bool bNeedWeapon;
 
-	UPROPERTY(EditAnywhere, Category = "GAS | Option")
+	UPROPERTY(EditAnywhere, Category = "GAS | Option", meta = (EditCondition = "isPlayer"))
 	bool bShouldReplicate;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Option", meta = (EditCondition = "isPlayer"))
+	bool bCanMoving = true;
 
 };

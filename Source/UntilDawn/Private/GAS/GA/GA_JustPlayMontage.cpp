@@ -6,6 +6,7 @@
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "AbilitySystemComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UGA_JustPlayMontage::UGA_JustPlayMontage()
 {
@@ -16,11 +17,10 @@ UGA_JustPlayMontage::UGA_JustPlayMontage()
 
 void UGA_JustPlayMontage::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	TWeakObjectPtr<APlayerCharacter> character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
-
 	UAnimMontage* montage = nullptr;
-	if (bNeedWeapon)
+	if (isPlayer && bNeedWeapon)
 	{
+		TWeakObjectPtr<APlayerCharacter> character = Cast<APlayerCharacter>(ActorInfo->AvatarActor.Get());
 		montage = *montages.Find(character->GetCurrentWeaponType());
 	}
 	else
@@ -34,13 +34,21 @@ void UGA_JustPlayMontage::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 		playMontageTask->OnInterrupted.AddDynamic(this, &UGA_JustPlayMontage::OnInterruptedCallback);
 		playMontageTask->ReadyForActivation();
 
-		if (bShouldReplicate)
+		if (isPlayer)
 		{
+			TWeakObjectPtr<APlayerCharacter> character = Cast<APlayerCharacter>(ActorInfo->AvatarActor.Get());
 			TWeakObjectPtr<APlayerControllerMainMap> controller = Cast<APlayerControllerMainMap>(character->GetController());
-			if (controller.IsValid())
+			if (bShouldReplicate)
 			{
-				FGameplayAbilitySpec* specPtr = character->GetAbilitySystemComponent()->FindAbilitySpecFromHandle(CurrentSpecHandle);
-				controller->SendActivatedWeaponAbility(specPtr->InputID);
+				if (controller.IsValid())
+				{
+					FGameplayAbilitySpec* specPtr = character->GetAbilitySystemComponent()->FindAbilitySpecFromHandle(CurrentSpecHandle);
+					controller->SendActivatedWeaponAbility(specPtr->InputID);
+				}
+			}
+			if (bCanMoving == false)
+			{
+				character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 			}
 		}
 	}
@@ -62,6 +70,11 @@ void UGA_JustPlayMontage::EndAbility(const FGameplayAbilitySpecHandle Handle, co
 {
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 
+	if (bCanMoving == false)
+	{
+		TWeakObjectPtr<APlayerCharacter> character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
+		character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
 }
 
 void UGA_JustPlayMontage::OnCompleteCallback()

@@ -28,27 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void UpdateValue();
 
-	void PlayWeaponArmMontage(const EWeaponType type);
-
-	void PlayWeaponDisarmMontage(const EWeaponType type);
-
-	void PlayAxeAttackMontage();
-
-	void PlayBowDrawMontage();
-
-	void PlayBowShootMontage();
-
-	void PlayLeftClickMontage(const EWeaponType type);
-
-	void PlayWrestlingMontage(const bool isBlocking);
-
-	DelegateMontageEnded DMontageEnded;
-
-protected:
-
-	UFUNCTION()
-	void MontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
 private:
 
 	UPROPERTY()
@@ -79,32 +58,8 @@ private:
 	bool turnLeft;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	bool bRightClick;
-
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bAiming;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	bool isAbleShoot;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Montages | Axe", meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* axeArmDisarmMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Montages | Bow", meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* bowArmDisarmMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Montages | Bow", meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* bowDrawMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Montages | Axe", meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* axeAttackMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Montages | Interact", meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* wrestlingMontage;
-
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	EWeaponType currentWeaponType = EWeaponType::NONE;
-
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	bool isWrestling;
 };

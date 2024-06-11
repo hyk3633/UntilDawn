@@ -10,5 +10,4 @@ enum class EZombieState : uint8
 	BITE,
 	BLOCKED,
 	WAIT,
-	Kicked
 };

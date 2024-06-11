@@ -11,6 +11,7 @@
 #include "Enums/WeaponType.h"
 #include "Enums/InputType.h"
 #include "GameplayTagContainer.h"
+#include "AbilitySystemInterface.h"
 #include "PlayerControllerMainMap.generated.h"
 
 /**
@@ -24,18 +25,22 @@ class UInputAction;
 class UItemObject;
 class AItemBase;
 class UInventoryComponent;
+class UAbilitySystemComponent;
+class UPlayerAttributeSet;
 
 DECLARE_DELEGATE(DelegatePlayerDead);
 DECLARE_DELEGATE(DelegateWrestlingStart);
+DECLARE_DELEGATE(DelegateWrestlingEnd);
 DECLARE_DELEGATE(DelegateEKeyPressed);
 DECLARE_DELEGATE(DelegateIKeyPressed);
 DECLARE_DELEGATE_TwoParams(DelegateEquipItem, UItemObject* itemObj, const int boxNumber);
 DECLARE_DELEGATE_OneParam(DelegateHealthChanged, float healthPercentage);
+DECLARE_DELEGATE_OneParam(DelegateStaminaChanged, float staminaPercentage);
 DECLARE_DELEGATE_OneParam(OnWeaponArmed, UItemObject* itemObj);
 
 
 UCLASS()
-class UNTILDAWN_API APlayerControllerMainMap : public APlayerController
+class UNTILDAWN_API APlayerControllerMainMap : public APlayerController, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -43,12 +48,16 @@ public:
 
 	APlayerControllerMainMap();
 
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 	DelegatePlayerDead DPlayerDead;
 	DelegateWrestlingStart DWrestlingStart;
+	DelegateWrestlingEnd DWrestlingEnd;
 	DelegateEKeyPressed DEKeyPressed;
 	DelegateIKeyPressed DIKeyPressed;
 	DelegateEquipItem DEquipItem;
 	DelegateHealthChanged DHealthChanged;
+	DelegateStaminaChanged DStaminaChanged;
 	OnWeaponArmed onWeaponArmed;
 
 protected:
@@ -75,16 +84,6 @@ protected:
 
 	void NormalInputPressed(const EInputType inputType);
 
-	void LeftClick();
-
-	void LeftClickHold();
-
-	void LeftClickEnd();
-
-	void RightClick();
-
-	void RightClickEnd();
-
 public:
 
 	void ArmWeapon();
@@ -107,15 +106,13 @@ public:
 
 	void WrestlingStart();
 
-	void WrestlingEnd(const bool wrestlingResult);
+	void CancelWrestling();
 
 	void SuccessToBlocking();
 
 	void FailedToBlocking();
 
 	virtual void OnPossess(APawn* pawn) override;
-
-	void SendPlayerInputAction(const EPlayerInputs inputType, const EWeaponType weaponType);
 
 	UFUNCTION()
 	void SendInRangeZombie(int zombieNumber);
@@ -181,15 +178,27 @@ public:
 
 	void SendActivatedWeaponAbility(const int32 inputType);
 
+	void SetStamina(const int newStamina);
+
+	void StaminaChanged(const float newStamina);
+
 protected:
 
 	void SynchronizePlayerInfo();
 
 	void respawnRequestAfterDelay();
 
+	void RecoverStamina(float deltaTime);
+
 protected:
 
 	ClientSocket* clientSocket;
+
+	UPROPERTY(EditAnywhere, Category = GAS)
+	TObjectPtr<UAbilitySystemComponent> asc;
+
+	UPROPERTY()
+	TObjectPtr<UPlayerAttributeSet> playerAttributeSet;
 
 	UPROPERTY()
 	UInventoryComponent* inventoryComponent;
@@ -240,10 +249,18 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* mouseSideAction;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* shiftPressedAction;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* shiftReleasedAction;
+
 	FHitResult itemHit, characterHit;
 
 	TWeakObjectPtr<AItemBase> lookingItem;
 
 	bool bAttacking;
+
+	float maxStamina;
 
 };

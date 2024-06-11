@@ -36,8 +36,6 @@ public:
 
 	void SynchronizeMyCharacterInfo(const CharacterInfo& info);
 
-	void SendPlayerInputAction(const int inputType, const int weaponType);
-
 	void SendInRangeZombie(int zombieNumber);
 
 	void SendOutRangeZombie(int zombieNumber);

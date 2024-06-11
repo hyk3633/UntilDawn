@@ -61,8 +61,6 @@ APlayerCharacter::APlayerCharacter()
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
-	asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
-
 	cameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	cameraBoom->SetupAttachment(RootComponent);
 	cameraBoom->SetRelativeLocation(FVector(0.f, 20.f, 50.f));
@@ -122,15 +120,13 @@ APlayerCharacter::APlayerCharacter()
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Look(TEXT("/Game/_Assets/Inputs/Actions/IA_Look.IA_Look"));
 	if (obj_Look.Succeeded()) lookAction = obj_Look.Object;
 
-	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Sprint(TEXT("/Game/_Assets/Inputs/Actions/IA_Sprint.IA_Sprint"));
-	if (obj_Sprint.Succeeded()) sprintAction = obj_Sprint.Object;
+	
 }
 
 void APlayerCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	asc->InitAbilityActorInfo(this, this);
 }
 
 void APlayerCharacter::BeginPlay()
@@ -141,26 +137,29 @@ void APlayerCharacter::BeginPlay()
 	if (animInst)
 	{
 		animInst->InitAnimInst(this);
-		animInst->DMontageEnded.BindUFunction(this, FName("WrestlingEnd"));
-	}
-
-	for (const auto& ability : defaultAbilities)
-	{
-		FGameplayAbilitySpec spec(ability);
-		asc->GiveAbility(spec);
-	}
-
-	for (const auto& ability : inputAbilities)
-	{
-		FGameplayAbilitySpec spec(ability.Value);
-		spec.InputID = StaticCast<uint8>(ability.Key);
-		asc->GiveAbility(spec);
 	}
 }
 
 void APlayerCharacter::PossessedBy(AController* newController)
 {
 	Super::PossessedBy(newController);
+
+	IAbilitySystemInterface* ascOwnerController = CastChecked<IAbilitySystemInterface>(newController);
+	asc = ascOwnerController->GetAbilitySystemComponent();
+	asc->InitAbilityActorInfo(newController, this);
+	for (const auto& ability : defaultAbilities)
+	{
+		FGameplayAbilitySpec spec(ability);
+		asc->GiveAbility(spec);
+	}
+	for (const auto& ability : inputAbilities)
+	{
+		if (asc->FindAbilitySpecFromClass(ability.Value) == nullptr)
+		{
+			FGameplayAbilitySpec spec(ability.Value);
+			asc->GiveAbility(spec);
+		}
+	}
 
 	TWeakObjectPtr<APlayerController> playerController = Cast<APlayerController>(newController);
 	if (playerController.IsValid())
@@ -187,29 +186,16 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCom
 
 		EnhancedInputComponent->BindAction(moveAction,		ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		EnhancedInputComponent->BindAction(lookAction,		ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-		EnhancedInputComponent->BindAction(sprintAction,	ETriggerEvent::Triggered, this, &APlayerCharacter::Sprint);	
-		EnhancedInputComponent->BindAction(sprintAction,	ETriggerEvent::Completed, this, &APlayerCharacter::SprintEnd);	
 	}
-}
-
-bool APlayerCharacter::CheckAbleInput()
-{
-	if (bWrestling) return false;
-	else return true;
 }
 
 void APlayerCharacter::Jump()
 {
-	if (CheckAbleInput() == false)
-		return;
 	ACharacter::Jump();
 }
 
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
-	if (CheckAbleInput() == false)
-		return;
-
 	FVector2D movementVector = value.Get<FVector2D>();
 
 	if (Controller != nullptr)
@@ -247,110 +233,8 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 	}
 }
 
-void APlayerCharacter::Sprint()
-{
-	if (CheckAbleInput() == false)
-		return;
-
-	GetCharacterMovement()->MaxWalkSpeed = 600;
-}
-
-void APlayerCharacter::SprintEnd()
-{
-	GetCharacterMovement()->MaxWalkSpeed = 300;
-}
-
-bool APlayerCharacter::LeftClick(const EWeaponType weaponType)
-{
-	if (CheckAbleInput() == false)
-		return false;
-
-	if (weaponType != EWeaponType::NONE)
-	{
-		if (weaponType == EWeaponType::BOW)
-		{
-			bowStatus |= (1 << StaticCast<uint8>(EBowStatus::Loaded));
-		}
-		animInst->PlayLeftClickMontage(weaponType);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool APlayerCharacter::LeftClickHold(const EWeaponType weaponType)
-{
-	if (CheckAbleInput() == false)
-		return false;
-
-	if (weaponType == EWeaponType::BOW)
-	{
-		bowStatus |= (1 << StaticCast<uint8>(EBowStatus::Drawed));
-		GetCharacterMovement()->MaxWalkSpeed = 300;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool APlayerCharacter::LeftClickEnd(const EWeaponType weaponType)
-{
-	if (weaponType == EWeaponType::BOW)
-	{
-		if (bowStatus == StaticCast<uint8>(EBowStatus::Full))
-		{
-			animInst->PlayBowShootMontage();
-			shootPower = 0;
-			bowStatus = 0;
-			return true;
-		}
-		bowStatus = 0;
-	}
-	
-	return false;
-}
-
-bool APlayerCharacter::RightClick(const EWeaponType weaponType)
-{
-	if (CheckAbleInput() == false)
-		return false;
-
-	if (weaponType == EWeaponType::AXE)
-	{
-		rightClick = true;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool APlayerCharacter::RightClickEnd(const EWeaponType weaponType)
-{
-	if (CheckAbleInput() == false)
-		return false;
-
-	if (weaponType == EWeaponType::AXE)
-	{
-		rightClick = false;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
 {
-	if (CheckAbleInput() == false)
-		return false;
-
 	armedWeapon = itemActor;
 
 	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(itemActor->GetItemObject());
@@ -368,13 +252,7 @@ bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
 
 bool APlayerCharacter::HKeyPressed()
 {
-	return CheckAbleInput();
-}
-
-void APlayerCharacter::SuccessToBlocking()
-{
-	SetWrestlingOff();
-	PlayPushingZombieMontage(true);
+	return true;
 }
 
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -412,11 +290,6 @@ void APlayerCharacter::Tick(float deltaTime)
 	if (yaw >= 180.f)
 	{
 		yaw -= 360.f;
-	}
-
-	if (bowStatus)
-	{
-		shootPower = FMath::Max(shootPower + deltaTime * 2.f, 10.f);
 	}
 
 	if (bset)
@@ -464,60 +337,9 @@ EWeaponType APlayerCharacter::GetCurrentWeaponType() const
 	return currentWeaponType;
 }
 
-void APlayerCharacter::DoPlayerInputAction(const int inputType, const int weaponType)
-{
-	if (inputType == 0) 
-		return;
-	const EWeaponType eWeaponType = static_cast<EWeaponType>(weaponType);
-	switch (static_cast<EPlayerInputs>(inputType))
-	{
-	case EPlayerInputs::LeftClick:
-		LeftClick(eWeaponType);
-		break;
-	case EPlayerInputs::LeftClickHold:
-		LeftClickHold(eWeaponType);
-		break;
-	case EPlayerInputs::LeftClickEnd:
-		LeftClickEnd(eWeaponType);
-		break;
-	case EPlayerInputs::RightClick:
-		RightClick(eWeaponType);
-		break;
-	case EPlayerInputs::RightClickEnd:
-		RightClickEnd(eWeaponType);
-		break;
-	}
-}
-
-void APlayerCharacter::SetWrestlingOn()
-{
-	bWrestling = true;
-}
-
-void APlayerCharacter::SetWrestlingOff()
-{
-	bWrestling = false;
-}
-
-void APlayerCharacter::PlayPushingZombieMontage(const bool isBlocking)
-{
-	animInst->PlayWrestlingMontage(isBlocking);
-}
-
-void APlayerCharacter::FailedToResist()
-{
-	SetWrestlingOff();
-	PlayPushingZombieMontage(false);
-}
-
 bool APlayerCharacter::IsWrestling()
 {
 	return asc->HasMatchingGameplayTag(UD_CHARACTER_STATE_WRESTLING);
-}
-
-void APlayerCharacter::WrestlingEnd()
-{
-	
 }
 
 void APlayerCharacter::PlayerDead()
@@ -526,13 +348,6 @@ void APlayerCharacter::PlayerDead()
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
 	healthWidget->SetVisibility(false);
-	InitializePlayerInfo();
-}
-
-void APlayerCharacter::InitializePlayerInfo()
-{
-	shootPower = false;
-	bWrestling = false;
 }
 
 void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
@@ -736,11 +551,21 @@ bool APlayerCharacter::TryActivateWeaponAbility(const EInputType inputType)
 
 bool APlayerCharacter::TryActivateInputAbility(const EInputType inputType)
 {
-	FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromInputID(StaticCast<uint8>(inputType));
+	//FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromInputID(StaticCast<uint8>(inputType));
+	FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromClass(inputAbilities[inputType]);
+	spec->InputID = StaticCast<uint8>(inputType);
 	if (spec)
 	{
-		const bool result = asc->TryActivateAbility(spec->Handle);
-		return result;
+		if (spec->IsActive())
+		{
+			asc->AbilitySpecInputReleased(*spec);
+			return true;
+		}
+		else
+		{
+			const bool result = asc->TryActivateAbility(spec->Handle);
+			return result;
+		}
 	}
 	return false;
 }
@@ -789,9 +614,6 @@ TWeakObjectPtr<AItemBase> APlayerCharacter::GetArmedWeapon() const
 
 bool APlayerCharacter::DisarmWeapon()
 {
-	if (CheckAbleInput() == false)
-		return false;
-
 	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
 
 	bUseControllerRotationYaw = false;

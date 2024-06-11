@@ -54,7 +54,7 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 		hits,
 		true
 	);
-	
+
 	playerController->SendHitResult(hits, itemID);
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);

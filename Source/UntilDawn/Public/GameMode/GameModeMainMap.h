@@ -10,6 +10,7 @@
 #include "Structs/EquippedItem.h"
 #include "Structs/PlayerStatus.h"
 #include "Structs/HitInfo.h"
+#include "Structs/ZombieAsset.h"
 #include "Enums/PacketType.h"
 #include "Enums/InputType.h"
 #include "Tag/UntilDawnGameplayTags.h"
@@ -32,6 +33,7 @@ class APlayerCharacter;
 class AZombieCharacter;
 class PlayerInfoSetEx;
 class AProjectileBase;
+class UDataTable;
 
 UCLASS()
 class UNTILDAWN_API AGameModeMainMap : public AGameModeBase
@@ -54,6 +56,8 @@ protected:
 
 	void SynchronizeZombies(std::stringstream& recvStream);
 
+	USkeletalMesh* GetZombieMesh(const int32 zombieNumber);
+
 	void PlayerItemPickUp(std::stringstream& recvStream);
 
 	void PlayerItemGridPointUpdate(std::stringstream& recvStream);
@@ -67,8 +71,6 @@ protected:
 	void PlayerDropEquippedItem(std::stringstream& recvStream);
 
 	void InitializeWorld(std::stringstream& recvStream);
-
-	void SynchronizeOtherPlayerInputAction(std::stringstream& recvStream);
 
 	void PlayWrestlingResultAction(std::stringstream& recvStream);
 
@@ -124,6 +126,9 @@ private:
 
 	UPROPERTY()
 	UActorPooler* zombiePooler;
+
+	UPROPERTY()
+	UDataTable* zombieAssetDataTable;
 
 	UPROPERTY()
 	UActorPooler* projectilePooler;

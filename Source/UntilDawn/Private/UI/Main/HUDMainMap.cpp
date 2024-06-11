@@ -32,6 +32,7 @@ void AHUDMainMap::StartHUD()
 	playerController->DEKeyPressed.BindUFunction(this, FName("IncreasingProgressBar"));
 	playerController->DIKeyPressed.BindUFunction(this, FName("ToggleInventoryUI"));
 	playerController->DWrestlingStart.BindUFunction(this, FName("StartWrestlingProgressBar"));
+	playerController->DWrestlingEnd.BindUFunction(this, FName("EndWrestlingProgressBar"));
 
 	if (widgetMainInterfaceClass)
 	{

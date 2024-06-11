@@ -39,4 +39,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "GAS | Animations")
 	UAnimMontage* hitReactionMontage;
 
+
+
 };

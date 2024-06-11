@@ -9,6 +9,7 @@
 #include "Structs/CharacterInfo.h"
 #include "../Interface/PoolableActor.h"
 #include "AbilitySystemInterface.h"
+#include "Engine/StreamableManager.h"
 #include "ZombieCharacter.generated.h"
 
 class UZombieAnimInstance;
@@ -19,7 +20,7 @@ class UGameplayAbility;
 
 DECLARE_DELEGATE_OneParam(OnHealthChanged, float healthPercentage);
 
-UCLASS()
+UCLASS(config = UntilDawn)
 class UNTILDAWN_API AZombieCharacter : public ACharacter, public IPoolableActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
@@ -47,6 +48,8 @@ protected:
 	void DeactivateAfterDelay();
 
 	virtual void PostInitializeComponents() override;
+
+	void ZombieMeshLoadComplete();
 
 	virtual void BeginPlay() override;
 
@@ -106,7 +109,15 @@ private:
 	TObjectPtr<UAbilitySystemComponent> asc;
 
 	UPROPERTY()
+	TSubclassOf<UGameplayAbility> hitReactionAbility;
+
+	UPROPERTY()
 	UZombieAnimInstance* animInst;
+
+	UPROPERTY(config)
+	TArray<FSoftObjectPath> zombieMeshes;
+
+	TSharedPtr<FStreamableHandle> zombieMeshHandle;
 
 	UPROPERTY()
 	UWidgetComponent* healthWidget;

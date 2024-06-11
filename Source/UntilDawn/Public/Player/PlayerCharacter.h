@@ -31,6 +31,7 @@ class UWidgetComponent;
 class UWidgetPlayerHealth;
 class UItemPermanent;
 class UGameplayAbility;
+class UPlayerAttributeSet;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -71,29 +72,11 @@ protected:
 
 	void Look(const FInputActionValue& value);
 
-	void Sprint();
-
-	void SprintEnd();
-
 public:
-
-	bool CheckAbleInput();
-
-	bool LeftClick(const EWeaponType weaponType);
-
-	bool LeftClickHold(const EWeaponType weaponType);
-
-	bool LeftClickEnd(const EWeaponType weaponType);
-
-	bool RightClick(const EWeaponType weaponType);
-
-	bool RightClickEnd(const EWeaponType weaponType);
 
 	bool ArmWeapon(TWeakObjectPtr<AItemBase> itemActor);
 
 	bool HKeyPressed();
-
-	void SuccessToBlocking();
 
 protected:
 
@@ -126,32 +109,16 @@ public:
 
 	FORCEINLINE const bool GetTurnRight() const { return turnRight; }
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
-	FORCEINLINE const bool GetRightClick() const { return rightClick; }
 
 	EWeaponType GetCurrentWeaponType() const;
 
 	FORCEINLINE CharacterInfo& GetPlayerInfo() { return myInfo; }
 
-	void DoPlayerInputAction(const int inputType, const int weaponType);
-
 	void SetAttackResult(const int zombieNumber, const FHitResult& hitResult);
 
-	void SetWrestlingOn();
-	void SetWrestlingOff();
 	bool IsWrestling();
-	FORCEINLINE uint8 GetBowStatus() const { return bowStatus; }
-
-	void PlayPushingZombieMontage(const bool isBlocking);
-
-	UFUNCTION()
-	void FailedToResist();
-
-	UFUNCTION()
-	void WrestlingEnd();
 
 	void PlayerDead();
-
-	void InitializePlayerInfo();
 
 	void PlayerRespawn(const bool isLocalPlayer);
 
@@ -251,9 +218,6 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* lookAction;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* sprintAction;
-
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* healthWidget;
 
@@ -267,16 +231,9 @@ private:
 
 	float speed, direction, pitch, yaw;
 
-	bool turnRight, turnLeft, rightClick;
-
-	UPROPERTY(VisibleAnywhere, Category = "Status")
-	uint8 bowStatus;
-
-	float shootPower;
+	bool turnRight, turnLeft;
 
 	CharacterInfo myInfo;
-
-	bool bWrestling;
 
 	FVector nextLocation;
 

@@ -15,6 +15,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Tag/UntilDawnGameplayTags.h"
+#include "Engine/AssetManager.h"
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -26,6 +27,9 @@ AZombieCharacter::AZombieCharacter()
 
 	asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
 
+	static ConstructorHelpers::FClassFinder<UGameplayAbility> hitReactionBP(TEXT("Blueprint'/Game/_Assets/Blueprints/GAS/GA/Zombie/BPGA_Zombie_HitReaction.BPGA_Zombie_HitReaction_C'"));
+	if (hitReactionBP.Succeeded()) hitReactionAbility = hitReactionBP.Class;
+
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombieCapsule"));
 
@@ -36,17 +40,11 @@ AZombieCharacter::AZombieCharacter()
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetVisibility(false);
-
-	GetCharacterMovement()->bRunPhysicsWithNoController = true;
-	GetCharacterMovement()->MaxWalkSpeed = 300.f;
-
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/Mixamo/zombies/Ch10_nonPBR.Ch10_nonPBR'"));
-	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
-
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-
 	static ConstructorHelpers::FClassFinder<UZombieAnimInstance> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Zombies/AnimBP_Zombie.AnimBP_Zombie_C'"));
 	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
+
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
 
 	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
 	healthWidget->SetupAttachment(RootComponent);
@@ -148,7 +146,26 @@ void AZombieCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	//ensure(zombieMeshes.Num() > 0);
+	//int32 randIndex = FMath::RandRange(0, zombieMeshes.Num() - 1);
+	//zombieMeshHandle = UAssetManager::Get().GetStreamableManager().RequestAsyncLoad(zombieMeshes[randIndex], FStreamableDelegate::CreateUObject(this, &AZombieCharacter::ZombieMeshLoadComplete));
+
 	asc->InitAbilityActorInfo(this, this);
+	FGameplayAbilitySpec spec(hitReactionAbility);
+	asc->GiveAbility(spec);
+}
+
+void AZombieCharacter::ZombieMeshLoadComplete()
+{
+	if (zombieMeshHandle.IsValid())
+	{
+		USkeletalMesh* zombieMesh = Cast<USkeletalMesh>(zombieMeshHandle->GetLoadedAsset());
+		if (zombieMesh)
+		{
+			GetMesh()->SetSkeletalMesh(zombieMesh);
+		}
+	}
+	zombieMeshHandle->ReleaseHandle();
 }
 
 void AZombieCharacter::BeginPlay()
@@ -171,9 +188,6 @@ void AZombieCharacter::BeginPlay()
 			BodyInstance->UpdateMassProperties();
 		}
 	}
-	
-	animInst = Cast<UZombieAnimInstance>(GetMesh()->GetAnimInstance());
-	//if (animInst) animInst->SetMyCharacter(this);
 
 	healthWidgetObject = Cast<UWidgetZombieHealth>(healthWidget->GetWidget());
 	check(healthWidgetObject.IsValid());

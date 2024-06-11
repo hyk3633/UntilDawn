@@ -74,7 +74,7 @@ bool AProjectileBase::IsActorActivated()
 void AProjectileBase::ActivateProjectile()
 {
 	movementComponent->SetUpdatedComponent(RootComponent);
-	movementComponent->SetVelocityInLocalSpace(FVector(-1000, 0, 0));
+	movementComponent->SetVelocityInLocalSpace(FVector(-3000, 0, 0));
 	movementComponent->bRotationFollowsVelocity = true;
 	movementComponent->bInterpMovement = true;
 	movementComponent->Activate(true);

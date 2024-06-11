@@ -5,6 +5,7 @@
 #define UD_CHARACTER_STATE_HITREACTION FGameplayTag::RequestGameplayTag(FName("Character.State.HitReaction"))
 #define UD_CHARACTER_STATE_KICKED FGameplayTag::RequestGameplayTag(FName("Character.State.Kicked"))
 #define UD_CHARACTER_STATE_WRESTLING FGameplayTag::RequestGameplayTag(FName("Character.State.Wrestling"))
+#define UD_CHARACTER_STATE_BLOCKSTAMINARECOVERY FGameplayTag::RequestGameplayTag(FName("Character.State.BlockStaminaRecovery"))
 
 #define UD_EVENT_CHARACTER_HITREACTION FGameplayTag::RequestGameplayTag(FName("Event.Character.HitReaction"))
 #define UD_EVENT_CHARACTER_HITCHECK FGameplayTag::RequestGameplayTag(FName("Event.Character.HitCheck"))
@@ -19,3 +20,5 @@
 #define UD_EVENT_WRESTLING_START FGameplayTag::RequestGameplayTag(FName("Event.Wrestling.Start"))
 #define UD_EVENT_WRESTLING_BLOCKED FGameplayTag::RequestGameplayTag(FName("Event.Wrestling.Blocked"))
 #define UD_EVENT_WRESTLING_BITED FGameplayTag::RequestGameplayTag(FName("Event.Wrestling.Bited"))
+
+#define UD_DATA_STAMINA FGameplayTag::RequestGameplayTag(FName("Data.Stamina"))
