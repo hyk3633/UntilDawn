@@ -52,6 +52,7 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 	
 	if (hits.Num())
 	{
+		attackerController->PlayCameraShake();
 		attackerController->EndAttack();
 		attackerController->SendHittedCharacters(hits, itemID);
 	}

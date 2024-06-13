@@ -3,6 +3,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerAnimInst.h"
+#include "Player/RemotePlayerAIController.h"
 #include "UI/Main/HUDMainMap.h"
 #include "UI/Main/WidgetPlayerHealth.h"
 #include "Zombie/ZombieCharacter.h"
@@ -28,12 +29,14 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "AbilitySystemComponent.h"
 #include "Tag/UntilDawnGameplayTags.h"
+#include "Sound/SoundCue.h"
 
 APlayerCharacter::APlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	AutoPossessAI = EAutoPossessAI::Disabled;
+	AIControllerClass = ARemotePlayerAIController::StaticClass();
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 	GetCapsuleComponent()->SetCollisionProfileName(FName("RemotePlayer"));
@@ -168,6 +171,7 @@ void APlayerCharacter::PossessedBy(AController* newController)
 		{
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
+		isLocal = true;
 	}
 
 	GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
@@ -277,27 +281,22 @@ void APlayerCharacter::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
-	speed = GetVelocity().Size2D();
 	velocity = GetVelocity();
-
 	direction = UKismetAnimationLibrary::CalculateDirection(velocity, GetActorForwardVector().Rotation());
-	pitch = GetControlRotation().Pitch;
-	if (pitch >= 180.f)
-	{
-		pitch -= 360.f;
-	}
-	yaw = GetControlRotation().Yaw;
-	if (yaw >= 180.f)
-	{
-		yaw -= 360.f;
-	}
 
-	if (bset)
+	if (isLocal)
 	{
-		FVector de = FMath::VInterpConstantTo(GetActorLocation(), nextLocation, deltaTime, 150);
-		VectorTruncate(de);
-		SetActorLocation(de);
+		SetTargetSpeed(velocity.Length());
 	}
+	SetPitchAndYaw(deltaTime);
+}
+
+void APlayerCharacter::SetPitchAndYaw(float deltaTime)
+{
+	const FRotator deltaRotation = (FQuat(GetControlRotation()) * FQuat(GetActorRotation()).Inverse()).Rotator().GetNormalized();
+	const FRotator interpedRotation = FMath::RInterpTo(FRotator(pitch, yaw, 0.f), deltaRotation, deltaTime, 15);
+	pitch = FMath::ClampAngle(interpedRotation.Pitch, -90, 90);
+	yaw = FMath::ClampAngle(interpedRotation.Yaw, -90, 90);
 }
 
 void APlayerCharacter::UpdatePlayerInfo()
@@ -308,9 +307,11 @@ void APlayerCharacter::UpdatePlayerInfo()
 	myInfo.vectorX = location.X;
 	myInfo.vectorY = location.Y;
 	myInfo.vectorZ = location.Z;
+	
 	myInfo.velocityX = velocity.X;
 	myInfo.velocityY = velocity.Y;
 	myInfo.velocityZ = velocity.Z;
+	
 	myInfo.pitch = rotation.Pitch;
 	myInfo.yaw = rotation.Yaw;
 	myInfo.roll = rotation.Roll;
@@ -344,6 +345,7 @@ bool APlayerCharacter::IsWrestling()
 
 void APlayerCharacter::PlayerDead()
 {
+	UGameplayStatics::PlaySoundAtLocation(this, deathSound, GetActorLocation());
 	GetCapsuleComponent()->SetCollisionProfileName(FName("DeadPlayer"));
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
@@ -368,12 +370,6 @@ void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
 	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
-}
-
-void APlayerCharacter::DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency)
-{
-	nextLocation = lastLocation + ratency * lastVelocity;
-	bset = true;
 }
 
 void APlayerCharacter::SetHealth(const float newHealth)
@@ -551,7 +547,6 @@ bool APlayerCharacter::TryActivateWeaponAbility(const EInputType inputType)
 
 bool APlayerCharacter::TryActivateInputAbility(const EInputType inputType)
 {
-	//FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromInputID(StaticCast<uint8>(inputType));
 	FGameplayAbilitySpec* spec = asc->FindAbilitySpecFromClass(inputAbilities[inputType]);
 	spec->InputID = StaticCast<uint8>(inputType);
 	if (spec)
@@ -588,6 +583,22 @@ void APlayerCharacter::ActivateAiming()
 void APlayerCharacter::DeactivateAiming()
 {
 	bAiming = false;
+}
+
+void APlayerCharacter::SetTargetSpeed(const float speed)
+{
+	if (speed > 300.f)
+	{
+		targetSpeed = 600.f;
+	}
+	else if (speed > 0.f)
+	{
+		targetSpeed = 300.f;
+	}
+	else
+	{
+		targetSpeed = 0.f;
+	}
 }
 
 // 애님 노티파이 호출

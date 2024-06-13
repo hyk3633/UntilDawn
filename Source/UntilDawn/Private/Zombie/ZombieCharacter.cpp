@@ -16,6 +16,8 @@
 #include "AbilitySystemComponent.h"
 #include "Tag/UntilDawnGameplayTags.h"
 #include "Engine/AssetManager.h"
+#include "Sound/SoundCue.h"
+#include "Particles/ParticleSystem.h"
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -54,6 +56,16 @@ AZombieCharacter::AZombieCharacter()
 	healthWidget->SetDrawSize(FVector2D(180.f, 30.f));
 	static ConstructorHelpers::FClassFinder<UWidgetZombieHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_ZombieHealthWidget.WBP_ZombieHealthWidget_C'"));
 	if (healthWidgetBP.Succeeded()) healthWidget->SetWidgetClass(healthWidgetBP.Class);
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> impactParticleRef(TEXT("ParticleSystem'/Game/ParagonMinions/FX/Particles/Minions/Minion_melee/FX/Impacts/P_Minion_Impact_Default.P_Minion_Impact_Default'"));
+	if (impactParticleRef.Succeeded()) impactParticle = impactParticleRef.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> deathSoundCueRef(TEXT("SoundCue'/Game/_Assets/Sounds/Character/Zombie/SC_Zombie_Death.SC_Zombie_Death'"));
+	if (deathSoundCueRef.Succeeded()) deathSound = deathSoundCueRef.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> impactSoundCueRef(TEXT("SoundCue'/Game/_Assets/Sounds/Character/Zombie/SC_Zombie_Hit.SC_Zombie_Hit'"));
+	if (impactSoundCueRef.Succeeded()) impactSound = impactSoundCueRef.Object;
+
 }
 
 void AZombieCharacter::ActivateActor()
@@ -97,6 +109,7 @@ void AZombieCharacter::SetZombieInfo(const ZombieInfo& info)
 
 void AZombieCharacter::ZombieDead()
 {
+	UGameplayStatics::PlaySoundAtLocation(this, deathSound, GetActorLocation());
 	state = EZombieState::IDLE;
 	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
 	GetWorldTimerManager().SetTimer(deactivateDelayTimer, this, &AZombieCharacter::DeactivateAfterDelay, 3.f);
@@ -145,10 +158,6 @@ void AZombieCharacter::DeactivateAfterDelay()
 void AZombieCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
-	//ensure(zombieMeshes.Num() > 0);
-	//int32 randIndex = FMath::RandRange(0, zombieMeshes.Num() - 1);
-	//zombieMeshHandle = UAssetManager::Get().GetStreamableManager().RequestAsyncLoad(zombieMeshes[randIndex], FStreamableDelegate::CreateUObject(this, &AZombieCharacter::ZombieMeshLoadComplete));
 
 	asc->InitAbilityActorInfo(this, this);
 	FGameplayAbilitySpec spec(hitReactionAbility);
@@ -305,22 +314,10 @@ void AZombieCharacter::EndAttack()
 
 void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 {
-	if (isAttackActivated == false) return;
+	if (isAttackActivated == false) 
+		return;
 
-	FName socketName;
-	if (attackAnimationType == 1)
-	{
-		socketName = FName("RightAttackSocket");
-	}
-	else if (attackAnimationType == 2)
-	{
-		socketName = FName("LeftAttackSocket");
-	}
-	else if (attackAnimationType == 3)
-	{
-		socketName = FName("RightAttackSocket");
-	}
-	const FVector socketLocation = GetMesh()->GetSocketLocation(socketName);
+	const FVector socketLocation = GetMesh()->GetSocketLocation(GetSocketName(attackAnimationType));
 	FHitResult hit;
 	UKismetSystemLibrary::SphereTraceSingle
 	(
@@ -338,8 +335,11 @@ void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 		FLinearColor::Green,
 		1.f
 	);
+
 	if (hit.bBlockingHit)
 	{
+		PlayHitEffect(hit);
+
 		APlayerCharacter* player = Cast<APlayerCharacter>(hit.GetActor());
 		if (IsValid(player) && player == targetPlayer)
 		{
@@ -356,6 +356,26 @@ void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 
 			EndAttack();
 		}
+	}
+}
+
+FName AZombieCharacter::GetSocketName(const int animationType)
+{
+	if (animationType == 1)
+	{
+		return FName("RightAttackSocket");
+	}
+	else if (animationType == 2)
+	{
+		return FName("LeftAttackSocket");
+	}
+	else if (animationType == 3)
+	{
+		return FName("RightAttackSocket");
+	}
+	else
+	{
+		return FName("");
 	}
 }
 
@@ -387,5 +407,11 @@ void AZombieCharacter::UpdateHealth(const float newHealth)
 void AZombieCharacter::HideHealthWidget()
 {
 	healthWidget->SetVisibility(false);
+}
+
+void AZombieCharacter::PlayHitEffect(const FHitResult& hit)
+{
+	UGameplayStatics::SpawnEmitterAtLocation(this, impactParticle, hit.ImpactPoint, hit.ImpactNormal.Rotation(), true);
+	UGameplayStatics::PlaySoundAtLocation(this, impactSound, hit.ImpactPoint);
 }
 

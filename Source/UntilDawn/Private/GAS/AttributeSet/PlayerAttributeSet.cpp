@@ -26,19 +26,35 @@ void UPlayerAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 {
 	if (Attribute == GetStaminaAttribute())
 	{
-		NewValue = NewValue < 0.f ? 0.f : NewValue;
+		if (bInfinite && GetMaxStamina())
+		{
+			NewValue = GetMaxStamina();
+		}
+		else
+		{
+			NewValue = NewValue < 0.f ? 0.f : NewValue;
+		}
 	}
 }
 
 void UPlayerAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue)
 {
-	owningController->StaminaChanged(NewValue);
+	if (owningController.IsValid())
+	{
+		owningController->StaminaChanged(NewValue);
+	}
 }
 
 bool UPlayerAttributeSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)
 {
 	if (Super::PreGameplayEffectExecute(Data) == false)
 		return false;
+
+	if (bInfinite)
+	{
+		Data.EvaluatedData.Magnitude = 0.f;
+		return true;
+	}
 
 	if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
 	{
@@ -55,4 +71,9 @@ void UPlayerAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 {
 	Super::PostGameplayEffectExecute(Data);
 
+}
+
+void UPlayerAttributeSet::SetInfinite()
+{
+	bInfinite = true;
 }

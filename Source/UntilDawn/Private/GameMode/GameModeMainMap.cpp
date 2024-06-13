@@ -10,6 +10,7 @@
 #include "Zombie/ZombieCharacter.h"
 #include "Item/ItemBase.h"
 #include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "Item/Projectile/ProjectileBase.h"
 #include "Network/ClientSocket.h"
 #include "GameInstance/UntilDawnGameInstance.h"
@@ -166,22 +167,24 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
 {
 	PlayerInfoSet playerInfoSet;
-	recvStream >> playerInfoSet;
-	
-	double end = GetWorld()->GetTimeSeconds();
+	double ratencyStart = 0.f;
+	recvStream >> playerInfoSet >> ratencyStart;
 
 	for (auto& playerInfo : playerInfoSet.characterInfoMap)
 	{
+		
 		if (playerInfo.first != myNumber && playerCharacterMap.Find(playerInfo.first))
 		{
 			APlayerCharacter* character = playerCharacterMap[playerInfo.first];
 			CharacterInfo& info = playerInfo.second;
+	
 			if (IsValid(character))
 			{
+				const FVector velocity = FVector(info.velocityX, info.velocityY, info.velocityZ);
+				character->AddMovementInput(velocity);
+				character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
 				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
-				const FVector lastLocation = FVector(info.vectorX, info.vectorY, info.vectorZ);
-				const FVector lastVelocity = FVector(info.velocityX, info.velocityY, info.velocityZ);
-				character->DeadReckoningMovement(lastLocation, lastVelocity, (end - info.ratencyStart) / 2.f);
+				character->SetTargetSpeed(velocity.Length());
 			}
 		}
 	}
@@ -649,8 +652,11 @@ void AGameModeMainMap::PlayerDisarmWeapon(std::stringstream& recvStream)
 void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
 {
 	int size = 0;
-	recvStream >> size;
+	string itemID;
+	recvStream >> itemID >> size;
 
+	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
+	auto itemObj = itemManager->GetItemObject(fItemID);
 	FHitInfo hitInfo;
 	for (int i = 0; i < size; i++)
 	{
@@ -682,6 +688,11 @@ void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
 		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hitResult);
 		FGameplayEventData payloadData;
 		payloadData.TargetData.Add(targetData);
+		if (itemObj.IsValid())
+		{
+			TWeakObjectPtr<UItemPermanent> weaponObj = Cast<UItemPermanent>(itemObj);
+			payloadData.EventMagnitude = weaponObj->GetItemSubType();
+		}
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(targetActor, UD_EVENT_CHARACTER_HITREACTION, payloadData);
 	}
 }
@@ -723,7 +734,6 @@ void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 		{
 			continue;
 		}
-
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, payloadData);
 	}
 }
@@ -732,7 +742,14 @@ void AGameModeMainMap::CanceledPlayerWrestling(std::stringstream& recvStream)
 {
 	int playerNumber = -1;
 	recvStream >> playerNumber;
-	//a
+	if (playerNumber == myNumber)
+	{
+		myController->CancelWrestling();
+	}
+	if (playerCharacterMap.Find(playerNumber))
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(playerCharacterMap[playerNumber], UD_EVENT_CHARACTER_HITREACTION, FGameplayEventData());
+	}
 }
 
 void AGameModeMainMap::ActivateWeaponAbility(std::stringstream& recvStream)

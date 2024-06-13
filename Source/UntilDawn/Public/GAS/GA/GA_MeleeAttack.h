@@ -10,6 +10,7 @@
  * 
  */
 
+class UAbilityTask_PlayMontageAndWait;
 class UAnimMontage;
 class APlayerCharacter;
 class APlayerControllerMainMap;
@@ -23,6 +24,8 @@ public:
 
 	UGA_MeleeAttack();
 
+	virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
+
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility) override;
@@ -30,6 +33,14 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
+
+	FName GetNextSection();
+
+	void StartComboTimer();
+
+	void CheckComboInput();
+
+	bool CheckStamina();
 
 	UFUNCTION()
 	void OnCompleteCallback();
@@ -44,8 +55,20 @@ private:
 	UPROPERTY(EditAnywhere, Category = "GAS | Animation")
 	UAnimMontage* meleeAttackMontage;
 
+	UPROPERTY()
+	UAbilityTask_PlayMontageAndWait* playMeleeAttackTask;
+
+	UPROPERTY(EditAnywhere, Category = "GAS | Option")
+	TArray<float> comboActivationSeconds;
+
 	TWeakObjectPtr<APlayerCharacter> character;
 
 	TWeakObjectPtr<APlayerControllerMainMap> controller;
+
+	uint8 currentCombo = 0;
+
+	FTimerHandle comboTimer;
+
+	bool hasNextComboInput = false;
 
 };

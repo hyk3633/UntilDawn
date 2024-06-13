@@ -58,7 +58,7 @@ public:
 
 	void SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const FString& itemID);
 
-	void SendKickedCharacters(TArray<TPair<int, int>>& kickedCharacters);
+	void SendKickedCharacters(const int characterNumber, const bool isPlayer);
 
 	void SendRespawnRequest();
 

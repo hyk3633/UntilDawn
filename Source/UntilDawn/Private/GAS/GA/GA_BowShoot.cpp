@@ -11,6 +11,7 @@
 #include "Item/Projectile/ProjectileBase.h"
 #include "GameSystem/InventoryComponent.h"
 #include "GameMode/GameModeMainMap.h"
+#include "GAS/AttributeSet/PlayerAttributeSet.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "AbilitySystemComponent.h"
 #include "Tag/UntilDawnGameplayTags.h"
@@ -161,11 +162,19 @@ void UGA_BowShoot::ProcessReleased()
 		}
 		case EBowState::Aiming:
 		{
-			SendAbilityActivationToController();
-			bowState = EBowState::ShootToIdle;
-			arrow->SetActorHiddenInGame(true);
 			AbilityTags.RemoveTag(UD_CHARACTER_STATE_AIMING);
-			PlayMontage();
+			arrow->SetActorHiddenInGame(true);
+			if (IsStaminaEnough())
+			{
+				SendAbilityActivationToController();
+				bowState = EBowState::ShootToIdle;
+				PlayMontage();
+				ApplyGameplayEffect();
+			}
+			else
+			{
+				MontageJumpToSection(*FString::FromInt(4));
+			}
 			break;
 		}
 		case EBowState::ShootToIdle:
@@ -253,6 +262,34 @@ void UGA_BowShoot::SendAbilityActivationToController()
 	{
 		FGameplayAbilitySpec* specPtr = character->GetAbilitySystemComponent()->FindAbilitySpecFromHandle(CurrentSpecHandle);
 		controller->SendActivatedWeaponAbility(specPtr->InputID);
+	}
+}
+
+bool UGA_BowShoot::IsStaminaEnough()
+{
+	if (controller.IsValid() == false)
+		return true;
+
+	const float currentStamina = character->GetAbilitySystemComponent()->GetNumericAttributeBase(UPlayerAttributeSet::GetStaminaAttribute());
+	if (currentStamina > GetCostGameplayEffect()->Modifiers[0].Magnitude.GetValue())
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void UGA_BowShoot::ApplyGameplayEffect()
+{
+	if (controller.IsValid() == false)
+		return;
+
+	FGameplayEffectSpecHandle effectSpecHandle = MakeOutgoingGameplayEffectSpec(GetCostGameplayEffect()->GetClass());
+	if (effectSpecHandle.IsValid())
+	{
+		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, effectSpecHandle);
 	}
 }
 

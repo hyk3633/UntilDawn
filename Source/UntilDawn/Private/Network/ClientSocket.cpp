@@ -210,16 +210,12 @@ void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, cons
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendKickedCharacters(TArray<TPair<int, int>>& kickedCharacters)
+void ClientSocket::SendKickedCharacters(const int characterNumber, const bool isPlayer)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::KICKEDCHARACTERS) << "\n";
-	sendStream << kickedCharacters.Num() << "\n";
-	for (auto& kickedCharacter : kickedCharacters)
-	{
-		sendStream << kickedCharacter.Key << "\n";
-		sendStream << kickedCharacter.Value << "\n";
-	}
+	sendStream << characterNumber << "\n";
+	sendStream << isPlayer << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 

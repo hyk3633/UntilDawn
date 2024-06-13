@@ -22,3 +22,5 @@
 #define UD_EVENT_WRESTLING_BITED FGameplayTag::RequestGameplayTag(FName("Event.Wrestling.Bited"))
 
 #define UD_DATA_STAMINA FGameplayTag::RequestGameplayTag(FName("Data.Stamina"))
+
+#define UD_GAMEPLAYCUE_CAMERASHAKE_HIT FGameplayTag::RequestGameplayTag(FName("GameplayCue.CameraShake.Hit"))

@@ -68,6 +68,10 @@ protected:
 
 	void SendAbilityActivationToController();
 
+	bool IsStaminaEnough();
+
+	void ApplyGameplayEffect();
+
 private:
 
 	UPROPERTY(EditAnywhere, Category = "GAS | Animations")

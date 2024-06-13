@@ -25,12 +25,6 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 	}
 
-	FString itemID = TEXT("");
-	if (player->GetArmedWeapon().IsValid())
-	{
-		itemID = player->GetArmedWeapon()->GetItemID();
-	}
-
 	TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(player->GetController());
 	if (playerController.IsValid() == false)
 	{
@@ -40,8 +34,8 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	FVector collisionLocation = player->GetMesh()->GetSocketLocation(socketName);
 	TArray<AActor*> actorsToIgnore;
 	actorsToIgnore.Add(player.Get());
-	TArray<FHitResult> hits;
-	UKismetSystemLibrary::SphereTraceMulti
+	FHitResult hit;
+	UKismetSystemLibrary::SphereTraceSingle
 	(
 		player.Get(),
 		collisionLocation,
@@ -51,11 +45,11 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 		false,
 		actorsToIgnore,
 		EDrawDebugTrace::Persistent,
-		hits,
+		hit,
 		true
 	);
 
-	playerController->SendHitResult(hits, itemID);
+	playerController->SendKickResult(hit);
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }

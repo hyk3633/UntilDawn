@@ -32,6 +32,7 @@ class UWidgetPlayerHealth;
 class UItemPermanent;
 class UGameplayAbility;
 class UPlayerAttributeSet;
+class USoundCue;
 
 DECLARE_DELEGATE_OneParam(DelegateZombieInRange, int zombieNumber);
 DECLARE_DELEGATE_OneParam(DelegateZombieOutRange, int zombieNumber);
@@ -92,6 +93,8 @@ public:
 
 	virtual void Tick(float deltaTime) override;
 
+	void SetPitchAndYaw(float deltaTime);
+
 	void UpdatePlayerInfo();
 
 	void SetPlayerIDAndNumber(const FString& id, const int number);
@@ -100,8 +103,6 @@ public:
 	FORCEINLINE const FString& GetPlayerID() { return playerID; }
 
 	const bool GetIsFalling() const;
-
-	FORCEINLINE const float GetSpeed() const { return speed; }
 
 	FORCEINLINE const float GetDirection() const { return direction; }
 	FORCEINLINE const float GetPitch() const { return pitch; }
@@ -121,8 +122,6 @@ public:
 	void PlayerDead();
 
 	void PlayerRespawn(const bool isLocalPlayer);
-
-	void DeadReckoningMovement(const FVector& lastLocation, const FVector& lastVelocity, const double ratency);
 
 	void SetHealth(const float newHealth);
 
@@ -166,6 +165,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool GetAiming() const { return bAiming; };
+
+	void SetTargetSpeed(const float speed);
+
+	FORCEINLINE float GetTargetSpeed() const { return targetSpeed; };
 
 protected:
 
@@ -221,6 +224,9 @@ private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* healthWidget;
 
+	UPROPERTY(EditAnywhere, Category = "Sounds", meta = (AllowPrivateAccess = "true"))
+	USoundCue* deathSound;
+
 	TWeakObjectPtr<UWidgetPlayerHealth> healthWidgetObject;
 
 	int playerNumber;
@@ -229,15 +235,11 @@ private:
 
 	FVector velocity;
 
-	float speed, direction, pitch, yaw;
+	float direction, pitch, yaw;
 
 	bool turnRight, turnLeft;
 
 	CharacterInfo myInfo;
-
-	FVector nextLocation;
-
-	bool bset;
 
 	float health;
 
@@ -253,5 +255,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Status")
 	bool bAiming = false;
+
+	UPROPERTY(VisibleAnywhere, Category = "Status", meta = (AllowPrivateAccess = "true"))
+	float targetSpeed = 0.f;
+
+	bool isLocal = false;
 
 };

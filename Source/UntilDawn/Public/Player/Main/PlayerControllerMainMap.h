@@ -27,6 +27,7 @@ class AItemBase;
 class UInventoryComponent;
 class UAbilitySystemComponent;
 class UPlayerAttributeSet;
+class USoundCue;
 
 DECLARE_DELEGATE(DelegatePlayerDead);
 DECLARE_DELEGATE(DelegateWrestlingStart);
@@ -174,13 +175,17 @@ public:
 
 	void SetRowColumn(const int r, const int c);
 
-	void SendHitResult(TArray<FHitResult>& hits, const FString& itemID);
+	void SendKickResult(FHitResult& hit);
 
 	void SendActivatedWeaponAbility(const int32 inputType);
 
 	void SetStamina(const int newStamina);
 
 	void StaminaChanged(const float newStamina);
+
+	void PlayItemPickUpSound();
+
+	void PlayCameraShake();
 
 protected:
 
@@ -254,6 +259,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* shiftReleasedAction;
+
+	UPROPERTY()
+	USoundCue* itemPickUpSound;
 
 	FHitResult itemHit, characterHit;
 

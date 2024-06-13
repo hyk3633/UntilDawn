@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "../../Enums/WeaponType.h"
 #include "GA_HitReaction.generated.h"
 
 /**
@@ -34,11 +35,14 @@ protected:
 	
 	FName GetHitReactDirection(const FVector& impactPoint);
 
+	void InvokeGameplayCue(EWeaponType weaponType, const FHitResult& hitResult);
+
 private:
 
 	UPROPERTY(EditAnywhere, Category = "GAS | Animations")
 	UAnimMontage* hitReactionMontage;
 
-
+	UPROPERTY(EditAnywhere, Category = GAS, meta = (Categories = GameplayCue))
+	TMap<EWeaponType, FGameplayTag> gameplayCueTags;
 
 };

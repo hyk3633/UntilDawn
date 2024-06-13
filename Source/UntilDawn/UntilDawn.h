@@ -26,6 +26,7 @@ using std::istream;
 #define ECC_AimTrace		ECollisionChannel::ECC_GameTraceChannel10
 #define ECC_Projectile		ECollisionChannel::ECC_GameTraceChannel11
 #define ECC_PlayerTrace		ECollisionChannel::ECC_GameTraceChannel12
+#define ECC_BrickTrace		ECollisionChannel::ECC_GameTraceChannel13
 
 FORCEINLINE void VectorTruncate(FVector& vector)
 {

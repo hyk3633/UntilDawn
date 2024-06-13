@@ -43,6 +43,8 @@ public:
 
 	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data) override;
 
+	void SetInfinite();
+
 protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stat", meta = (AllowPrivateAccess = true))
@@ -52,5 +54,7 @@ protected:
 	FGameplayAttributeData MaxStamina;
 
 	TWeakObjectPtr<APlayerControllerMainMap> owningController;
+
+	bool bInfinite = false;
 	
 };

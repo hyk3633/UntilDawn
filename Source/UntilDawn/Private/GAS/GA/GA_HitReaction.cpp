@@ -4,6 +4,7 @@
 #include "GAS/GA/GA_HitReaction.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 
 UGA_HitReaction::UGA_HitReaction()
 {
@@ -20,6 +21,8 @@ void UGA_HitReaction::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	playHitReactionMontageTask->OnCompleted.AddDynamic(this, &UGA_HitReaction::OnCompleteCallback);
 	playHitReactionMontageTask->OnInterrupted.AddDynamic(this, &UGA_HitReaction::OnInterruptedCallback);
 	playHitReactionMontageTask->ReadyForActivation();
+
+	InvokeGameplayCue(StaticCast<EWeaponType>(TriggerEventData->EventMagnitude), hitResult);
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
@@ -57,5 +60,16 @@ FName UGA_HitReaction::GetHitReactDirection(const FVector& impactPoint)
 	else
 	{
 		return (distanceToFrontBackPlane >= 0 ? TEXT("R") : TEXT("L"));
+	}
+}
+
+void UGA_HitReaction::InvokeGameplayCue(EWeaponType weaponType, const FHitResult& hitResult)
+{
+	if (gameplayCueTags.Find(weaponType))
+	{
+		FGameplayCueParameters param;
+		param.Location = hitResult.ImpactPoint;
+		param.Normal = hitResult.ImpactNormal;
+		CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(gameplayCueTags[weaponType], param);
 	}
 }

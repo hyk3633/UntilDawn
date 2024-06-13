@@ -10,6 +10,9 @@
 /**
  * 
  */
+
+class UPlayerAttributeSet;
+
 UCLASS()
 class UNTILDAWN_API ARemotePlayerAIController : public AAIController, public IAbilitySystemInterface
 {
@@ -20,10 +23,15 @@ public:
 	ARemotePlayerAIController();
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	virtual void OnPossess(APawn* InPawn) override;
 	
 private:
 
 	UPROPERTY(EditAnywhere, Category = GAS)
 	TObjectPtr<UAbilitySystemComponent> asc;
+
+	UPROPERTY()
+	TObjectPtr<UPlayerAttributeSet> playerAttributeSet;
 
 };

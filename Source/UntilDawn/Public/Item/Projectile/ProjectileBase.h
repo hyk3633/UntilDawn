@@ -8,6 +8,8 @@
 
 class UProjectileMovementComponent;
 class USphereComponent;
+class UParticleSystem;
+class USoundCue;
 
 UCLASS()
 class UNTILDAWN_API AProjectileBase : public AActor, public IPoolableActor
@@ -56,6 +58,12 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	USphereComponent* collision;
+
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* brickImpactParticle;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* brickImpactSound;
 	
 	bool isActive;
 

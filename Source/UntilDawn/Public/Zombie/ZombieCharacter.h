@@ -17,6 +17,8 @@ class APlayerCharacter;
 class UWidgetComponent;
 class UWidgetZombieHealth;
 class UGameplayAbility;
+class USoundCue;
+class UParticleSystem;
 
 DECLARE_DELEGATE_OneParam(OnHealthChanged, float healthPercentage);
 
@@ -95,6 +97,8 @@ public:
 
 	void ActivateAttackTrace(const int attackAnimationType);
 
+	FName GetSocketName(const int animationType);
+
 	void AttackFailed();
 
 	void UpdateHealth(const float newHealth);
@@ -102,6 +106,8 @@ public:
 protected:
 
 	void HideHealthWidget();
+
+	void PlayHitEffect(const FHitResult& hit);
 
 private:
 
@@ -123,6 +129,15 @@ private:
 	UWidgetComponent* healthWidget;
 
 	TWeakObjectPtr<UWidgetZombieHealth> healthWidgetObject;
+
+	UPROPERTY(EditAnywhere, Category = "Sounds", meta = (AllowPrivateAccess = "true"))
+	UParticleSystem* impactParticle;
+
+	UPROPERTY(EditAnywhere, Category = "Sounds", meta = (AllowPrivateAccess = "true"))
+	USoundCue* deathSound;
+
+	UPROPERTY(EditAnywhere, Category = "Sounds", meta = (AllowPrivateAccess = "true"))
+	USoundCue* impactSound;
 
 	float health = 200;
 

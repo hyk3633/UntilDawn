@@ -12,6 +12,9 @@
 #include "../../UntilDawn/UntilDawn.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Tag/UntilDawnGameplayTags.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "Particles/ParticleSystem.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -42,6 +45,13 @@ AProjectileBase::AProjectileBase()
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Weapons/SK_Arrow.SK_Arrow'"));
 	if (skeletalMeshAsset.Succeeded()) { skeletalMesh->SetSkeletalMesh(skeletalMeshAsset.Object); }
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> brickImpactParticleRef(TEXT("ParticleSystem'/Game/MilitaryWeapDark/FX/P_Impact_Stone_Small_01.P_Impact_Stone_Small_01'"));
+	if (brickImpactParticleRef.Succeeded()) { brickImpactParticle = brickImpactParticleRef.Object; }
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> brickImpactSoundRef(TEXT("SoundCue'/Game/_Assets/Sounds/Item/Bow/SC_Bow_Impact_Brick.SC_Bow_Impact_Brick'"));
+	if (brickImpactSoundRef.Succeeded()) { brickImpactSound = brickImpactSoundRef.Object; }
+
 }
 
 void AProjectileBase::ActivateActor()
@@ -91,6 +101,13 @@ void AProjectileBase::BeginPlay()
 
 void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	TWeakObjectPtr<ACharacter> character = Cast<ACharacter>(Hit.GetActor());
+	if (character.IsValid() == false)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, brickImpactParticle, Hit.ImpactPoint, Hit.ImpactNormal.Rotation(), true);
+		UGameplayStatics::PlaySoundAtLocation(this, brickImpactSound, Hit.ImpactPoint);
+	}
+
 	TWeakObjectPtr<APlayerControllerMainMap> owner = Cast<APlayerControllerMainMap>(GetOwner());
 	if (owner.IsValid())
 	{		
@@ -98,12 +115,9 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 
 		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
 
-		TWeakObjectPtr<ACharacter> character = Cast<ACharacter>(Hit.GetActor());
-		if (character.IsValid() == false)
-			return;
-
 		TArray<FHitResult> hits;
 		hits.Add(Hit);
+
 		owner->SendHittedCharacters(hits, shooter->GetArmedWeapon()->GetItemID());
 
 		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(Hit);

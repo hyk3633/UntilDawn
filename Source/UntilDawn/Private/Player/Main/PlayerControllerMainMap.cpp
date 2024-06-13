@@ -19,6 +19,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "GAS/AttributeSet/PlayerAttributeSet.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Sound/SoundCue.h"
 
 APlayerControllerMainMap::APlayerControllerMainMap()
 {
@@ -71,6 +72,9 @@ APlayerControllerMainMap::APlayerControllerMainMap()
 
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_ShiftReleased(TEXT("/Game/_Assets/Inputs/Actions/IA_ShiftReleased.IA_ShiftReleased"));
 	if (obj_ShiftReleased.Succeeded()) shiftReleasedAction = obj_ShiftReleased.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> itemPickUpSoundRef(TEXT("SoundCue'/Game/_Assets/Sounds/Character/PlayerFX/SC_Item_Pickup.SC_Item_Pickup'"));
+	if (itemPickUpSoundRef.Succeeded()) { itemPickUpSound = itemPickUpSoundRef.Object; }
 }
 
 UAbilitySystemComponent* APlayerControllerMainMap::GetAbilitySystemComponent() const
@@ -240,6 +244,7 @@ void APlayerControllerMainMap::EKeyPressed()
 	}
 	else if(lookingItem.IsValid())
 	{
+		PlayItemPickUpSound();
 		SendPickedItemInfo(lookingItem->GetItemID());
 		lookingItem.Reset();
 	}
@@ -322,7 +327,7 @@ void APlayerControllerMainMap::OnPossess(APawn* pawn)
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 	check(clientSocket);
 	clientSocket->NotifyAccessingGame(myCharacter->GetPlayerInfo());
-	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.2f, true);
+	GetWorldTimerManager().SetTimer(SynchronizeTimer, this, &APlayerControllerMainMap::SynchronizePlayerInfo, 0.016f, true);
 }
 
 void APlayerControllerMainMap::SendInRangeZombie(int zombieNumber)
@@ -382,6 +387,8 @@ void APlayerControllerMainMap::EquipItem(const int boxNumber, TWeakObjectPtr<AIt
 
 	itemActor->GetItemObject()->SetOwnerController(this);
 	itemActor->GetItemObject()->SetOwnerCharacter(myCharacter);
+
+	PlayItemPickUpSound();
 }
 
 void APlayerControllerMainMap::NotifyToServerUnequipItem(const FString itemID, const FTile& addedPoint)
@@ -398,6 +405,8 @@ void APlayerControllerMainMap::UnequipItemAndAddToInventory(TWeakObjectPtr<AItem
 	myCharacter->UnEquipItem(itemActor);
 	inventoryComponent->UnequipItem(itemActor);
 	AddItemToInventory(itemActor->GetItemObject(), addedPoint);
+
+	PlayItemPickUpSound();
 }
 
 void APlayerControllerMainMap::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
@@ -408,6 +417,8 @@ void APlayerControllerMainMap::UnequipItem(TWeakObjectPtr<AItemBase> itemActor)
 	}
 	myCharacter->UnEquipItem(itemActor);
 	inventoryComponent->UnequipItem(itemActor);
+
+	PlayItemPickUpSound();
 }
 
 void APlayerControllerMainMap::RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj)
@@ -524,32 +535,24 @@ void APlayerControllerMainMap::SetRowColumn(const int r, const int c)
 	GetHUD<AHUDMainMap>()->StartHUD();
 }
 
-void APlayerControllerMainMap::SendHitResult(TArray<FHitResult>& hits, const FString& itemID)
+void APlayerControllerMainMap::SendKickResult(FHitResult& hit)
 {
-	TArray<TPair<int, int>> kickedCharacters;
-	for (auto& hit : hits)
+	if (hit.bBlockingHit)
 	{
-		if (hit.bBlockingHit == false)
-			continue;
 		TWeakObjectPtr<APlayerCharacter> player = Cast<APlayerCharacter>(hit.GetActor());
-		if (player.IsValid())
+		if (player.IsValid()) 
 		{
-			kickedCharacters.Add({ player->GetPlayerNumber(), true });
+			clientSocket->SendKickedCharacters(player->GetPlayerNumber(), true);
 		}
 		else
 		{
 			TWeakObjectPtr<AZombieCharacter> zombie = Cast<AZombieCharacter>(hit.GetActor());
 			if (zombie.IsValid())
 			{
-				kickedCharacters.Add({ zombie->GetNumber(), false });
+				clientSocket->SendKickedCharacters(zombie->GetNumber(), false);
 			}
 		}
 	}
-	if (kickedCharacters.Num())
-	{
-		clientSocket->SendKickedCharacters(kickedCharacters);
-	}
-	
 }
 
 void APlayerControllerMainMap::SendActivatedWeaponAbility(const int32 inputType)
@@ -567,6 +570,16 @@ void APlayerControllerMainMap::StaminaChanged(const float newStamina)
 {
 	ensure(maxStamina > 0);
 	DStaminaChanged.ExecuteIfBound(newStamina / maxStamina);
+}
+
+void APlayerControllerMainMap::PlayItemPickUpSound()
+{
+	UGameplayStatics::PlaySound2D(this, itemPickUpSound);
+}
+
+void APlayerControllerMainMap::PlayCameraShake()
+{
+	myCharacter->GetAbilitySystemComponent()->ExecuteGameplayCue(UD_GAMEPLAYCUE_CAMERASHAKE_HIT, FGameplayCueParameters());
 }
 
 void APlayerControllerMainMap::SynchronizePlayerInfo()

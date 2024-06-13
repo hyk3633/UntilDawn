@@ -14,7 +14,7 @@ void UPlayerAnimInst::UpdateValue()
 {
 	if (myCharacter)
 	{
-		speed = myCharacter->GetSpeed();
+		targetSpeed = myCharacter->GetTargetSpeed();
 		isFalling = myCharacter->GetIsFalling();
 		velocityZ = myCharacter->GetVelocity().Z;
 		direction = myCharacter->GetDirection();
