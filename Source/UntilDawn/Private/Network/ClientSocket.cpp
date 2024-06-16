@@ -60,8 +60,6 @@ void ClientSocket::StartSocket()
 	addr.sin_port = htons(9999);
 	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-	GEngine->AddOnScreenDebugMessage(0, 5.f, FColor::Green, TEXT("Hello"));
-
 	// 서버에 연결 요청
 	if (connect(clientSocket, (sockaddr*)&addr, sizeof(addr)) != 0)
 	{
@@ -70,7 +68,6 @@ void ClientSocket::StartSocket()
 	}
 
 	WLOG(TEXT("[Log] : Successfully connected to the server!"));
-	GEngine->AddOnScreenDebugMessage(0, 5.f, FColor::Green, TEXT("Connected"));
 
 	isInitialized = true;
 
@@ -80,8 +77,14 @@ void ClientSocket::StartSocket()
 void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool isLogin)
 {
 	std::stringstream sendStream;
-	if (isLogin) sendStream << static_cast<int>(EPacketType::LOGIN) << "\n";
-	else sendStream << static_cast<int>(EPacketType::SIGNUP) << "\n";
+	if (isLogin)
+	{
+		sendStream << static_cast<int>(EPacketType::LOGIN) << "\n";
+	}
+	else
+	{
+		sendStream << static_cast<int>(EPacketType::SIGNUP) << "\n";
+	}
 	std::string tempId(TCHAR_TO_UTF8(*id.ToString()));
 	std::string tempPw(TCHAR_TO_UTF8(*pw.ToString()));
 	sendStream << tempId << "\n";
@@ -98,11 +101,12 @@ void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info)
+void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info, const float pitch)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";
 	sendStream << info << "\n";
+	sendStream << pitch << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -197,16 +201,12 @@ void ClientSocket::DropInventoryItem(const FString itemID)
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
-void ClientSocket::SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const FString& itemID)
+void ClientSocket::SendHittedCharacter(FHitInfo& hittedCharacter, const FString& itemID)
 {
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	sendStream << hittedCharacters.Num() << "\n";
-	for (auto& hitInfo : hittedCharacters)
-	{
-		sendStream << hitInfo;
-	}
+	sendStream << hittedCharacter << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 

@@ -30,9 +30,13 @@ class UNTILDAWN_API UWidgetEquipmentBox : public UUserWidget
 
 public:
 
+	DelegateOnEquipmentRemoved DOnEquipmentRemoved;
+
 	UFUNCTION(BlueprintCallable)
 	void InitializeWidget(const int num, UInventoryComponent* invComp, TSubclassOf<UWidgetDragVisual> dragVisClass, const EItemMainType mainType, const uint8 subType, const EEquipmentSlot newSlotType, const float size);
 	
+protected:
+
 	UFUNCTION(BlueprintCallable)
 	void OnDropCalled(UDragDropOperation* operation);
 
@@ -45,9 +49,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnDragDetectedCall();
 
-	void Equip(TWeakObjectPtr<UItemObject> newItemObj);
+public:
 
-	DelegateOnEquipmentRemoved DOnEquipmentRemoved;
+	void Equip(TWeakObjectPtr<UItemObject> newItemObj);
 
 	FORCEINLINE void SetItem(TWeakObjectPtr<UItemObject> newItemObj) { itemObj = newItemObj; }
 

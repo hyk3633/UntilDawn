@@ -42,7 +42,7 @@ public:
 
 	TWeakObjectPtr<AItemBase> GetPlayersEquippedItem(const EquippedItem& equipped);
 
-	void SpawnItem(const FString& itemID, const int itemKey, const FVector location);
+	TWeakObjectPtr<AItemBase> SpawnItem(const FString& itemID, const int itemKey);
 
 protected:
 

@@ -39,7 +39,7 @@ APlayerCharacter::APlayerCharacter()
 	AIControllerClass = ARemotePlayerAIController::StaticClass();
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	GetCapsuleComponent()->SetCollisionProfileName(FName("RemotePlayer"));
+	GetCapsuleComponent()->SetCollisionProfileName(FName("CharacterCapsule"));
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -48,6 +48,7 @@ APlayerCharacter::APlayerCharacter()
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+	GetMesh()->SetCollisionProfileName(FName("RemotePlayer"));
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/G2_SurvivalCharacters/Meshes/Characters/Combines/SK_Phong_Base.SK_Phong_Base'"));
 	if (skeletalMeshAsset.Succeeded()) { GetMesh()->SetSkeletalMesh(skeletalMeshAsset.Object); }
@@ -66,7 +67,7 @@ APlayerCharacter::APlayerCharacter()
 
 	cameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	cameraBoom->SetupAttachment(RootComponent);
-	cameraBoom->SetRelativeLocation(FVector(0.f, 20.f, 50.f));
+	cameraBoom->SetRelativeLocation(FVector(0.f, 20.f, 80.f));
 	cameraBoom->SetRelativeRotation(FRotator(10.f, 0.f, 0.f));
 	cameraBoom->TargetArmLength = 250.0f;
 	cameraBoom->bUsePawnControlRotation = true;
@@ -77,10 +78,10 @@ APlayerCharacter::APlayerCharacter()
 
 	playerRange = CreateDefaultSubobject<USphereComponent>(TEXT("PlayerRange"));
 	playerRange->SetupAttachment(RootComponent);
-	playerRange->SetCollisionObjectType(ECC_PlayerRange);
-	playerRange->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	playerRange->SetCollisionProfileName(FName("PlayerRange"));
+	playerRange->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	playerRange->SetSphereRadius(1024);
-	playerRange->bHiddenInGame = false;
+	playerRange->bHiddenInGame = true;
 
 	HeadMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Head Parts"));
 	HeadMeshComponent->SetupAttachment(GetMesh());
@@ -123,13 +124,6 @@ APlayerCharacter::APlayerCharacter()
 	static ConstructorHelpers::FObjectFinder<UInputAction> obj_Look(TEXT("/Game/_Assets/Inputs/Actions/IA_Look.IA_Look"));
 	if (obj_Look.Succeeded()) lookAction = obj_Look.Object;
 
-	
-}
-
-void APlayerCharacter::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
 }
 
 void APlayerCharacter::BeginPlay()
@@ -171,10 +165,11 @@ void APlayerCharacter::PossessedBy(AController* newController)
 		{
 			Subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
+		playerRange->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		isLocal = true;
 	}
 
-	GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
+	GetMesh()->SetCollisionProfileName(FName("LocalPlayer"));
 	playerRange->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentBeginOverlap);
 	playerRange->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnPlayerRangeComponentEndOverlap);
 }
@@ -237,28 +232,6 @@ void APlayerCharacter::Look(const FInputActionValue& value)
 	}
 }
 
-bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
-{
-	armedWeapon = itemActor;
-
-	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(itemActor->GetItemObject());
-	currentWeaponType = StaticCast<EWeaponType>(permanentItemObj->GetItemSubType());
-
-	AttachItemActor(itemActor);
-
-	asc->AddLooseGameplayTags(itemActor->GetGameplayTags());
-
-	bUseControllerRotationYaw = true;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
-
-	return true;
-}
-
-bool APlayerCharacter::HKeyPressed()
-{
-	return true;
-}
-
 void APlayerCharacter::OnPlayerRangeComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AZombieCharacter* zombie = Cast<AZombieCharacter>(OtherActor);
@@ -291,214 +264,33 @@ void APlayerCharacter::Tick(float deltaTime)
 	SetPitchAndYaw(deltaTime);
 }
 
-void APlayerCharacter::SetPitchAndYaw(float deltaTime)
+void APlayerCharacter::SetTargetSpeed(const float speed)
 {
-	const FRotator deltaRotation = (FQuat(GetControlRotation()) * FQuat(GetActorRotation()).Inverse()).Rotator().GetNormalized();
-	const FRotator interpedRotation = FMath::RInterpTo(FRotator(pitch, yaw, 0.f), deltaRotation, deltaTime, 15);
-	pitch = FMath::ClampAngle(interpedRotation.Pitch, -90, 90);
-	yaw = FMath::ClampAngle(interpedRotation.Yaw, -90, 90);
+	if (speed > 300.f)
+	{
+		targetSpeed = 600.f;
+	}
+	else if (speed > 0.f)
+	{
+		targetSpeed = 300.f;
+	}
+	else
+	{
+		targetSpeed = 0.f;
+	}
 }
 
-void APlayerCharacter::UpdatePlayerInfo()
+void APlayerCharacter::SetPitchAndYaw(float deltaTime)
 {
-	FVector location = GetActorLocation();
-	FRotator rotation = GetActorRotation();
-
-	myInfo.vectorX = location.X;
-	myInfo.vectorY = location.Y;
-	myInfo.vectorZ = location.Z;
-	
-	myInfo.velocityX = velocity.X;
-	myInfo.velocityY = velocity.Y;
-	myInfo.velocityZ = velocity.Z;
-	
-	myInfo.pitch = rotation.Pitch;
-	myInfo.yaw = rotation.Yaw;
-	myInfo.roll = rotation.Roll;
+	FRotator deltaRotation = (GetControlRotation() - GetActorRotation());
+	deltaRotation.Normalize();
+	pitch = FMath::ClampAngle(deltaRotation.Pitch, -90, 90);
+	yaw = FMath::ClampAngle(deltaRotation.Yaw, -90, 90);
 }
 
 UAbilitySystemComponent* APlayerCharacter::GetAbilitySystemComponent() const
 {
 	return asc;
-}
-
-void APlayerCharacter::SetPlayerIDAndNumber(const FString& id, const int number)
-{
-	playerID = id;
-	playerNumber = number;
-}
-
-const bool APlayerCharacter::GetIsFalling() const
-{
-	return GetMovementComponent()->IsFalling();
-}
-
-EWeaponType APlayerCharacter::GetCurrentWeaponType() const
-{
-	return currentWeaponType;
-}
-
-bool APlayerCharacter::IsWrestling()
-{
-	return asc->HasMatchingGameplayTag(UD_CHARACTER_STATE_WRESTLING);
-}
-
-void APlayerCharacter::PlayerDead()
-{
-	UGameplayStatics::PlaySoundAtLocation(this, deathSound, GetActorLocation());
-	GetCapsuleComponent()->SetCollisionProfileName(FName("DeadPlayer"));
-	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-	GetMesh()->SetSimulatePhysics(true);
-	healthWidget->SetVisibility(false);
-}
-
-void APlayerCharacter::PlayerRespawn(const bool isLocalPlayer)
-{
-	if (isLocalPlayer)
-	{
-		GetCapsuleComponent()->SetCollisionProfileName(FName("LocalPlayer"));
-	}
-	else
-	{
-		GetCapsuleComponent()->SetCollisionProfileName(FName("RemotePlayer"));
-	}
-	GetCapsuleComponent()->SetRelativeRotation(FRotator(0.f, GetActorRotation().Yaw, 0.f));
-	GetMesh()->SetSimulatePhysics(false);
-	GetMesh()->SetCollisionProfileName(FName("NormalMesh"));
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetMesh()->SetVisibility(true);
-	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
-	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
-}
-
-void APlayerCharacter::SetHealth(const float newHealth)
-{
-	health = FMath::Min(newHealth, maxHealth);
-	healthWidgetObject->SetProgressPercentage(GetHealthPercentage());
-}
-
-float APlayerCharacter::GetHealthPercentage()
-{
-	return health / maxHealth;
-}
-
-void APlayerCharacter::RecoverHealth(const float recoveryAmount)
-{
-	health = FMath::Clamp(health + recoveryAmount, 0.f, maxHealth);
-}
-
-void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
-{
-	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
-	socket->AttachActor(item.Get(), GetMesh());
-}
-
-void APlayerCharacter::EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber)
-{
-	item->ActivateEquipMode(item->GetItemType());
-
-	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
-	permanentItemObj->SetEquippedSlotNumber(slotNumber);
-
-	if (item->GetItemType() == EItemMainType::ArmourItem)
-	{
-		EArmourSlot armourType = StaticCast<EArmourSlot>(permanentItemObj->GetItemSubType());
-		switch (armourType)
-		{
-		case EArmourSlot::Head:
-			HeadMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
-			break;
-		case EArmourSlot::Top:
-			TopMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
-			break;
-		case EArmourSlot::Bottom:
-			BottomMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
-			break;
-		case EArmourSlot::Foot:
-			FootMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
-			break;
-		}
-	}
-	else
-	{
-		FName socketName;
-		if (slotNumber == 0)
-		{
-			socketName = "Ranged1_Back";
-		}
-		else if (slotNumber == 1)
-		{
-			socketName = "Ranged2_Back";
-		}
-		else
-		{
-			socketName = "Melee_Back";
-		}
-		const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(socketName);
-		socket->AttachActor(item.Get(), GetMesh());
-	}
-}
-
-void APlayerCharacter::UnEquipItem(TWeakObjectPtr<AItemBase> item)
-{
-	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
-	permanentItemObj->SetEquippedSlotNumber(-1);
-
-	if (item->GetItemType() == EItemMainType::ArmourItem)
-	{
-		EArmourSlot armourType = StaticCast<EArmourSlot>(permanentItemObj->GetItemSubType());
-		switch (armourType)
-		{
-		case EArmourSlot::Head:
-			HeadMeshComponent->SetSkeletalMesh(nullptr);
-			break;
-		case EArmourSlot::Top:
-			TopMeshComponent->SetSkeletalMesh(nullptr);
-			break;
-		case EArmourSlot::Bottom:
-			BottomMeshComponent->SetSkeletalMesh(nullptr);
-			break;
-		case EArmourSlot::Foot:
-			FootMeshComponent->SetSkeletalMesh(nullptr);
-			break;
-		}
-	}
-	else
-	{
-		if (item == armedWeapon)
-		{
-			DisarmWeapon();
-		}
-		item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	}
-}
-
-void APlayerCharacter::ShowHealthWidget()
-{
-	if (GetWorldTimerManager().IsTimerActive(healthWidgetDeacitvateTimer))
-	{
-		GetWorldTimerManager().ClearTimer(healthWidgetDeacitvateTimer);
-	}
-	GetWorldTimerManager().SetTimer(healthWidgetDeacitvateTimer, this, &APlayerCharacter::HideHealthWidget, 5.f);
-	healthWidget->SetVisibility(true);
-}
-
-void APlayerCharacter::InitializeHealthWidget()
-{
-	healthWidgetObject = Cast<UWidgetPlayerHealth>(healthWidget->GetWidget());
-	check(healthWidgetObject.IsValid());
-	healthWidgetObject->InitHealthWidget(playerID, GetHealthPercentage());
-}
-
-void APlayerCharacter::SetMaxHealth(const int newHealth)
-{
-	maxHealth = newHealth;
-}
-
-void APlayerCharacter::HideHealthWidget()
-{
-	healthWidget->SetVisibility(false);
 }
 
 bool APlayerCharacter::TryActivateWeaponAbility(const EInputType inputType)
@@ -565,6 +357,243 @@ bool APlayerCharacter::TryActivateInputAbility(const EInputType inputType)
 	return false;
 }
 
+void APlayerCharacter::EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber)
+{
+	item->ActivateEquipMode(item->GetItemType());
+
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
+	permanentItemObj->SetEquippedSlotNumber(slotNumber);
+
+	if (item->GetItemType() == EItemMainType::ArmourItem)
+	{
+		EArmourSlot armourType = StaticCast<EArmourSlot>(permanentItemObj->GetItemSubType());
+		switch (armourType)
+		{
+		case EArmourSlot::Head:
+			HeadMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		case EArmourSlot::Top:
+			TopMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		case EArmourSlot::Bottom:
+			BottomMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		case EArmourSlot::Foot:
+			FootMeshComponent->SetSkeletalMesh(item->GetItemObject()->GetSkeletalMesh());
+			break;
+		}
+	}
+	else
+	{
+		FName socketName;
+		if (slotNumber == 0)
+		{
+			socketName = "Ranged1_Back";
+		}
+		else if (slotNumber == 1)
+		{
+			socketName = "Ranged2_Back";
+		}
+		else
+		{
+			socketName = "Melee_Back";
+		}
+		const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(socketName);
+		socket->AttachActor(item.Get(), GetMesh());
+	}
+}
+
+void APlayerCharacter::AttachItemActor(TWeakObjectPtr<AItemBase> item)
+{
+	const USkeletalMeshSocket* socket = GetMesh()->GetSocketByName(item->GetSocketName());
+	socket->AttachActor(item.Get(), GetMesh());
+}
+
+bool APlayerCharacter::ArmWeapon(TWeakObjectPtr<AItemBase> itemActor)
+{
+	armedWeapon = itemActor;
+
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(itemActor->GetItemObject());
+	currentWeaponType = StaticCast<EWeaponType>(permanentItemObj->GetItemSubType());
+
+	AttachItemActor(itemActor);
+
+	asc->AddLooseGameplayTags(itemActor->GetGameplayTags());
+
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	return true;
+}
+
+void APlayerCharacter::UnEquipItem(TWeakObjectPtr<AItemBase> item)
+{
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(item->GetItemObject());
+	permanentItemObj->SetEquippedSlotNumber(-1);
+
+	if (item->GetItemType() == EItemMainType::ArmourItem)
+	{
+		EArmourSlot armourType = StaticCast<EArmourSlot>(permanentItemObj->GetItemSubType());
+		switch (armourType)
+		{
+		case EArmourSlot::Head:
+			HeadMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		case EArmourSlot::Top:
+			TopMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		case EArmourSlot::Bottom:
+			BottomMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		case EArmourSlot::Foot:
+			FootMeshComponent->SetSkeletalMesh(nullptr);
+			break;
+		}
+	}
+	else
+	{
+		if (item == armedWeapon)
+		{
+			DisarmWeapon();
+		}
+		item->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	}
+}
+
+bool APlayerCharacter::DisarmWeapon()
+{
+	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	return true;
+}
+
+void APlayerCharacter::ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor)
+{
+	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
+	AttachDisarmedWeaponToBack();
+	armedWeapon = changedWeaponActor;
+	ArmWeapon(armedWeapon);
+}
+
+// 애님 노티파이 호출
+void APlayerCharacter::AttachDisarmedWeaponToBack()
+{
+	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(armedWeapon->GetItemObject());
+	EquipItem(armedWeapon, permanentItemObj->GetEquippedSlotNumber());
+	armedWeapon.Reset();
+	currentWeaponType = EWeaponType::NONE;
+}
+
+void APlayerCharacter::UpdatePlayerInfo()
+{
+	FVector location = GetActorLocation();
+	FRotator rotation = GetActorRotation();
+
+	myInfo.vectorX = location.X;
+	myInfo.vectorY = location.Y;
+	myInfo.vectorZ = location.Z;
+	
+	myInfo.velocityX = velocity.X;
+	myInfo.velocityY = velocity.Y;
+	myInfo.velocityZ = velocity.Z;
+	
+	myInfo.pitch = rotation.Pitch;
+	myInfo.yaw = rotation.Yaw;
+	myInfo.roll = rotation.Roll;
+}
+
+void APlayerCharacter::InitializeHealthWidget()
+{
+	healthWidgetObject = Cast<UWidgetPlayerHealth>(healthWidget->GetWidget());
+	check(healthWidgetObject.IsValid());
+	healthWidgetObject->InitHealthWidget(playerID, GetHealthPercentage());
+}
+
+void APlayerCharacter::ShowHealthWidget()
+{
+	if (GetWorldTimerManager().IsTimerActive(healthWidgetDeacitvateTimer))
+	{
+		GetWorldTimerManager().ClearTimer(healthWidgetDeacitvateTimer);
+	}
+	GetWorldTimerManager().SetTimer(healthWidgetDeacitvateTimer, this, &APlayerCharacter::HideHealthWidget, 5.f);
+	healthWidget->SetVisibility(true);
+}
+
+void APlayerCharacter::RecoverHealth(const float recoveryAmount)
+{
+	health = FMath::Clamp(health + recoveryAmount, 0.f, maxHealth);
+}
+
+void APlayerCharacter::HideHealthWidget()
+{
+	healthWidget->SetVisibility(false);
+}
+
+void APlayerCharacter::SetHealth(const float newHealth)
+{
+	health = FMath::Min(newHealth, maxHealth);
+	healthWidgetObject->SetProgressPercentage(GetHealthPercentage());
+}
+
+void APlayerCharacter::SetMaxHealth(const int newHealth)
+{
+	maxHealth = newHealth;
+}
+
+float APlayerCharacter::GetHealthPercentage()
+{
+	return health / maxHealth;
+}
+
+void APlayerCharacter::PlayerDead()
+{
+	UGameplayStatics::PlaySoundAtLocation(this, deathSound, GetActorLocation());
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
+	playerRange->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	healthWidget->SetVisibility(false);
+}
+
+void APlayerCharacter::PlayerRespawn()
+{
+	GetCapsuleComponent()->SetRelativeRotation(FRotator(0.f, GetActorRotation().Yaw, 0.f));
+	if (isLocal)
+	{
+		playerRange->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	}
+	const FName profileName = isLocal ? FName("LocalPlayer") : FName("RemotePlayer");
+	GetMesh()->SetCollisionProfileName(profileName);
+	GetMesh()->SetSimulatePhysics(false);
+	GetMesh()->SetVisibility(true);
+	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
+	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
+}
+
+void APlayerCharacter::SetPlayerIDAndNumber(const FString& id, const int number)
+{
+	playerID = id;
+	playerNumber = number;
+}
+
+const bool APlayerCharacter::GetIsFalling() const
+{
+	return GetMovementComponent()->IsFalling();
+}
+
+void APlayerCharacter::SetPitch(const float newPitch)
+{
+	pitch = newPitch;
+}
+
+bool APlayerCharacter::IsWrestling()
+{
+	return asc->HasMatchingGameplayTag(UD_CHARACTER_STATE_WRESTLING);
+}
+
 void APlayerCharacter::ActivateInputInterval()
 {
 	bInputInterval = true;
@@ -585,50 +614,5 @@ void APlayerCharacter::DeactivateAiming()
 	bAiming = false;
 }
 
-void APlayerCharacter::SetTargetSpeed(const float speed)
-{
-	if (speed > 300.f)
-	{
-		targetSpeed = 600.f;
-	}
-	else if (speed > 0.f)
-	{
-		targetSpeed = 300.f;
-	}
-	else
-	{
-		targetSpeed = 0.f;
-	}
-}
 
-// 애님 노티파이 호출
-void APlayerCharacter::AttachDisarmedWeaponToBack()
-{
-	TWeakObjectPtr<UItemPermanent> permanentItemObj = Cast<UItemPermanent>(armedWeapon->GetItemObject());
-	EquipItem(armedWeapon, permanentItemObj->GetEquippedSlotNumber());
-	armedWeapon.Reset();
-	currentWeaponType = EWeaponType::NONE;
-}
 
-void APlayerCharacter::ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor)
-{
-	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
-	AttachDisarmedWeaponToBack();
-	armedWeapon = changedWeaponActor;
-	ArmWeapon(armedWeapon);
-}
-
-TWeakObjectPtr<AItemBase> APlayerCharacter::GetArmedWeapon() const
-{
-	return armedWeapon;
-}
-
-bool APlayerCharacter::DisarmWeapon()
-{
-	asc->RemoveLooseGameplayTags(armedWeapon->GetGameplayTags());
-
-	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-
-	return true;
-}

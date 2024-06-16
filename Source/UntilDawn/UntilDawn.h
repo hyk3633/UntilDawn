@@ -18,6 +18,7 @@ using std::istream;
 #define PACKET_SIZE 4096
 
 #define ECC_PlayerRange		ECollisionChannel::ECC_GameTraceChannel1
+#define ECC_Zombie			ECollisionChannel::ECC_GameTraceChannel2
 #define ECC_ZombieAttack	ECollisionChannel::ECC_GameTraceChannel3
 #define ECC_Item			ECollisionChannel::ECC_GameTraceChannel6
 #define ECC_ItemTrace		ECollisionChannel::ECC_GameTraceChannel7

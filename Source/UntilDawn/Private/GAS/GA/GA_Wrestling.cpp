@@ -5,6 +5,7 @@
 #include "Player/PlayerCharacter.h"
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UGA_Wrestling::UGA_Wrestling()
 {
@@ -25,6 +26,8 @@ void UGA_Wrestling::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		playWresltingMontageTask->OnInterrupted.AddDynamic(this, &UGA_Wrestling::OnInterruptedCallback);
 		playWresltingMontageTask->ReadyForActivation();
 
+		character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
 		if (controller.IsValid())
 		{
 			controller->WrestlingStart();
@@ -40,11 +43,15 @@ void UGA_Wrestling::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 
 void UGA_Wrestling::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
 {
+	TWeakObjectPtr<APlayerCharacter> character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
+	character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	Super::CancelAbility(Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility);
 }
 
 void UGA_Wrestling::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	TWeakObjectPtr<APlayerCharacter> character = CastChecked<APlayerCharacter>(ActorInfo->AvatarActor.Get());
+	character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 

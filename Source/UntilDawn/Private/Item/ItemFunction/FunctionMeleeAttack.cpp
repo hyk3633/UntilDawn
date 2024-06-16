@@ -24,36 +24,29 @@ void FunctionMeleeAttack::MeleeAttack(TWeakObjectPtr<APlayerControllerMainMap> a
 	FVector collisionLocation = weaponMesh->GetSocketLocation(FName("CollisionSocket"));
 	TArray<AActor*> actorsToIgnore;
 	actorsToIgnore.Add(attackerController->GetPawn());
-	TArray<FHitResult> hits;
-	UKismetSystemLibrary::SphereTraceMulti
+	FHitResult hit;
+	UKismetSystemLibrary::SphereTraceSingle
 	(
 		attackerController.Get(),
 		collisionLocation,
 		collisionLocation + FVector(0, 0, 1),
-		12,
+		24,
 		UEngineTypes::ConvertToTraceType(ECC_PlayerAttack),
 		false,
 		actorsToIgnore,
-		EDrawDebugTrace::Persistent,
-		hits,
+		EDrawDebugTrace::None,
+		hit,
 		true
 	);
 
-	for (auto& hit : hits)
+	if (hit.bBlockingHit)
 	{
-		if (hit.bBlockingHit)
-		{
-			FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hit);
-			FGameplayEventData payloadData;
-			payloadData.TargetData.Add(targetData);
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(hit.GetActor(), UD_EVENT_CHARACTER_HITREACTION, payloadData);
-		}
-	}
-	
-	if (hits.Num())
-	{
-		attackerController->PlayCameraShake();
+		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hit);
+		FGameplayEventData payloadData;
+		payloadData.TargetData.Add(targetData);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(hit.GetActor(), UD_EVENT_CHARACTER_HITREACTION, payloadData);
+
 		attackerController->EndAttack();
-		attackerController->SendHittedCharacters(hits, itemID);
+		attackerController->SendHittedCharacter(hit, itemID);
 	}
 }

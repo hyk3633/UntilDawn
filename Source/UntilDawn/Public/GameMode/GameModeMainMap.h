@@ -11,6 +11,7 @@
 #include "Structs/PlayerStatus.h"
 #include "Structs/HitInfo.h"
 #include "Structs/ZombieAsset.h"
+#include "Structs/ItemFieldRotation.h"
 #include "Enums/PacketType.h"
 #include "Enums/InputType.h"
 #include "Tag/UntilDawnGameplayTags.h"
@@ -114,13 +115,21 @@ protected:
 
 	void ActivateWeaponAbility(std::stringstream& recvStream);
 
+	void ProcessZombieHit(std::stringstream& recvStream);
+
 public:
 
 	void DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem);
 
+	void SetFieldItemTransform(TWeakObjectPtr<AItemBase> droppedItem, FVector spawnLocation);
+
 	TWeakObjectPtr<AProjectileBase> GetProjectile() const;
 
 	virtual void Tick(float deltaTime) override;
+
+protected:
+
+	FTransform GetPlayerStartTransform();
 
 private:
 
@@ -129,6 +138,9 @@ private:
 
 	UPROPERTY()
 	UDataTable* zombieAssetDataTable;
+
+	UPROPERTY()
+	UDataTable* itemFieldRotationDataTable;
 
 	UPROPERTY()
 	UActorPooler* projectilePooler;

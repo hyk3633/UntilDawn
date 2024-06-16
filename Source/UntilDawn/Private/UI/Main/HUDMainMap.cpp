@@ -18,12 +18,6 @@ AHUDMainMap::AHUDMainMap()
 	if (WBP_WrestlingProgress.Succeeded()) widgetWrestlingProgressClass = WBP_WrestlingProgress.Class;
 }
 
-void AHUDMainMap::BeginPlay()
-{
-	Super::BeginPlay();
-
-}
-
 void AHUDMainMap::StartHUD()
 {
 	playerController = Cast<APlayerControllerMainMap>(GetOwningPlayerController());

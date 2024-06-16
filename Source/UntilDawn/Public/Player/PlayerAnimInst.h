@@ -26,7 +26,15 @@ public:
 	void InitAnimInst(APlayerCharacter* character);
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateValue();
+	void UpdateValue(float deltaTime);
+
+protected:
+
+	void FootIK(float deltaTime);
+
+	TTuple<bool, float> CapsuleDistance(FName socketName);
+
+	TTuple<bool, float, FVector> FootLineTrace(FName socketName);
 
 private:
 
@@ -62,4 +70,26 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	EWeaponType currentWeaponType = EWeaponType::NONE;
+
+	UPROPERTY()
+	TArray<AActor*> ignoreActors;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "IK", meta = (AllowPrivateAccess = "true"))
+	float displacement;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "IK", meta = (AllowPrivateAccess = "true"))
+	float IKInterpSpeed = 10.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "IK", meta = (AllowPrivateAccess = "true"))
+	FRotator RRot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "IK", meta = (AllowPrivateAccess = "true"))
+	FRotator LRot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "IK", meta = (AllowPrivateAccess = "true"))
+	float RIK;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "IK", meta = (AllowPrivateAccess = "true"))
+	float LIK;
+
 };

@@ -54,8 +54,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetCursorInArea(const bool bIn);
 
-	FORCEINLINE int GetIsCursorInArea() const { return isCursorInArea; }
-
 protected:
 
 	UFUNCTION()
@@ -63,6 +61,10 @@ protected:
 
 	UFUNCTION()
 	void OnItemRemoved(const int slotNumber, EEquipmentSlot slotType);
+
+public:
+
+	FORCEINLINE int GetIsCursorInArea() const { return isCursorInArea; }
 
 private:
 

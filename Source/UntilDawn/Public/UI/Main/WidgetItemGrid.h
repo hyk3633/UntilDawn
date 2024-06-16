@@ -28,6 +28,8 @@ class UNTILDAWN_API UWidgetItemGrid : public UUserWidget
 	
 public:
 
+	DelegateOnRemoved DOnRemoved;
+
 	UFUNCTION(BlueprintCallable)
 	void OnRemoved();
 
@@ -36,8 +38,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void OnDragDetectedCall();
-
-	DelegateOnRemoved DOnRemoved;
 
 	void SetItem(TWeakObjectPtr<UItemObject> newItemObj);
 

@@ -95,6 +95,7 @@ void UGA_BowShoot::CancelAbility(const FGameplayAbilitySpecHandle Handle, const 
 
 void UGA_BowShoot::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	GetWorld()->GetTimerManager().ClearTimer(holdTimer);
 	if (arrow)
 	{
 		arrow->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -143,7 +144,11 @@ bool UGA_BowShoot::IsAbleShoot()
 
 void UGA_BowShoot::OnCompleteCallback()
 {
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+	bMontageEnded = true;
+	if (bowState != EBowState::Aiming)
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+	}
 }
 
 void UGA_BowShoot::OnInterruptedCallback()
@@ -162,14 +167,14 @@ void UGA_BowShoot::ProcessReleased()
 		}
 		case EBowState::Aiming:
 		{
-			AbilityTags.RemoveTag(UD_CHARACTER_STATE_AIMING);
+			ActivationOwnedTags.RemoveTag(UD_CHARACTER_STATE_AIMING);
 			arrow->SetActorHiddenInGame(true);
 			if (IsStaminaEnough())
 			{
-				SendAbilityActivationToController();
 				bowState = EBowState::ShootToIdle;
 				PlayMontage();
 				ApplyGameplayEffect();
+				SendAbilityActivationToController();
 			}
 			else
 			{
@@ -199,9 +204,8 @@ void UGA_BowShoot::ProcessPressed()
 	{
 		case EBowState::IdleToAim:
 		{
-			SendAbilityActivationToController();
 			bowState = EBowState::Aiming;
-			AbilityTags.AddTag(UD_CHARACTER_STATE_AIMING);
+			SendAbilityActivationToController();
 			break;
 		}
 		case EBowState::Aiming:
@@ -212,30 +216,29 @@ void UGA_BowShoot::ProcessPressed()
 		{
 			if (character->IsInputInterval())
 			{
-				SendAbilityActivationToController();
 				bowState = EBowState::ShootToAim;
 				arrow->SetActorHiddenInGame(false);
 				PlayMontage();
 				GetWorld()->GetTimerManager().SetTimer(holdTimer, this, &UGA_BowShoot::SetAbleShoot, holdTime);
+				SendAbilityActivationToController();
 			}
 			break;
 		}
 		case EBowState::ShootToAim:
 		{
-			SendAbilityActivationToController();
 			bowState = EBowState::Aiming;
 			arrow->SetActorHiddenInGame(false);
-			AbilityTags.AddTag(UD_CHARACTER_STATE_AIMING);
 			PlayMontage();
+			SendAbilityActivationToController();
 			break;
 		}
 		case EBowState::AimToIdle:
 		{
-			SendAbilityActivationToController();
 			bowState = EBowState::IdleToAim;
 			arrow->SetActorHiddenInGame(true);
 			PlayMontage();
 			GetWorld()->GetTimerManager().SetTimer(holdTimer, this, &UGA_BowShoot::SetAbleShoot, holdTime);
+			SendAbilityActivationToController();
 			break;
 		}
 	}
@@ -245,13 +248,20 @@ void UGA_BowShoot::SetAbleShoot()
 {
 	bowState = EBowState::Aiming;
 	character->ActivateAiming();
-	AbilityTags.AddTag(UD_CHARACTER_STATE_AIMING);
+	ActivationOwnedTags.AddTag(UD_CHARACTER_STATE_AIMING);
 }
 
 void UGA_BowShoot::PlayMontage()
 {
 	const FName sectionName = *FString::FromInt(StaticCast<uint8>(bowState));
-	MontageJumpToSection(sectionName);
+	if (bMontageEnded)
+	{
+		CreateAbilityTask();
+	}
+	else
+	{
+		MontageJumpToSection(sectionName);
+	}
 	bowMesh->GetAnimInstance()->Montage_Play(bowMeshMontage);
 	bowMesh->GetAnimInstance()->Montage_JumpToSection(sectionName);
 }

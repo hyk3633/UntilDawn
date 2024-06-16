@@ -170,12 +170,14 @@ struct PlayerInitialInfo
 	std::string playerID;
 	CharacterInfo characterInfo;
 	PlayerStatus playerStatus;
+	float pitch;
 	std::vector<EquippedItem> equippedItems;
 
 	friend std::istream& operator>>(std::istream& stream, PlayerInitialInfo& info)
 	{
 		stream >> info.playerID;
 		stream >> info.characterInfo;
+		stream >> info.pitch;
 		stream >> info.playerStatus;
 		int size = 0;
 		stream >> size;

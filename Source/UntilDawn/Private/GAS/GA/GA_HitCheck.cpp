@@ -23,12 +23,14 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	if (player.IsValid() == false)
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+		return;
 	}
 
 	TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(player->GetController());
 	if (playerController.IsValid() == false)
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+		return;
 	}
 
 	FVector collisionLocation = player->GetMesh()->GetSocketLocation(socketName);
@@ -44,7 +46,7 @@ void UGA_HitCheck::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 		UEngineTypes::ConvertToTraceType(ECC_PlayerAttack),
 		false,
 		actorsToIgnore,
-		EDrawDebugTrace::Persistent,
+		EDrawDebugTrace::None,
 		hit,
 		true
 	);

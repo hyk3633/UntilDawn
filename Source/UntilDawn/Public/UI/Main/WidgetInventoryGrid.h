@@ -28,10 +28,6 @@ public:
 
 	void InitializeWidget(UInventoryComponent* invComp, float size);
 
-	FORCEINLINE FIntPoint GetDragged() const { return draggedItemTopLeftTile; }
-
-	FORCEINLINE bool GetIsCursorInArea() const { return isCursorInArea; }
-
 protected:
 
 	void CreateLineSegments();
@@ -68,6 +64,12 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void SetCursorInArea(const bool bIn);
+
+public:
+
+	FORCEINLINE FIntPoint GetDragged() const { return draggedItemTopLeftTile; }
+
+	FORCEINLINE bool GetIsCursorInArea() const { return isCursorInArea; }
 
 private:
 

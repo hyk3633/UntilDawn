@@ -24,13 +24,13 @@ class UNTILDAWN_API UWidgetLoginScreen : public UUserWidget
 
 public:
 
+	DelegateTextBoxValue DLoginTextBox, DSignUpTextBox;
+
 	void Init();
 
 	void SetLoginMessage(const FString&, const bool);
 
 	void SetSignUpMessage(const FString&, const bool);
-
-	DelegateTextBoxValue DLoginTextBox, DSignUpTextBox;
 
 protected:
 

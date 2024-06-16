@@ -77,7 +77,7 @@ TWeakObjectPtr<AItemBase> UItemManager::GetPlayersEquippedItem(const EquippedIte
 	return itemActor;
 }
 
-void UItemManager::SpawnItem(const FString& itemID, const int itemKey, const FVector location)
+TWeakObjectPtr<AItemBase> UItemManager::SpawnItem(const FString& itemID, const int itemKey)
 {
 	auto itemObj = CreateItemObject(itemID, itemKey);
 
@@ -92,9 +92,10 @@ void UItemManager::SpawnItem(const FString& itemID, const int itemKey, const FVe
 	check(itemActor.IsValid());
 	itemActor->SetItemObject(itemObj);
 	itemActor->ActivateFieldMode();
-	itemActor->SetActorLocation(location);
 
 	itemActorMap.Add(itemID, itemActor.Get());
+
+	return itemActor;
 }
 
 TWeakObjectPtr<UItemObject> UItemManager::CreateItemObject(const FString& itemID, const int itemKey)
@@ -288,6 +289,8 @@ void UItemManager::RemovePlayersItems(const int playerNumber)
 	{
 		for (auto itemObj : possessedItemsMap[playerNumber])
 		{
+			if (itemObj.IsValid() == false)
+				continue;
 			DestroyItem(itemObj->GetItemID());
 		}
 		possessedItemsMap.Remove(playerNumber);

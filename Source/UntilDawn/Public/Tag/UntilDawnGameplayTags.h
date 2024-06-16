@@ -8,11 +8,13 @@
 #define UD_CHARACTER_STATE_BLOCKSTAMINARECOVERY FGameplayTag::RequestGameplayTag(FName("Character.State.BlockStaminaRecovery"))
 
 #define UD_EVENT_CHARACTER_HITREACTION FGameplayTag::RequestGameplayTag(FName("Event.Character.HitReaction"))
+#define UD_EVENT_CHARACTER_KICKREACTION FGameplayTag::RequestGameplayTag(FName("Event.Character.KickReaction"))
 #define UD_EVENT_CHARACTER_HITCHECK FGameplayTag::RequestGameplayTag(FName("Event.Character.HitCheck"))
 #define UD_EVENT_CHARACTER_CHANGEWEAPON FGameplayTag::RequestGameplayTag(FName("Event.Character.ChangeWeapon"))
 #define UD_EVENT_CHARACTER_ARMWEAPON FGameplayTag::RequestGameplayTag(FName("Event.Character.ArmWeapon"))
 #define UD_EVENT_CHARACTER_DISARMWEAPON FGameplayTag::RequestGameplayTag(FName("Event.Character.DisarmWeapon"))
 #define UD_EVENT_CHARACTER_KICK FGameplayTag::RequestGameplayTag(FName("Event.Character.Kick"))
+#define UD_EVENT_CHARACTER_HITBYZOMBIE FGameplayTag::RequestGameplayTag(FName("Event.Character.HitByZombie"))
 
 #define UD_EVENT_SEND_HITREACTION FGameplayTag::RequestGameplayTag(FName("Event.Send.HitReaction"))
 #define UD_EVENT_SEND_KICK FGameplayTag::RequestGameplayTag(FName("Event.Send.Kick"))

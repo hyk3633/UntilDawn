@@ -9,6 +9,8 @@
 #include "Player/Main/PlayerControllerMainMap.h"
 #include "Player/PlayerCharacter.h"
 #include "Item/ItemBase.h"
+#include "Item/ItemObject.h"
+#include "Item/ItemObject/ItemPermanent.h"
 #include "../../UntilDawn/UntilDawn.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Tag/UntilDawnGameplayTags.h"
@@ -25,7 +27,7 @@ AProjectileBase::AProjectileBase()
 	collision->SetCollisionObjectType(ECC_Projectile);
 	collision->SetCollisionProfileName(FName("ProjectileCollision"));
 	collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	collision->SetSphereRadius(5.f);
+	collision->SetSphereRadius(2.f);
 	collision->SetSimulatePhysics(false);
 	collision->SetNotifyRigidBodyCollision(true);
 
@@ -35,7 +37,7 @@ AProjectileBase::AProjectileBase()
 	skeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	skeletalMesh->SetRelativeLocation(FVector(-96.f, 0.f, 0.f));
 	skeletalMesh->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
-	skeletalMesh->SetWorldScale3D(FVector(2, 1, 2));
+	skeletalMesh->SetWorldScale3D(FVector(2.f, 0.75f, 2.f));
 
 	movementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Projectile Movement Component"));
 	movementComponent->bRotationFollowsVelocity = true;
@@ -74,6 +76,8 @@ void AProjectileBase::DeactivateActor()
 	isActive = false;
 
 	attackPower = 0.f;
+
+	DetachRootComponentFromParent();
 }
 
 bool AProjectileBase::IsActorActivated()
@@ -84,12 +88,15 @@ bool AProjectileBase::IsActorActivated()
 void AProjectileBase::ActivateProjectile()
 {
 	movementComponent->SetUpdatedComponent(RootComponent);
-	movementComponent->SetVelocityInLocalSpace(FVector(-3000, 0, 0));
+	movementComponent->SetVelocityInLocalSpace(FVector(3000, 0, 0));
 	movementComponent->bRotationFollowsVelocity = true;
 	movementComponent->bInterpMovement = true;
 	movementComponent->Activate(true);
 
+	collision->IgnoreActorWhenMoving(GetOwner(), true);
 	collision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 7.f);
 }
 
 void AProjectileBase::BeginPlay()
@@ -101,6 +108,8 @@ void AProjectileBase::BeginPlay()
 
 void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	AttachToActor(OtherActor, FAttachmentTransformRules::KeepWorldTransform);
+
 	TWeakObjectPtr<ACharacter> character = Cast<ACharacter>(Hit.GetActor());
 	if (character.IsValid() == false)
 	{
@@ -113,16 +122,17 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	{		
 		TWeakObjectPtr<APlayerCharacter> shooter = Cast<APlayerCharacter>(owner->GetPawn());
 
-		GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 5.f);
-
-		TArray<FHitResult> hits;
-		hits.Add(Hit);
-
-		owner->SendHittedCharacters(hits, shooter->GetArmedWeapon()->GetItemID());
+		owner->SendHittedCharacter(Hit, shooter->GetArmedWeapon()->GetItemID());
 
 		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(Hit);
 		FGameplayEventData payloadData;
 		payloadData.TargetData.Add(targetData);
+
+		TWeakObjectPtr<UItemPermanent> weaponObj = Cast<UItemPermanent>(shooter->GetArmedWeapon()->GetItemObject());
+		if (weaponObj.IsValid())
+		{
+			payloadData.EventMagnitude = weaponObj->GetItemSubType();
+		}
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Hit.GetActor(), UD_EVENT_CHARACTER_HITREACTION, payloadData);
 	}
 }

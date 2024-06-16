@@ -31,55 +31,49 @@ public:
 
 	AZombieCharacter();
 
+protected:
+
+	virtual void PostInitializeComponents() override;
+
+	virtual void BeginPlay() override;
+
+public:
+
+	virtual void Tick(float DeltaTime) override;
+
+public:
+
+	OnHealthChanged onHealthChanged;
+
+	/* 풀러블 액터 인터페이스 가상 함수 */
+
 	virtual void ActivateActor() override;
 
 	virtual void DeactivateActor() override;
 
 	virtual bool IsActorActivated() override;
 
+	/* 동기화 */
+
 	void SetZombieInfo(const ZombieInfo& info);
-
-	void ZombieDead();
-
-	OnHealthChanged onHealthChanged;
 
 protected:
 
 	void ProcessZombieInfo(const ZombieInfo& info, const int bitType);
 
-	void DeactivateAfterDelay();
-
-	virtual void PostInitializeComponents() override;
-
-	void ZombieMeshLoadComplete();
-
-	virtual void BeginPlay() override;
-
-public:	
-
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	FORCEINLINE void SetNumber(const int newNumber) { number = newNumber; }
-
-	FORCEINLINE const int GetNumber() const { return number; }
-
-	FORCEINLINE void SetTarget(APlayerCharacter* target) { targetPlayer = target; }
-
 	void SetZombieState(const EZombieState newState);
-
-	UFUNCTION(BlueprintCallable)
-	EZombieState GetZombieState() const;
-
-	UFUNCTION(BlueprintCallable)
-	float GetSpeed() const;
 
 	void SetNextLocation(const FVector& nextLoc);
 
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+public:
+
+	void UpdateHealth(const float newHealth);
 
 protected:
+
+	void HideHealthWidget();
+
+	/* 이동 */
 
 	void UpdateMovement();
 
@@ -89,25 +83,53 @@ protected:
 
 public:
 
+	/* 공격 */
+
 	void StartAttack();
 
 	void EndAttack();
 
-	FORCEINLINE int GetAttackActivated() const { return isAttackActivated; }
+	void AttackFailed();
 
 	void ActivateAttackTrace(const int attackAnimationType);
 
-	FName GetSocketName(const int animationType);
+protected:
 
-	void AttackFailed();
+	void PlayHitEffect(const FHitResult& hit);
 
-	void UpdateHealth(const float newHealth);
+public:
+
+	/* 죽음 */
+
+	void ZombieDead();
 
 protected:
 
-	void HideHealthWidget();
+	void DeactivateAfterDelay();
 
-	void PlayHitEffect(const FHitResult& hit);
+public:
+
+	/* Getter Setter */
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	FORCEINLINE void SetNumber(const int newNumber) { number = newNumber; }
+
+	FORCEINLINE const int GetNumber() const { return number; }
+
+	FORCEINLINE void SetTarget(APlayerCharacter* target) { targetPlayer = target; }
+
+	UFUNCTION(BlueprintCallable)
+	EZombieState GetZombieState() const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetSpeed() const;
+
+	void SetSkeletalMesh(USkeletalMesh* skeletalMesh);
+
+	FORCEINLINE int GetAttackActivated() const { return isAttackActivated; }
+
+	FName GetSocketName(const int animationType);
 
 private:
 
@@ -118,12 +140,10 @@ private:
 	TSubclassOf<UGameplayAbility> hitReactionAbility;
 
 	UPROPERTY()
+	TSubclassOf<UGameplayAbility> kickReactionAbility;
+
+	UPROPERTY()
 	UZombieAnimInstance* animInst;
-
-	UPROPERTY(config)
-	TArray<FSoftObjectPath> zombieMeshes;
-
-	TSharedPtr<FStreamableHandle> zombieMeshHandle;
 
 	UPROPERTY()
 	UWidgetComponent* healthWidget;
@@ -139,32 +159,32 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Sounds", meta = (AllowPrivateAccess = "true"))
 	USoundCue* impactSound;
 
-	float health = 200;
-
-	float maxHealth = 200;
+	int number;
 
 	UPROPERTY(VisibleAnywhere, Category = "Info")
 	bool isActive;
 
-	int number;
+	bool isAttackActivated;
 
-	UPROPERTY(VisibleAnywhere, Category = "Info")
-	EZombieState state;
+	int16 attackPower = 30;
+
+	float health = 200;
+
+	float maxHealth = 200;
 
 	float speed = 100.f;
 
 	float interval = 0.016f;
 
-	FVector nextPoint, nextDirection;
+	UPROPERTY(VisibleAnywhere, Category = "Info")
+	EZombieState state;
 
 	UPROPERTY()
 	APlayerCharacter* targetPlayer;
 
+	FVector nextPoint, nextDirection;
+
 	FTimerHandle movementUpdateTimer;
-
-	bool isAttackActivated;
-
-	int16 attackPower = 30;
 
 	FTimerHandle deactivateDelayTimer;
 

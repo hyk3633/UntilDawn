@@ -32,8 +32,11 @@ AZombieCharacter::AZombieCharacter()
 	static ConstructorHelpers::FClassFinder<UGameplayAbility> hitReactionBP(TEXT("Blueprint'/Game/_Assets/Blueprints/GAS/GA/Zombie/BPGA_Zombie_HitReaction.BPGA_Zombie_HitReaction_C'"));
 	if (hitReactionBP.Succeeded()) hitReactionAbility = hitReactionBP.Class;
 
+	static ConstructorHelpers::FClassFinder<UGameplayAbility> kickReactionAbilityBP(TEXT("'/Game/_Assets/Blueprints/GAS/GA/Zombie/BPGA_Zombie_KickReaction.BPGA_Zombie_KickReaction_C'"));
+	if (kickReactionAbilityBP.Succeeded()) kickReactionAbility = kickReactionAbilityBP.Class;
+
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombieCapsule"));
+	GetCapsuleComponent()->SetCollisionProfileName(FName("CharacterCapsule"));
 
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -43,6 +46,7 @@ AZombieCharacter::AZombieCharacter()
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetVisibility(false);
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+	GetMesh()->SetGenerateOverlapEvents(true);
 	static ConstructorHelpers::FClassFinder<UZombieAnimInstance> animBP(TEXT("AnimBlueprint'/Game/_Assets/Animations/Zombies/AnimBP_Zombie.AnimBP_Zombie_C'"));
 	if (animBP.Succeeded()) GetMesh()->SetAnimClass(animBP.Class);
 
@@ -51,7 +55,7 @@ AZombieCharacter::AZombieCharacter()
 	healthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Health Widget"));
 	healthWidget->SetupAttachment(RootComponent);
 	healthWidget->SetVisibility(false);
-	healthWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	healthWidget->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 	healthWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	healthWidget->SetDrawSize(FVector2D(180.f, 30.f));
 	static ConstructorHelpers::FClassFinder<UWidgetZombieHealth> healthWidgetBP(TEXT("WidgetBlueprint'/Game/_Assets/WidgetBlueprints/Main/WBP_ZombieHealthWidget.WBP_ZombieHealthWidget_C'"));
@@ -68,113 +72,15 @@ AZombieCharacter::AZombieCharacter()
 
 }
 
-void AZombieCharacter::ActivateActor()
-{
-	isActive = true;
-	GetCapsuleComponent()->SetCollisionProfileName(FName("ActivatedZombieCapsule"));
-	GetMesh()->SetVisibility(true);
-	healthWidgetObject->InitializeProgressBar();
-}
-
-void AZombieCharacter::DeactivateActor()
-{
-	isActive = false;
-	SetActorLocation(FVector(0, 0, -3500));
-	
-	GetMesh()->SetSimulatePhysics(false);
-	GetMesh()->SetCollisionProfileName(FName("NormalMesh"));
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetMesh()->SetVisibility(false);
-	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
-	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
-}
-
-bool AZombieCharacter::IsActorActivated()
-{
-	return isActive;
-}
-
-void AZombieCharacter::SetZombieInfo(const ZombieInfo& info)
-{
-	const int bitMax = static_cast<int>(ZIBT::MAX);
-	for (int bit = 0; bit < bitMax; bit++)
-	{
-		if (info.recvInfoBitMask & (1 << bit))
-		{
-			ProcessZombieInfo(info, bit);
-		}
-	}
-}
-
-void AZombieCharacter::ZombieDead()
-{
-	UGameplayStatics::PlaySoundAtLocation(this, deathSound, GetActorLocation());
-	state = EZombieState::IDLE;
-	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
-	GetWorldTimerManager().SetTimer(deactivateDelayTimer, this, &AZombieCharacter::DeactivateAfterDelay, 3.f);
-	GetCapsuleComponent()->SetCollisionProfileName(FName("DeactivatedZombieCapsule"));
-	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-	GetMesh()->SetSimulatePhysics(true);
-}
-
-void AZombieCharacter::ProcessZombieInfo(const ZombieInfo& info, const int bitType)
-{
-	ZIBT type = static_cast<ZIBT>(bitType);
-	switch (type)
-	{
-		case ZIBT::Location:
-		{
-			SetActorLocation(info.location);
-			break;
-		}
-		case ZIBT::Rotation:
-		{
-			SetActorRotation(info.rotation);
-			break;
-		}
-		case ZIBT::State:
-		{
-			SetZombieState(info.state);
-			break;
-		}
-		case ZIBT::TargetNumber:
-		{
-			break;
-		}
-		case ZIBT::NextLocation:
-		{
-			SetNextLocation(info.nextLocation);
-			break;
-		}
-	}
-}
-
-void AZombieCharacter::DeactivateAfterDelay()
-{
-	DeactivateActor();
-}
-
 void AZombieCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
 	asc->InitAbilityActorInfo(this, this);
-	FGameplayAbilitySpec spec(hitReactionAbility);
-	asc->GiveAbility(spec);
-}
-
-void AZombieCharacter::ZombieMeshLoadComplete()
-{
-	if (zombieMeshHandle.IsValid())
-	{
-		USkeletalMesh* zombieMesh = Cast<USkeletalMesh>(zombieMeshHandle->GetLoadedAsset());
-		if (zombieMesh)
-		{
-			GetMesh()->SetSkeletalMesh(zombieMesh);
-		}
-	}
-	zombieMeshHandle->ReleaseHandle();
+	FGameplayAbilitySpec spec1(hitReactionAbility);
+	asc->GiveAbility(spec1);
+	FGameplayAbilitySpec spec2(kickReactionAbility);
+	asc->GiveAbility(spec2);
 }
 
 void AZombieCharacter::BeginPlay()
@@ -206,7 +112,7 @@ void AZombieCharacter::BeginPlay()
 void AZombieCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
 	if (state == EZombieState::ATTACK)
 	{
 		if (IsValid(targetPlayer))
@@ -216,10 +122,74 @@ void AZombieCharacter::Tick(float DeltaTime)
 	}
 }
 
-void AZombieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AZombieCharacter::ActivateActor()
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	isActive = true;
+	GetMesh()->SetCollisionProfileName(FName("ActivatedZombie"));
+	GetMesh()->SetVisibility(true);
+	healthWidgetObject->InitializeProgressBar();
+}
 
+void AZombieCharacter::DeactivateActor()
+{
+	isActive = false;
+	SetActorLocation(FVector(0, 0, -3500));
+	
+	GetMesh()->SetSimulatePhysics(false);
+	GetMesh()->SetCollisionProfileName(FName("DeactivatedZombie"));
+	GetMesh()->SetVisibility(false);
+	GetMesh()->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
+	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
+}
+
+bool AZombieCharacter::IsActorActivated()
+{
+	return isActive;
+}
+
+void AZombieCharacter::SetZombieInfo(const ZombieInfo& info)
+{
+	const int bitMax = static_cast<int>(ZIBT::MAX);
+	for (int bit = 0; bit < bitMax; bit++)
+	{
+		if (info.recvInfoBitMask & (1 << bit))
+		{
+			ProcessZombieInfo(info, bit);
+		}
+	}
+}
+
+void AZombieCharacter::ProcessZombieInfo(const ZombieInfo& info, const int bitType)
+{
+	ZIBT type = static_cast<ZIBT>(bitType);
+	switch (type)
+	{
+		case ZIBT::Location:
+		{
+			SetActorLocation(FVector(info.location.X, info.location.Y, GetActorLocation().Z));
+			break;
+		}
+		case ZIBT::Rotation:
+		{
+			SetActorRotation(info.rotation);
+			break;
+		}
+		case ZIBT::State:
+		{
+			SetZombieState(info.state);
+			break;
+		}
+		case ZIBT::TargetNumber:
+		{
+			break;
+		}
+		case ZIBT::NextLocation:
+		{
+			SetNextLocation(info.nextLocation);
+			break;
+		}
+	}
 }
 
 void AZombieCharacter::SetZombieState(const EZombieState newState)
@@ -228,18 +198,11 @@ void AZombieCharacter::SetZombieState(const EZombieState newState)
 	{
 		animInst->PlayAttackMontage(FMath::RandRange(1, 3));
 	}
+	else if (newState != EZombieState::CHASE)
+	{
+		GetWorldTimerManager().ClearTimer(movementUpdateTimer);
+	}
 	state = newState;
-}
-
-EZombieState AZombieCharacter::GetZombieState() const
-{
-	return state;
-}
-
-float AZombieCharacter::GetSpeed() const
-{
-	if (GetVelocity().Size2D()) return 300.f;
-	else return 0.f;
 }
 
 void AZombieCharacter::SetNextLocation(const FVector& nextLoc)
@@ -256,9 +219,24 @@ void AZombieCharacter::SetNextLocation(const FVector& nextLoc)
 	}
 }
 
-UAbilitySystemComponent* AZombieCharacter::GetAbilitySystemComponent() const
+void AZombieCharacter::UpdateHealth(const float newHealth)
 {
-	return asc;
+	health = newHealth;
+	onHealthChanged.ExecuteIfBound(health / maxHealth);
+	healthWidget->SetVisibility(true);
+	if (health)
+	{
+		GetWorldTimerManager().SetTimer(healthWidgetHideTimer, this, &AZombieCharacter::HideHealthWidget, 10.f);
+	}
+	else
+	{
+		GetWorldTimerManager().ClearTimer(healthWidgetHideTimer);
+	}
+}
+
+void AZombieCharacter::HideHealthWidget()
+{
+	healthWidget->SetVisibility(false);
 }
 
 void AZombieCharacter::UpdateMovement()
@@ -274,8 +252,9 @@ void AZombieCharacter::UpdateMovement()
 		nextLocation = nextPoint;
 	}
 	VectorTruncate(nextLocation);
-	SetActorLocation(nextLocation);
-	SetActorRotation(FMath::RInterpTo(GetActorRotation(), nextDirection.Rotation(), GetWorld()->GetDeltaSeconds(), 10.f));
+	SetActorLocation(FVector(nextLocation.X, nextLocation.Y, GetActorLocation().Z));
+	FRotator nextRotation = FMath::RInterpTo(GetActorRotation(), nextDirection.Rotation(), GetWorld()->GetDeltaSeconds(), 15.f);
+	SetActorRotation(FRotator(0.f, nextRotation.Yaw, 0.f));
 }
 
 void AZombieCharacter::FollowPath()
@@ -295,7 +274,7 @@ void AZombieCharacter::StartMovementUpdate()
 		const float dist = FVector::Distance(GetActorLocation(), targetPlayer->GetActorLocation());
 		if (dist > 70.f && dist <= 1200.f)
 		{
-			FollowPath();			
+			FollowPath();
 			return;
 		}
 	}
@@ -312,23 +291,33 @@ void AZombieCharacter::EndAttack()
 	isAttackActivated = false;
 }
 
+void AZombieCharacter::AttackFailed()
+{
+	TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(targetPlayer->GetController());
+	if (playerController.IsValid())
+	{
+		FHitResult hit;
+		playerController->SendZombieHitsMe(number, false, hit);
+	}
+}
+
 void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 {
-	if (isAttackActivated == false) 
+	if (isAttackActivated == false)
 		return;
 
 	const FVector socketLocation = GetMesh()->GetSocketLocation(GetSocketName(attackAnimationType));
 	FHitResult hit;
 	UKismetSystemLibrary::SphereTraceSingle
 	(
-		this, 
-		socketLocation, 
-		socketLocation, 
-		16, 
-		UEngineTypes::ConvertToTraceType(ECC_ZombieAttack), 
-		false, 
+		this,
+		socketLocation,
+		socketLocation + FVector(0, 0, 1),
+		24,
+		UEngineTypes::ConvertToTraceType(ECC_ZombieAttack),
+		false,
 		TArray<AActor*>(),
-		EDrawDebugTrace::ForDuration,
+		EDrawDebugTrace::None,
 		hit,
 		true,
 		FLinearColor::Red,
@@ -359,6 +348,57 @@ void AZombieCharacter::ActivateAttackTrace(const int attackAnimationType)
 	}
 }
 
+void AZombieCharacter::PlayHitEffect(const FHitResult& hit)
+{
+	UGameplayStatics::SpawnEmitterAtLocation(this, impactParticle, hit.ImpactPoint, hit.ImpactNormal.Rotation(), true);
+	UGameplayStatics::PlaySoundAtLocation(this, impactSound, hit.ImpactPoint);
+}
+
+void AZombieCharacter::ZombieDead()
+{
+	UGameplayStatics::PlaySoundAtLocation(this, deathSound, GetActorLocation());
+	state = EZombieState::IDLE;
+	GetWorldTimerManager().ClearTimer(movementUpdateTimer);
+	GetWorldTimerManager().SetTimer(deactivateDelayTimer, this, &AZombieCharacter::DeactivateAfterDelay, 3.f);
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
+	healthWidget->SetVisibility(false);
+}
+
+void AZombieCharacter::DeactivateAfterDelay()
+{
+	DeactivateActor();
+}
+
+UAbilitySystemComponent* AZombieCharacter::GetAbilitySystemComponent() const
+{
+	return asc;
+}
+
+
+EZombieState AZombieCharacter::GetZombieState() const
+{
+	return state;
+}
+
+float AZombieCharacter::GetSpeed() const
+{
+	if (GetVelocity().Size2D())
+	{
+		return 300.f;
+	}
+	else
+	{
+		return 0.f;
+	}
+}
+
+void AZombieCharacter::SetSkeletalMesh(USkeletalMesh* skeletalMesh)
+{
+	GetMesh()->SetSkeletalMesh(skeletalMesh);
+	animInst = Cast<UZombieAnimInstance>(GetMesh()->GetAnimInstance());
+}
+
 FName AZombieCharacter::GetSocketName(const int animationType)
 {
 	if (animationType == 1)
@@ -378,40 +418,3 @@ FName AZombieCharacter::GetSocketName(const int animationType)
 		return FName("");
 	}
 }
-
-void AZombieCharacter::AttackFailed()
-{
-	TWeakObjectPtr<APlayerControllerMainMap> playerController = Cast<APlayerControllerMainMap>(targetPlayer->GetController());
-	if (playerController.IsValid())
-	{
-		FHitResult hit;
-		playerController->SendZombieHitsMe(number, false, hit);
-	}
-}
-
-void AZombieCharacter::UpdateHealth(const float newHealth)
-{
-	health = newHealth;
-	onHealthChanged.ExecuteIfBound(health / maxHealth);
-	healthWidget->SetVisibility(true);
-	if (health)
-	{
-		GetWorldTimerManager().SetTimer(healthWidgetHideTimer, this, &AZombieCharacter::HideHealthWidget, 10.f);
-	}
-	else
-	{
-		GetWorldTimerManager().ClearTimer(healthWidgetHideTimer);
-	}
-}
-
-void AZombieCharacter::HideHealthWidget()
-{
-	healthWidget->SetVisibility(false);
-}
-
-void AZombieCharacter::PlayHitEffect(const FHitResult& hit)
-{
-	UGameplayStatics::SpawnEmitterAtLocation(this, impactParticle, hit.ImpactPoint, hit.ImpactNormal.Rotation(), true);
-	UGameplayStatics::PlaySoundAtLocation(this, impactSound, hit.ImpactPoint);
-}
-

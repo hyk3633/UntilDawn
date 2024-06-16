@@ -15,14 +15,12 @@ AItemBase::AItemBase()
 	staticMesh->SetupAttachment(RootComponent);
 	staticMesh->SetCollisionObjectType(ECC_Item);
 	staticMesh->SetCollisionProfileName(FName("DeactivatedItem"));
+	staticMesh->SetWorldScale3D(FVector(3, 3, 3));
 
 	skeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
 	skeletalMesh->SetupAttachment(RootComponent);
 	skeletalMesh->SetCollisionObjectType(ECC_Item);
 	skeletalMesh->SetCollisionProfileName(FName("DeactivatedItem"));
-
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> skeletalMeshAsset(TEXT("SkeletalMesh'/Game/Weapon_Pack/Skeletal_Mesh/SK_Axe.SK_Axe'"));
-	if (skeletalMeshAsset.Succeeded()) { skeletalMesh->SetSkeletalMesh(skeletalMeshAsset.Object); }
 }
 
 void AItemBase::ActivateActor()
@@ -34,6 +32,8 @@ void AItemBase::DeactivateActor()
 {
 	skeletalMesh->SetVisibility(false);
 	skeletalMesh->SetCollisionProfileName(FName("DeactivatedItem"));
+	staticMesh->SetVisibility(false);
+	staticMesh->SetCollisionProfileName(FName("DeactivatedItem"));
 	itemObj.Reset();
 	isActive = false;
 }
@@ -47,6 +47,8 @@ void AItemBase::ActivateFieldMode()
 {
 	skeletalMesh->SetVisibility(true);
 	skeletalMesh->SetCollisionProfileName(FName("ActivatedItem"));
+	staticMesh->SetVisibility(true);
+	staticMesh->SetCollisionProfileName(FName("ActivatedItem"));
 }
 
 void AItemBase::ActivateEquipMode(const EItemMainType itemType)

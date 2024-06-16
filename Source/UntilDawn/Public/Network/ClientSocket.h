@@ -34,7 +34,7 @@ public:
 
 	void NotifyAccessingGame(const CharacterInfo& info);
 
-	void SynchronizeMyCharacterInfo(const CharacterInfo& info);
+	void SynchronizeMyCharacterInfo(const CharacterInfo& info, const float pitch);
 
 	void SendInRangeZombie(int zombieNumber);
 
@@ -56,7 +56,7 @@ public:
 
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacters(TArray<FHitInfo>& hittedCharacters, const FString& itemID);
+	void SendHittedCharacter(FHitInfo& hittedCharacter, const FString& itemID);
 
 	void SendKickedCharacters(const int characterNumber, const bool isPlayer);
 

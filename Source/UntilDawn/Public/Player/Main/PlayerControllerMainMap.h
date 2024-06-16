@@ -49,8 +49,6 @@ public:
 
 	APlayerControllerMainMap();
 
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
 	DelegatePlayerDead DPlayerDead;
 	DelegateWrestlingStart DWrestlingStart;
 	DelegateWrestlingEnd DWrestlingEnd;
@@ -67,9 +65,19 @@ protected:
 
 public:
 
+	virtual void OnPossess(APawn* pawn) override;
+
+protected:
+
+	void SynchronizePlayerInfo();
+
+public:
+
 	virtual void Tick(float deltaTime) override;
 
 protected:
+
+	void RecoverStamina(float deltaTime);
 
 	void Trace();
 
@@ -79,21 +87,19 @@ protected:
 
 	void ItemTrace(const FVector& location, const FVector& direction);
 
+	/* 입력 */
+
 	virtual void SetupInputComponent() override;
 
 	void WeaponInputPressed(const EInputType inputType);
 
 	void NormalInputPressed(const EInputType inputType);
 
-public:
-
-	void ArmWeapon();
-
-	void DisarmWeapon();
-
-protected:
-
 	void EKeyPressed();
+
+	void PlayItemPickUpSound();
+
+	void SendPickedItemInfo(const FString itemID);
 
 	void IKeyPressed();
 
@@ -103,45 +109,39 @@ protected:
 
 public:
 
-	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return inventoryComponent; }
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	void WrestlingStart();
+public:
+	
+	/* 아이템 */
 
-	void CancelWrestling();
+	void ArmWeapon();
 
-	void SuccessToBlocking();
-
-	void FailedToBlocking();
-
-	virtual void OnPossess(APawn* pawn) override;
-
-	UFUNCTION()
-	void SendInRangeZombie(int zombieNumber);
-
-	UFUNCTION()
-	void SendOutRangeZombie(int zombieNumber);
-
-	void SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitResult& hitResult);
-
-	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
-
-	void SendPickedItemInfo(const FString itemID);
-
-	void AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint);
-
-	void NotifyToServerUpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated);
-
-	void UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex);
-
-	void SendItemInfoToEquip(const FString itemID, const int boxNumber);
+	void DisarmWeapon();
 
 	void EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
 
+	void UnequipItem(TWeakObjectPtr<AItemBase> itemActor);
+
+	void SendItemInfoToEquip(const FString itemID, const int boxNumber);
+
 	void NotifyToServerUnequipItem(const FString itemID, const FTile& addedPoint);
 
-	void UnequipItemAndAddToInventory(TWeakObjectPtr<AItemBase> itemActor, const FTile& addedPoint);
+	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
 
-	void UnequipItem(TWeakObjectPtr<AItemBase> itemActor);
+	void SendItemUsing(const FString& itemID, const int consumedAmount);
+
+	void ItemExhausted(TWeakObjectPtr<UItemObject> itemObj);
+
+	/* 인벤토리 */
+
+	void AddItemToInventory(TWeakObjectPtr<UItemObject> itemObj, const FTile& addedPoint);
+
+	void UpdateItemInventoryGrid(TWeakObjectPtr<UItemObject> itemObj, const int xIndex, const int yIndex);
+
+	void NotifyToServerUpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated);
+
+	void UnequipItemAndAddToInventory(TWeakObjectPtr<AItemBase> itemActor, const FTile& addedPoint);
 
 	void RestoreInventoryUI(TWeakObjectPtr<UItemObject> itemObj);
 
@@ -151,9 +151,9 @@ public:
 
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacters(TArray<FHitResult>& hits, const FString& itemID);
+	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return inventoryComponent; }
 
-	void PlayerDead();
+	/* 공격 */
 
 	void StartAttack();
 
@@ -161,39 +161,61 @@ public:
 
 	void EndAttack();
 
-	bool IsAttacking();
+	FORCEINLINE bool IsAttacking() { return bAttacking; }
+
+	void SendActivatedWeaponAbility(const int32 inputType);
+
+	void SendHittedCharacter(const FHitResult& hit, const FString& itemID);
 
 	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
 
-	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
-	
-	void SendItemUsing(const FString& itemID, const int consumedAmount);
+	void SendKickResult(FHitResult& hit);
 
-	void ItemExhausted(TWeakObjectPtr<UItemObject> itemObj);
+protected:
+
+	/* 좀비 상호작용 */
+
+	UFUNCTION()
+	void SendInRangeZombie(int zombieNumber);
+
+	UFUNCTION()
+	void SendOutRangeZombie(int zombieNumber);
+
+public:
+
+	void SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitResult& hitResult);
+
+	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
+
+	void WrestlingStart();
+
+	void CancelWrestling();
+
+	void SuccessToBlocking();
+
+	void FailedToBlocking();
+
+public:
+
+	/* 죽음 */
+
+	void PlayerDead();
+
+protected:
+
+	void RespawnRequestAfterDelay();
+
+public:
+
+	/* 상태 동기화 */
 
 	void UpdateHealth(const float health);
 
 	void SetRowColumn(const int r, const int c);
 
-	void SendKickResult(FHitResult& hit);
-
-	void SendActivatedWeaponAbility(const int32 inputType);
-
 	void SetStamina(const int newStamina);
 
 	void StaminaChanged(const float newStamina);
-
-	void PlayItemPickUpSound();
-
-	void PlayCameraShake();
-
-protected:
-
-	void SynchronizePlayerInfo();
-
-	void respawnRequestAfterDelay();
-
-	void RecoverStamina(float deltaTime);
 
 protected:
 

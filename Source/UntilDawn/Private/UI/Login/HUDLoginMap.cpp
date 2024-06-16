@@ -28,16 +28,28 @@ void AHUDLoginMap::BeginPlay()
 void AHUDLoginMap::SetLoginMessageBox(const bool requestResult)
 {
 	FString message;
-	if (requestResult) message = TEXT("로그인 성공.");
-	else message = TEXT("잘못된 로그인 정보입니다.");
+	if (requestResult)
+	{
+		message = TEXT("로그인 성공.");
+	}
+	else
+	{
+		message = TEXT("잘못된 로그인 정보입니다.");
+	}
 	LoginScreenWidget->SetLoginMessage(message, requestResult);
 }
 
 void AHUDLoginMap::SetSignUpMessageBox(const bool requestResult)
 {
 	FString message;
-	if (requestResult) message = TEXT("회원가입 성공.");
-	else message = TEXT("존재하는 아이디 입니다.");
+	if (requestResult)
+	{
+		message = TEXT("회원가입 성공.");
+	}
+	else
+	{
+		message = TEXT("존재하는 아이디 입니다.");
+	}
 	LoginScreenWidget->SetSignUpMessage(message, requestResult);
 }
 

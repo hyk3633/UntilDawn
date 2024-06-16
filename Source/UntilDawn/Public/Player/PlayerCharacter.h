@@ -54,18 +54,15 @@ public:
 
 	APlayerCharacter();
 
-	DelegateZombieInRange DZombieInRange;
-	DelegateZombieInRange DZombieOutRange;
-
 protected:
-
-	virtual void PostInitializeComponents() override;
 
 	virtual void BeginPlay() override;
 
 	virtual void PossessedBy(AController* newController) override;
 
 	virtual void SetupPlayerInputComponent(UInputComponent* playerInputComponent) override;
+
+protected:
 
 	void Jump();
 
@@ -75,9 +72,8 @@ protected:
 
 public:
 
-	bool ArmWeapon(TWeakObjectPtr<AItemBase> itemActor);
-
-	bool HKeyPressed();
+	DelegateZombieInRange DZombieInRange;
+	DelegateZombieInRange DZombieOutRange;
 
 protected:
 
@@ -87,20 +83,94 @@ protected:
 	UFUNCTION()
 	void OnPlayerRangeComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-public:	
-
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+public:
 
 	virtual void Tick(float deltaTime) override;
 
+	void SetTargetSpeed(const float speed);
+
+protected:
+
 	void SetPitchAndYaw(float deltaTime);
 
+public:
+
+	/* 게임플레이 어빌리티 함수 */
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	bool TryActivateWeaponAbility(const EInputType inputType);
+
+	bool TryActivateInputAbility(const EInputType inputType);
+
+	/* 아이템 장착 / 장착 해제 */
+
+	void EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber);
+
+protected:
+
+	void AttachItemActor(TWeakObjectPtr<AItemBase> item);
+
+public:
+
+	bool ArmWeapon(TWeakObjectPtr<AItemBase> itemActor);
+
+	void UnEquipItem(TWeakObjectPtr<AItemBase> item);
+
+	bool DisarmWeapon();
+
+	void ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor);
+
+protected:
+
+	UFUNCTION(BlueprintCallable)
+	void AttachDisarmedWeaponToBack();
+
+public:	
+
+	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return currentWeaponType; }
+
+	FORCEINLINE TWeakObjectPtr<AItemBase> GetArmedWeapon() const { return armedWeapon; }
+
+	/* 동기화 */
+
 	void UpdatePlayerInfo();
+
+	/* 체력 */
+
+	void InitializeHealthWidget();
+
+	void ShowHealthWidget();
+
+	void RecoverHealth(const float recoveryAmount);
+
+protected:
+
+	void HideHealthWidget();
+
+public:
+
+	void SetHealth(const float newHealth);
+
+	void SetMaxHealth(const int newHealth);
+
+	float GetHealthPercentage();
+
+	/* 죽음, 리스폰 */
+
+	void PlayerDead();
+
+	void PlayerRespawn();
+
+	/* 플레이어 정보 */
 
 	void SetPlayerIDAndNumber(const FString& id, const int number);
 
 	FORCEINLINE int GetPlayerNumber() const { return playerNumber; }
+
 	FORCEINLINE const FString& GetPlayerID() { return playerID; }
+
+	/* 움직임 상태 */
 
 	const bool GetIsFalling() const;
 
@@ -111,53 +181,19 @@ public:
 	FORCEINLINE const bool GetTurnRight() const { return turnRight; }
 	FORCEINLINE const bool GetTurnLeft() const { return turnLeft; }
 
-	EWeaponType GetCurrentWeaponType() const;
+	FORCEINLINE float GetTargetSpeed() const { return targetSpeed; };
+
+	void SetPitch(const float newPitch);
+
+	/* 플레이어 상태 */
 
 	FORCEINLINE CharacterInfo& GetPlayerInfo() { return myInfo; }
 
-	void SetAttackResult(const int zombieNumber, const FHitResult& hitResult);
-
 	bool IsWrestling();
-
-	void PlayerDead();
-
-	void PlayerRespawn(const bool isLocalPlayer);
-
-	void SetHealth(const float newHealth);
-
-	float GetHealthPercentage();
-
-	void RecoverHealth(const float recoveryAmount);
-
-	void EquipItem(TWeakObjectPtr<AItemBase> item, const int8 slotNumber);
-
-public:
-
-	void AttachItemActor(TWeakObjectPtr<AItemBase> item);
-
-	void UnEquipItem(TWeakObjectPtr<AItemBase> item);
-
-	void ShowHealthWidget();
-
-	void InitializeHealthWidget();
-
-	void SetMaxHealth(const int newHealth);
-
-	UFUNCTION(BlueprintCallable)
-	void AttachDisarmedWeaponToBack();
-
-	void ChangeWeapon(TWeakObjectPtr<AItemBase> changedWeaponActor);
-
-	bool DisarmWeapon();
-
-	TWeakObjectPtr<AItemBase> GetArmedWeapon() const;
-
-	bool TryActivateWeaponAbility(const EInputType inputType);
-
-	bool TryActivateInputAbility(const EInputType inputType);
 
 	void ActivateInputInterval();
 	void DeactivateInputInterval();
+
 	bool IsInputInterval() const { return bInputInterval; };
 
 	void ActivateAiming();
@@ -166,26 +202,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool GetAiming() const { return bAiming; };
 
-	void SetTargetSpeed(const float speed);
-
-	FORCEINLINE float GetTargetSpeed() const { return targetSpeed; };
-
-protected:
-
-	void HideHealthWidget();
-
 private:
 
 	UPROPERTY(EditAnywhere, Category = GAS)
 	TObjectPtr<UAbilitySystemComponent> asc;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* cameraBoom;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* followCamera;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* playerRange;
 
 	UPROPERTY()
@@ -239,15 +267,18 @@ private:
 
 	bool turnRight, turnLeft;
 
+	UPROPERTY(VisibleAnywhere, Category = "Status", meta = (AllowPrivateAccess = "true"))
+	float targetSpeed = 0.f;
+
 	CharacterInfo myInfo;
 
 	float health;
 
 	float maxHealth;
 
-	EWeaponType currentWeaponType = EWeaponType::NONE;
-
 	FTimerHandle healthWidgetDeacitvateTimer;
+
+	EWeaponType currentWeaponType = EWeaponType::NONE;
 
 	TWeakObjectPtr<AItemBase> armedWeapon;
 
@@ -255,9 +286,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Status")
 	bool bAiming = false;
-
-	UPROPERTY(VisibleAnywhere, Category = "Status", meta = (AllowPrivateAccess = "true"))
-	float targetSpeed = 0.f;
 
 	bool isLocal = false;
 

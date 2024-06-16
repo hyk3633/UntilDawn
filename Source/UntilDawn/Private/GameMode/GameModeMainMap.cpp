@@ -38,6 +38,9 @@ AGameModeMainMap::AGameModeMainMap()
 	static ConstructorHelpers::FObjectFinder<UDataTable> zombieAssetDataTableRef(TEXT("DataTable'/Game/_Assets/DataTable/DT_ZombieAsset.DT_ZombieAsset'"));
 	if (zombieAssetDataTableRef.Succeeded()) zombieAssetDataTable = zombieAssetDataTableRef.Object;
 
+	static ConstructorHelpers::FObjectFinder<UDataTable> itemFieldRotationDataTableRef(TEXT("DataTable'/Game/_Assets/DataTable/DT_ItemFieldRotation.DT_ItemFieldRotation'"));
+	if (itemFieldRotationDataTableRef.Succeeded()) itemFieldRotationDataTable = itemFieldRotationDataTableRef.Object;
+
 	projectilePooler = CreateDefaultSubobject<UActorPooler>(TEXT("Projectile Pooler"));
 	projectilePooler->SetActorClass(AProjectileBase::StaticClass());
 
@@ -88,6 +91,7 @@ void AGameModeMainMap::BeginPlay()
 	packetCallbacks[EPacketType::KICKEDCHARACTERS]				= &AGameModeMainMap::ProcessKickedCharacters;
 	packetCallbacks[EPacketType::PLAYER_WRESTLING_CANCELED]		= &AGameModeMainMap::CanceledPlayerWrestling;
 	packetCallbacks[EPacketType::ACTIVATE_WEAPON_ABILITY]		= &AGameModeMainMap::ActivateWeaponAbility;
+	packetCallbacks[EPacketType::ZOMBIEHITSME]					= &AGameModeMainMap::ProcessZombieHit;
 
 	clientSocket = GetWorld()->GetGameInstance<UUntilDawnGameInstance>()->GetSocket();
 
@@ -98,9 +102,9 @@ void AGameModeMainMap::BeginPlay()
 
 	// 좀비 캐릭터 스폰 및 풀링
 
-	zombiePooler->SpawnPoolableActor(2);
+	zombiePooler->SpawnPoolableActor(10);
 
-	projectilePooler->SpawnPoolableActor(10);
+	projectilePooler->SpawnPoolableActor(30);
 }
 
 void AGameModeMainMap::ProcessPacket()
@@ -139,8 +143,7 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 		APlayerCharacter* newPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>
 			(
 				playerCharacterClass,
-				FVector(info.characterInfo.vectorX, info.characterInfo.vectorY, info.characterInfo.vectorZ),
-				FRotator(info.characterInfo.pitch, info.characterInfo.yaw, info.characterInfo.roll)
+				GetPlayerStartTransform()
 			);
 
 		newPlayerCharacter->SpawnDefaultController();
@@ -167,8 +170,8 @@ void AGameModeMainMap::SpawnNewPlayerCharacter(std::stringstream& recvStream)
 void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
 {
 	PlayerInfoSet playerInfoSet;
-	double ratencyStart = 0.f;
-	recvStream >> playerInfoSet >> ratencyStart;
+	float pitch = 0.f;
+	recvStream >> playerInfoSet >> pitch;
 
 	for (auto& playerInfo : playerInfoSet.characterInfoMap)
 	{
@@ -184,6 +187,7 @@ void AGameModeMainMap::SynchronizePlayers(std::stringstream& recvStream)
 				character->AddMovementInput(velocity);
 				character->SetActorRotation(FRotator(info.pitch, info.yaw, info.roll));
 				character->SetActorLocation(FVector(info.vectorX, info.vectorY, info.vectorZ));
+				character->SetPitch(pitch);
 				character->SetTargetSpeed(velocity.Length());
 			}
 		}
@@ -207,7 +211,8 @@ void AGameModeMainMap::SynchronizeZombies(std::stringstream& recvStream)
 			zombie = Cast<AZombieCharacter>(actor);
 			zombie->SetNumber(info.first);
 			zombie->ActivateActor();
-			zombie->GetMesh()->SetSkeletalMesh(GetZombieMesh(info.first));
+			zombie->SetSkeletalMesh(GetZombieMesh(info.first));
+			zombie->SetActorLocation(info.second.location);
 			zombieCharacterMap.Add(info.first, zombie);
 		}
 		else
@@ -474,7 +479,7 @@ void AGameModeMainMap::RespawnPlayer(std::stringstream& recvStream)
 	{
 		playerCharacterMap[playerNumber]->SetActorLocation(FVector(characterInfo.vectorX, characterInfo.vectorY, characterInfo.vectorZ));
 		playerCharacterMap[playerNumber]->SetActorRotation(FRotator(characterInfo.pitch, characterInfo.yaw, characterInfo.roll));
-		playerCharacterMap[playerNumber]->PlayerRespawn(playerNumber == myNumber);
+		playerCharacterMap[playerNumber]->PlayerRespawn();
 	}
 }
 
@@ -505,7 +510,8 @@ void AGameModeMainMap::SpawnItems(std::stringstream& recvStream)
 		FVector location;
 		recvStream >> location.X >> location.Y >> location.Z;
 
-		itemManager->SpawnItem(fItemID, itemKey, location);
+		auto itemActor = itemManager->SpawnItem(fItemID, itemKey);
+		SetFieldItemTransform(itemActor, location);
 	}
 }
 
@@ -540,8 +546,7 @@ void AGameModeMainMap::InitializePlayerEquippedItems(std::stringstream& recvStre
 
 void AGameModeMainMap::PlayerSpawnAfterDelay()
 {
-	// 내 클라이언트 캐릭터 스폰 및 컨트롤러 할당
-	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(playerCharacterClass, FVector(0, 0, 0), FRotator::ZeroRotator);
+	APlayerCharacter* myPlayerCharacter = GetWorld()->SpawnActor<APlayerCharacter>(playerCharacterClass, GetPlayerStartTransform());
 	myPlayerCharacter->SetPlayerIDAndNumber(myID, myNumber);
 	myPlayerCharacter->InitializeHealthWidget();
 	myController = Cast<APlayerControllerMainMap>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
@@ -553,14 +558,17 @@ void AGameModeMainMap::PlayerSpawnAfterDelay()
 
 void AGameModeMainMap::ReceiveReplicatedProjectile(std::stringstream& recvStream)
 {
+	int number = 0;
 	FVector location;
 	FRotator rotation;
+	recvStream >> number;
 	recvStream >> location.X >> location.Y >> location.Z;
 	recvStream >> rotation.Pitch >> rotation.Yaw >> rotation.Roll;
 
 	auto projectile = GetProjectile();
 	check(projectile.IsValid());
 
+	projectile->SetOwner(playerCharacterMap[number]);
 	projectile->SetActorLocation(location);
 	projectile->SetActorRotation(rotation);
 	projectile->ActivateProjectile();
@@ -651,56 +659,57 @@ void AGameModeMainMap::PlayerDisarmWeapon(std::stringstream& recvStream)
 
 void AGameModeMainMap::ProcessAttackResult(std::stringstream& recvStream)
 {
-	int size = 0;
+	FHitInfo hitInfo;
 	string itemID;
-	recvStream >> itemID >> size;
+	recvStream >> itemID >> hitInfo;
 
 	FString fItemID = FString(UTF8_TO_TCHAR(itemID.c_str()));
 	auto itemObj = itemManager->GetItemObject(fItemID);
-	FHitInfo hitInfo;
-	for (int i = 0; i < size; i++)
+
+	FHitResult hitResult;
+	hitResult.ImpactPoint = hitInfo.hitLocation;
+	hitResult.ImpactNormal = hitInfo.hitRotation.Vector();
+
+	AActor* targetActor = nullptr;
+	if (hitInfo.isPlayer)
 	{
-		recvStream >> hitInfo;
-
-		FHitResult hitResult;
-		hitResult.ImpactPoint = hitInfo.hitLocation;
-		hitResult.ImpactNormal = hitInfo.hitRotation.Vector();
-
-		AActor* targetActor = nullptr;
-		if (hitInfo.isPlayer)
+		if (playerCharacterMap.Find(hitInfo.characterNumber))
 		{
-			if (playerCharacterMap.Find(hitInfo.characterNumber))
-			{
-				targetActor = playerCharacterMap[hitInfo.characterNumber];
-			}
+			targetActor = playerCharacterMap[hitInfo.characterNumber];
 		}
-		else
-		{
-			if (zombieCharacterMap.Find(hitInfo.characterNumber))
-			{
-				targetActor = zombieCharacterMap[hitInfo.characterNumber].Get();
-			}
-		}
-
-		if (targetActor == nullptr)
-			continue;
-
-		FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hitResult);
-		FGameplayEventData payloadData;
-		payloadData.TargetData.Add(targetData);
-		if (itemObj.IsValid())
-		{
-			TWeakObjectPtr<UItemPermanent> weaponObj = Cast<UItemPermanent>(itemObj);
-			payloadData.EventMagnitude = weaponObj->GetItemSubType();
-		}
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(targetActor, UD_EVENT_CHARACTER_HITREACTION, payloadData);
 	}
+	else
+	{
+		if (zombieCharacterMap.Find(hitInfo.characterNumber))
+		{
+			targetActor = zombieCharacterMap[hitInfo.characterNumber].Get();
+		}
+	}
+
+	if (targetActor == nullptr)
+		return;
+
+	FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hitResult);
+	FGameplayEventData payloadData;
+	payloadData.TargetData.Add(targetData);
+	if (itemObj.IsValid())
+	{
+		TWeakObjectPtr<UItemPermanent> weaponObj = Cast<UItemPermanent>(itemObj);
+		payloadData.EventMagnitude = weaponObj->GetItemSubType();
+	}
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(targetActor, UD_EVENT_CHARACTER_HITREACTION, payloadData);
+
 }
 
 void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 {
-	int kickerNumber = 0 , size = 0;
-	recvStream >> kickerNumber >> size;
+	int kickerNumber = 0, kickedNumber = 0, opponentNumber = 0;
+	bool isPlayer = false, bOpponent = false;
+	recvStream >> kickerNumber >> kickedNumber >> isPlayer >> bOpponent;
+	if (bOpponent)
+	{
+		recvStream >> opponentNumber;
+	}
 
 	FGameplayEventData payloadData;
 	if (playerCharacterMap.Find(kickerNumber))
@@ -711,30 +720,39 @@ void AGameModeMainMap::ProcessKickedCharacters(std::stringstream& recvStream)
 		payloadData.TargetData.Add(targetData);
 	}
 
-	int number = 0;
-	bool isPlayer = false;
-	for (int i = 0; i < size; i++)
+	ACharacter* kickedCharacter = nullptr;
+	ACharacter* opponentCharacter = nullptr;
+	if (isPlayer && playerCharacterMap.Find(kickedNumber))
 	{
-		recvStream >> number >> isPlayer;
+		kickedCharacter = playerCharacterMap[kickedNumber];
 
-		ACharacter* kickedCharacter = nullptr;
-		if (isPlayer && playerCharacterMap.Find(number))
+		if (kickedNumber == myNumber && playerCharacterMap[kickedNumber]->IsWrestling())
 		{
-			kickedCharacter = playerCharacterMap[number];
-			if (number == myNumber && playerCharacterMap[number]->IsWrestling())
+			myController->CancelWrestling();
+		}
+		if (bOpponent && zombieCharacterMap.Find(opponentNumber))
+		{
+			opponentCharacter = zombieCharacterMap[opponentNumber].Get();
+		}
+	}
+	else if (zombieCharacterMap.Find(kickedNumber))
+	{
+		kickedCharacter = zombieCharacterMap[kickedNumber].Get();
+
+		if (bOpponent && playerCharacterMap.Find(opponentNumber))
+		{
+			opponentCharacter = playerCharacterMap[opponentNumber];
+			if (opponentNumber == myNumber && playerCharacterMap[opponentNumber]->IsWrestling())
 			{
 				myController->CancelWrestling();
 			}
 		}
-		else if(zombieCharacterMap.Find(number))
-		{
-			kickedCharacter = zombieCharacterMap[number].Get();
-		}
-		else
-		{
-			continue;
-		}
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_HITREACTION, payloadData);
+	}
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(kickedCharacter, UD_EVENT_CHARACTER_KICKREACTION, payloadData);
+	if (opponentCharacter)
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(opponentCharacter, UD_EVENT_CHARACTER_KICKREACTION, payloadData);
 	}
 }
 
@@ -762,6 +780,31 @@ void AGameModeMainMap::ActivateWeaponAbility(std::stringstream& recvStream)
 	}
 }
 
+void AGameModeMainMap::ProcessZombieHit(std::stringstream& recvStream)
+{
+	FHitInfo hitInfo;
+	recvStream >> hitInfo;
+
+	FHitResult hitResult;
+	hitResult.ImpactPoint = hitInfo.hitLocation;
+	hitResult.ImpactNormal = hitInfo.hitRotation.Vector();
+
+	AActor* targetActor = nullptr;
+	if (playerCharacterMap.Find(hitInfo.characterNumber))
+	{
+		targetActor = playerCharacterMap[hitInfo.characterNumber];
+	}
+
+	if (targetActor == nullptr)
+		return;
+
+	FGameplayAbilityTargetData_SingleTargetHit* targetData = new FGameplayAbilityTargetData_SingleTargetHit(hitResult);
+	FGameplayEventData payloadData;
+	payloadData.TargetData.Add(targetData);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(targetActor, UD_EVENT_CHARACTER_HITBYZOMBIE, payloadData);
+
+}
+
 void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakObjectPtr<AItemBase> droppedItem)
 {
 	FVector spawnLocation = dropper->GetActorLocation();
@@ -775,9 +818,20 @@ void AGameModeMainMap::DropItem(TWeakObjectPtr<APlayerCharacter> dropper, TWeakO
 		EndLocation,
 		ECC_Visibility
 	);
-	droppedItem->SetActorLocation(hit.ImpactPoint);
+
+	SetFieldItemTransform(droppedItem, hit.ImpactPoint);
 	droppedItem->GetItemObject()->ResetOwner();
 	droppedItem->ActivateFieldMode();
+}
+
+void AGameModeMainMap::SetFieldItemTransform(TWeakObjectPtr<AItemBase> droppedItem, FVector spawnLocation)
+{
+	FItemFieldRotation* itemFieldInfo = itemFieldRotationDataTable->FindRow<FItemFieldRotation>(*FString::FromInt(droppedItem->GetItemObject()->GetItemInfo().itemKey), TEXT(""));
+	spawnLocation.X += itemFieldInfo->location.X;
+	spawnLocation.Y += itemFieldInfo->location.Y;
+	spawnLocation.Z += itemFieldInfo->location.Z;
+	droppedItem->SetActorLocation(spawnLocation);
+	droppedItem->SetActorRotation(itemFieldInfo->rotation);
 }
 
 TWeakObjectPtr<AProjectileBase> AGameModeMainMap::GetProjectile() const
@@ -793,4 +847,9 @@ void AGameModeMainMap::Tick(float deltaTime)
 	{
 		ProcessPacket();
 	}
+}
+
+FTransform AGameModeMainMap::GetPlayerStartTransform()
+{
+	return FindPlayerStart(nullptr)->GetActorTransform();
 }
