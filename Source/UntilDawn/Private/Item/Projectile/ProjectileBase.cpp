@@ -56,6 +56,13 @@ AProjectileBase::AProjectileBase()
 
 }
 
+void AProjectileBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	collision->OnComponentHit.AddDynamic(this, &AProjectileBase::OnProjectileHit);
+}
+
 void AProjectileBase::ActivateActor()
 {
 	skeletalMesh->SetVisibility(true);
@@ -99,13 +106,6 @@ void AProjectileBase::ActivateProjectile()
 	GetWorldTimerManager().SetTimer(deactivateTimer, this, &AProjectileBase::DeactivateAfterDelay, 7.f);
 }
 
-void AProjectileBase::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	collision->OnComponentHit.AddDynamic(this, &AProjectileBase::OnProjectileHit);
-}
-
 void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	AttachToActor(OtherActor, FAttachmentTransformRules::KeepWorldTransform);
@@ -140,12 +140,6 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 void AProjectileBase::DeactivateAfterDelay()
 {
 	DeactivateActor();
-}
-
-void AProjectileBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void AProjectileBase::SetAttackPower(const float atkPower)

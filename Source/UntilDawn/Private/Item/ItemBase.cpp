@@ -65,6 +65,18 @@ void AItemBase::ActivateEquipMode(const EItemMainType itemType)
 	isActive = true;
 }
 
+FString AItemBase::GetItemID() const
+{
+	return itemObj->GetItemID();
+}
+
+void AItemBase::SetItemObject(TWeakObjectPtr<UItemObject> newItemObj)
+{
+	itemObj = newItemObj;
+	skeletalMesh->SetSkeletalMesh(newItemObj->GetSkeletalMesh());
+	staticMesh->SetStaticMesh(newItemObj->GetStaticMesh());
+}
+
 EItemMainType AItemBase::GetItemType()
 {
 	if (itemObj.IsValid())
@@ -72,6 +84,16 @@ EItemMainType AItemBase::GetItemType()
 		return itemObj->GetItemType();
 	}
 	return EItemMainType::MAX;
+}
+
+FName AItemBase::GetSocketName() const
+{
+	return itemObj->GetSocketName();
+}
+
+const FGameplayTagContainer& AItemBase::GetGameplayTags()
+{
+	return itemObj->GetGameplayTags();
 }
 
 void AItemBase::RenderCustomDepthOn()
@@ -84,32 +106,4 @@ void AItemBase::RenderCustomDepthOff()
 {
 	skeletalMesh->SetRenderCustomDepth(false);
 	staticMesh->SetRenderCustomDepth(false);
-}
-
-void AItemBase::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-FName AItemBase::GetSocketName() const
-{
-	return itemObj->GetSocketName();
-}
-
-FString AItemBase::GetItemID() const
-{
-	return itemObj->GetItemID();
-}
-
-const FGameplayTagContainer& AItemBase::GetGameplayTags()
-{
-	return itemObj->GetGameplayTags();
-}
-
-void AItemBase::SetItemObject(TWeakObjectPtr<UItemObject> newItemObj)
-{
-	itemObj = newItemObj;
-	skeletalMesh->SetSkeletalMesh(newItemObj->GetSkeletalMesh());
-	staticMesh->SetStaticMesh(newItemObj->GetStaticMesh());
 }

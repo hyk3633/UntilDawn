@@ -20,6 +20,14 @@ public:
 
 	AProjectileBase();
 
+protected:
+
+	virtual void BeginPlay() override;
+
+public:
+
+	/* 풀러블 액터 인터페이스 가상 함수 */
+
 	virtual void ActivateActor() override;
 
 	virtual void DeactivateActor() override;
@@ -30,20 +38,16 @@ public:
 
 protected:
 
-	virtual void BeginPlay() override;
-
 	UFUNCTION()
 	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	void DeactivateAfterDelay();
 
-public:	
-
-	virtual void Tick(float DeltaTime) override;
+public:
 
 	void SetAttackPower(const float atkPower);
 
-	USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
+	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
 
 private:
 

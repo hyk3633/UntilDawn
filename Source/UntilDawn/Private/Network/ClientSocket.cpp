@@ -24,9 +24,6 @@ ClientSocket::~ClientSocket()
 
 bool ClientSocket::InitSocket()
 {
-	//if (isInitialized)
-	//	return true;
-
 	WSADATA wsaData;
 	int result;
 	// WinSock 초기화
@@ -51,9 +48,6 @@ bool ClientSocket::InitSocket()
 
 void ClientSocket::StartSocket()
 {
-	//if (isInitialized)
-	//	return;
-
 	// 접속하고자 하는 서버에 대한 주소 세팅
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -68,8 +62,6 @@ void ClientSocket::StartSocket()
 	}
 
 	WLOG(TEXT("[Log] : Successfully connected to the server!"));
-
-	isInitialized = true;
 
 	return;
 }
@@ -90,61 +82,61 @@ void ClientSocket::SendAccountInfo(const FText& id, const FText& pw, const bool 
 	sendStream << tempId << "\n";
 	sendStream << tempPw << "\n";
 
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::NotifyAccessingGame(const CharacterInfo& info)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::SPAWNPLAYER) << "\n";
+	sendStream << static_cast<int>(EPacketType::SPAWN_PLAYER) << "\n";
 	sendStream << info << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SynchronizeMyCharacterInfo(const CharacterInfo& info, const float pitch)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::SYNCHPLAYER) << "\n";
+	sendStream << static_cast<int>(EPacketType::SYNCH_PLAYER) << "\n";
 	sendStream << info << "\n";
 	sendStream << pitch << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendInRangeZombie(int zombieNumber)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ZOMBIEINRANGE) << "\n";
+	sendStream << static_cast<int>(EPacketType::ZOMBIE_IN_RANGE) << "\n";
 	sendStream << zombieNumber << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendOutRangeZombie(int zombieNumber)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ZOMBIEOUTRANGE) << "\n";
+	sendStream << static_cast<int>(EPacketType::ZOMBIE_OUT_RANGE) << "\n";
 	sendStream << zombieNumber << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendZombieHitsMe(const int zombieNumber, const bool bResult, FHitInfo& hitInfo)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ZOMBIEHITSME) << "\n";
+	sendStream << static_cast<int>(EPacketType::ZOMBIE_HITS_ME) << "\n";
 	sendStream << zombieNumber << "\n";
 	sendStream << bResult << "\n";
 	if (bResult)
 	{
 		sendStream << hitInfo << "\n";
 	}
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendPlayerBlockingResult(const bool isSuccessToBlocking)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::WRESTLINGRESULT) << "\n";
+	sendStream << static_cast<int>(EPacketType::WRESTLING_RESULT) << "\n";
 	sendStream << isSuccessToBlocking << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendPickedItemInfo(const FString itemID)
@@ -152,18 +144,18 @@ void ClientSocket::SendPickedItemInfo(const FString itemID)
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::PICKUP_ITEM) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::UpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ITEMGRIDPOINTUPDATE) << "\n";
+	sendStream << static_cast<int>(EPacketType::ITEM_GRID_POINT_UPDATE) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << xPoint << "\n";
 	sendStream << yPoint << "\n";
 	sendStream << isRotated << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendItemInfoToEquip(const FString itemID, const int boxNumber)
@@ -172,7 +164,7 @@ void ClientSocket::SendItemInfoToEquip(const FString itemID, const int boxNumber
 	sendStream << static_cast<int>(EPacketType::EQUIP_ITEM) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << boxNumber << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::DropEquippedItem(const FString itemID)
@@ -180,7 +172,15 @@ void ClientSocket::DropEquippedItem(const FString itemID)
 	std::stringstream sendStream;
 	sendStream << static_cast<int>(EPacketType::DROP_EQUIPPED_ITEM) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
+}
+
+void ClientSocket::DropInventoryItem(const FString itemID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::DROP_ITEM) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
+	Send(sendStream);
 }
 
 void ClientSocket::UnequipItem(const FString itemID, const int xPoint, const int yPoint)
@@ -190,40 +190,65 @@ void ClientSocket::UnequipItem(const FString itemID, const int xPoint, const int
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << xPoint << "\n";
 	sendStream << yPoint << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
-void ClientSocket::DropInventoryItem(const FString itemID)
+void ClientSocket::SendItemUsing(const FString& itemID, const int consumedAmount)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::DROP_ITEM) << "\n";
+	sendStream << static_cast<int>(EPacketType::USING_ITEM) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	sendStream << consumedAmount << "\n";
+	Send(sendStream);
+}
+
+void ClientSocket::ArmWeapon(const FString& itemID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ARM_WEAPON) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
+	Send(sendStream);
+}
+
+void ClientSocket::DisarmWeapon()
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::DISARM_WEAPON) << "\n";
+	Send(sendStream);
+}
+
+void ClientSocket::ChangeWeapon(const FString& changedWeaponID)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::CHANGE_WEAPON) << "\n";
+	sendStream << std::string(TCHAR_TO_UTF8(*changedWeaponID)) << "\n";
+	Send(sendStream);
+}
+
+void ClientSocket::SendActivateWeaponAbility(const int32 inputType)
+{
+	std::stringstream sendStream;
+	sendStream << static_cast<int>(EPacketType::ACTIVATE_WEAPON_ABILITY) << "\n";
+	sendStream << static_cast<int>(inputType) << "\n";
+	Send(sendStream);
 }
 
 void ClientSocket::SendHittedCharacter(FHitInfo& hittedCharacter, const FString& itemID)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ATTACKRESULT) << "\n";
+	sendStream << static_cast<int>(EPacketType::ATTACK_RESULT) << "\n";
 	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
 	sendStream << hittedCharacter << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::SendKickedCharacters(const int characterNumber, const bool isPlayer)
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::KICKEDCHARACTERS) << "\n";
+	sendStream << static_cast<int>(EPacketType::KICKED_CHARACTERS) << "\n";
 	sendStream << characterNumber << "\n";
 	sendStream << isPlayer << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
-}
-
-void ClientSocket::SendRespawnRequest()
-{
-	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::PLAYERRESPAWN) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
 void ClientSocket::ReplicateProjectile(const FVector& location, const FRotator& rotation)
@@ -232,46 +257,18 @@ void ClientSocket::ReplicateProjectile(const FVector& location, const FRotator& 
 	sendStream << static_cast<int>(EPacketType::PROJECTILE) << "\n";
 	sendStream << location.X << "\n" << location.Y << "\n" << location.Z << "\n";
 	sendStream << rotation.Pitch << "\n" << rotation.Yaw << "\n" << rotation.Roll << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	Send(sendStream);
 }
 
-void ClientSocket::SendItemUsing(const FString& itemID, const int consumedAmount)
+void ClientSocket::SendRespawnRequest()
 {
 	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::USINGITEM) << "\n";
-	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	sendStream << consumedAmount << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
+	sendStream << static_cast<int>(EPacketType::PLAYER_RESPAWN) << "\n";
+	Send(sendStream);
 }
 
-void ClientSocket::ChangeWeapon(const FString& changedWeaponID)
+void ClientSocket::Send(std::stringstream& sendStream)
 {
-	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::CHANGE_WEAPON) << "\n";
-	sendStream << std::string(TCHAR_TO_UTF8(*changedWeaponID)) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
-}
-
-void ClientSocket::ArmWeapon(const FString& itemID)
-{
-	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ARM_WEAPON) << "\n";
-	sendStream << std::string(TCHAR_TO_UTF8(*itemID)) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
-}
-
-void ClientSocket::DisarmWeapon()
-{
-	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::DISARM_WEAPON) << "\n";
-	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
-}
-
-void ClientSocket::SendActivateWeaponAbility(const int32 inputType)
-{
-	std::stringstream sendStream;
-	sendStream << static_cast<int>(EPacketType::ACTIVATE_WEAPON_ABILITY) << "\n";
-	sendStream << static_cast<int>(inputType) << "\n";
 	send(clientSocket, (CHAR*)sendStream.str().c_str(), sendStream.str().length(), 0);
 }
 
@@ -289,7 +286,8 @@ uint32 ClientSocket::Run()
 		std::stringstream recvStream;
 		int recvBytes = recv(clientSocket, recvBuf, PACKET_SIZE, 0);
 
-		if (recvBytes <= 0) break;
+		if (recvBytes <= 0)
+			break;
 
 		recvStream << recvBuf;
 		messageQ.Enqueue(std::move(recvStream));

@@ -23,15 +23,7 @@ public:
 
 	AItemBase();
 
-	FORCEINLINE TWeakObjectPtr<UItemObject> GetItemObject() const { return itemObj; }
-
-	FName GetSocketName() const;
-
-	FString GetItemID() const;
-
-	const FGameplayTagContainer& GetGameplayTags();
-
-	void SetItemObject(TWeakObjectPtr<UItemObject> newItemCore);
+	/* 풀러블 액터 인터페이스 가상 함수 */
 
 	virtual void ActivateActor() override;
 
@@ -39,30 +31,42 @@ public:
 
 	virtual bool IsActorActivated() override;
 
+	/* 활성화 */
+
 	void ActivateFieldMode();
 
 	void ActivateEquipMode(const EItemMainType itemType);
+
+	/* Getter Setter */
+
+	FString GetItemID() const;
+
+	void SetItemObject(TWeakObjectPtr<UItemObject> newItemCore);
+
+	FORCEINLINE TWeakObjectPtr<UItemObject> GetItemObject() const { return itemObj; }
+
+	EItemMainType GetItemType();
 
 	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return skeletalMesh; }
 
 	FORCEINLINE UStaticMeshComponent* GetStaticMesh() const { return staticMesh; }
 
-	EItemMainType GetItemType();
+	FName GetSocketName() const;
+
+	const FGameplayTagContainer& GetGameplayTags();
+
+	/* 포스트 프로세스 */
 
 	void RenderCustomDepthOn();
 
 	void RenderCustomDepthOff();
 
-protected:
-
-	virtual void BeginPlay() override;
-
-	void AddItemTagsToCharacter();
-
 private:
 
 	UPROPERTY()
 	USceneComponent* scene;
+
+	TWeakObjectPtr<UItemObject> itemObj;
 
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent* staticMesh;
@@ -71,7 +75,5 @@ private:
 	USkeletalMeshComponent* skeletalMesh;
 
 	bool isActive;
-
-	TWeakObjectPtr<UItemObject> itemObj;
 
 };

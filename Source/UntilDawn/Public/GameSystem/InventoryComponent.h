@@ -32,31 +32,48 @@ public:
 
 	DelegateOnInventoryChanged DOnInventoryChanged;
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	/* 초기 설정 */
+
+	void SetCharacter(TWeakObjectPtr<APlayerCharacter> character);
+
+	void InitializeEquippedWeaponArr(const int size);
+
+	void SetRowColumn(const uint8 r, const uint8 c);
+
+	FORCEINLINE uint8 GetColumns() const { return columns; }
+	FORCEINLINE uint8 GetRows() const { return rows; }
+
+	/* 인벤토리 자료구조 질의 */
+
+	// 아이템 배열에 아이템을 추가할 수 있는지 검사
+	bool IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft);
+
 protected:
 
-	virtual void BeginPlay() override;
+	// 해당 타일 위치가 올바른지 검사
+	bool IsTileValid(FTile tile);
+
+	TPair<bool, TWeakObjectPtr<UItemObject>> GetItemAtIndex(const int index);
 
 public:
 
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	TMap<TWeakObjectPtr<UItemObject>, FTile> GetAllItems() const;
+
+	/* 아이템 인벤토리에 추가 */
 
 	void AddItemAt(TWeakObjectPtr<UItemObject> newItemObj);
 
 	void AddItemAt(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft);
 
-	bool IsRoomAvailable(TWeakObjectPtr<UItemObject> newItemObj, const FTile& topLeft);
-
 protected:
 
-	TPair<bool, TWeakObjectPtr<UItemObject>> GetItemAtIndex(const int index);
-
-	FTile IndexToTile(int index);
+	int TileToIndex(FTile tile);
 
 public:
 
-	bool IsTileValid(FTile tile);
-
-	int TileToIndex(FTile tile);
+	/* 아이템 인벤토리에서 삭제 */
 
 	void RemoveItem(TWeakObjectPtr<UItemObject> removedItem);
 
@@ -68,46 +85,37 @@ public:
 
 	void RemoveEquipmentItem(const int boxNumber, const EEquipmentSlot slotType);
 
-	TMap<TWeakObjectPtr<UItemObject>, FTile> GetAllItems() const;
+	/* 아이템 장착 / 장착 해제 */
 
 	void EquipItem(const int boxNumber, TWeakObjectPtr<AItemBase> itemActor);
 
 	void UnequipItem(TWeakObjectPtr<AItemBase> itemActor);
 
+	TWeakObjectPtr<AItemBase> ArmRecentWeapon();
+
+	void DisarmWeapon();
+
+	TWeakObjectPtr<AItemBase> ChangeWeapon();
+
+	bool IsAnyWeaponArmed();
+
+	/* 아이템 사용 */
+
+	void UsingConsumableItemOfType(const EItemMainType itemType);
+
 	void Attack();
 
 	bool IsWeaponUsable();
 
-	TWeakObjectPtr<AItemBase> ArmRecentWeapon();
+	TWeakObjectPtr<UItemAmmo> FindAmmo(const EAmmoType ammoType);
 
-public:
+	/* Getter */
 
 	EWeaponType GetCurrentWeaponType() const;
 
-	void DisarmWeapon();
-
-	void InitializeEquippedWeaponArr(const int size);
-
 	int GetSlotNumber(TWeakObjectPtr<UItemObject> itemObj);
 
-	void SetCharacter(TWeakObjectPtr<APlayerCharacter> character);
-
 	TWeakObjectPtr<UItemObject> GetItemObjectOfType(const EItemMainType itemType);
-
-	TWeakObjectPtr<UItemAmmo> FindAmmo(const EAmmoType ammoType);
-
-	void UsingConsumableItemOfType(const EItemMainType itemType);
-
-	bool IsAnyWeaponArmed();
-
-	TWeakObjectPtr<AItemBase> ChangeWeapon();
-
-public:
-
-	FORCEINLINE uint8 GetColumns() const { return columns; }
-	FORCEINLINE uint8 GetRows() const { return rows; }
-
-	void SetRowColumn(const uint8 r, const uint8 c);
 
 private:
 

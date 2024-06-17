@@ -30,11 +30,19 @@ public:
 
 	void StartSocket();
 
+	/* 로그인 레벨 */
+
 	void SendAccountInfo(const FText& id, const FText& pw, const bool isLogin);
+
+	/* 메인 레벨 */
 
 	void NotifyAccessingGame(const CharacterInfo& info);
 
+	/* 캐릭터 동기화 */
+
 	void SynchronizeMyCharacterInfo(const CharacterInfo& info, const float pitch);
+
+	/* 좀비 상호작용 */
 
 	void SendInRangeZombie(int zombieNumber);
 
@@ -44,6 +52,8 @@ public:
 
 	void SendPlayerBlockingResult(const bool isSuccessToBlocking);
 
+	/* 아이템 동기화 */
+
 	void SendPickedItemInfo(const FString itemID);
 
 	void UpdateItemGridPoint(const FString itemID, const int xPoint, const int yPoint, const bool isRotated);
@@ -52,27 +62,35 @@ public:
 
 	void DropEquippedItem(const FString itemID);
 
-	void UnequipItem(const FString itemID, const int xPoint, const int yPoint);
-
 	void DropInventoryItem(const FString itemID);
 
-	void SendHittedCharacter(FHitInfo& hittedCharacter, const FString& itemID);
-
-	void SendKickedCharacters(const int characterNumber, const bool isPlayer);
-
-	void SendRespawnRequest();
-
-	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
+	void UnequipItem(const FString itemID, const int xPoint, const int yPoint);
 
 	void SendItemUsing(const FString& itemID, const int consumedAmount);
-
-	void ChangeWeapon(const FString& changedWeaponID);
 
 	void ArmWeapon(const FString& itemID);
 
 	void DisarmWeapon();
 
+	void ChangeWeapon(const FString& changedWeaponID);
+
+	/* 공격 동기화 */
+
 	void SendActivateWeaponAbility(const int32 inputType);
+
+	void SendHittedCharacter(FHitInfo& hittedCharacter, const FString& itemID);
+
+	void SendKickedCharacters(const int characterNumber, const bool isPlayer);
+
+	void ReplicateProjectile(const FVector& location, const FRotator& rotation);
+
+	/* 리스폰 */
+
+	void SendRespawnRequest();
+
+	/* 소켓 통신 */
+
+	void Send(std::stringstream& sendStream);
 
 	// FRunnable 가상 함수
 
@@ -87,8 +105,6 @@ public:
 	virtual void Stop() override;
 
 private:
-
-	bool isInitialized;
 
 	bool bRun;
 
